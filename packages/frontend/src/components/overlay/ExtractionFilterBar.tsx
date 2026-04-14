@@ -1,5 +1,5 @@
 import clsx from 'clsx'
-import { Layers, Database, Loader, AlertCircle, Cpu, ChevronRight } from 'lucide-react'
+import { Layers, Database, Loader, AlertCircle, Cpu, ChevronRight, Sparkles } from 'lucide-react'
 import {
   useExtractionStore,
   CATEGORY_META,
@@ -28,11 +28,16 @@ const SUBGROUPS: SubGroup[] = [
     label: 'Reference',
     categories: ['titleblock', 'grid_ref'],
   },
+  {
+    label: 'Eng. Tables',   // TATR-classified engineering tables
+    categories: ['bom', 'revision', 'tolerance_table'],
+  },
 ]
 
-const SOURCE_LABELS: Record<ExtractionSource, string> = {
-  pdfplumber: 'pdfplumber',
-  pymupdf: 'PyMuPDF',
+const SOURCE_LABELS: Record<ExtractionSource, { label: string; icon: 'db' | 'ai' }> = {
+  pdfplumber:        { label: 'pdfplumber',    icon: 'db' },
+  pymupdf:           { label: 'PyMuPDF',       icon: 'db' },
+  table_transformer: { label: 'Table Detect',  icon: 'ai' },
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -94,18 +99,20 @@ export default function ExtractionFilterBar() {
 
       {/* Sources */}
       <Section label="Source" dim={!overlayVisible}>
-        {(['pdfplumber', 'pymupdf'] as ExtractionSource[]).map((src) => {
-          const count = result.entities.filter((e) => e.source === src).length
+        {(['pdfplumber', 'pymupdf', 'table_transformer'] as ExtractionSource[]).map((src) => {
+          const count = [...result.entities, ...result.tables].filter((e) => e.source === src).length
+          if (count === 0 && src === 'table_transformer') return null
+          const meta = SOURCE_LABELS[src]
           return (
             <FilterBtn
               key={src}
               active={sourcesVisible[src] && overlayVisible}
               disabled={!overlayVisible}
               onClick={() => toggleSource(src)}
-              color="#6366f1"
+              color={src === 'table_transformer' ? '#a855f7' : '#6366f1'}
             >
-              <Database size={9} />
-              {SOURCE_LABELS[src]}
+              {meta.icon === 'ai' ? <Sparkles size={9} /> : <Database size={9} />}
+              {meta.label}
               <Count n={count} />
             </FilterBtn>
           )
