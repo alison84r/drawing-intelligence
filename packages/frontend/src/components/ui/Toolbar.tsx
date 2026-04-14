@@ -36,19 +36,25 @@ export default function Toolbar() {
 
       {/* Right: actions */}
       <div className="flex items-center gap-2">
-        <button
-          onClick={toggleTextHighlight}
-          title="Highlight all text labels (T)"
-          className={clsx(
-            'flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-medium transition-colors',
-            textHighlightActive
-              ? 'bg-yellow-400/20 text-yellow-300 border border-yellow-400/40'
-              : 'bg-surface-3 text-text-secondary hover:text-text-primary border border-border hover:border-text-muted'
-          )}
-        >
-          <Type size={13} />
-          Text Labels
-        </button>
+        {/* SVG-native text highlight — operates on SVG geometry directly */}
+        <div className="flex items-center gap-1 bg-surface-2 border border-border rounded-lg px-1 py-0.5">
+          <span className="text-[9px] text-text-muted uppercase tracking-widest px-1.5 select-none">
+            SVG
+          </span>
+          <button
+            onClick={toggleTextHighlight}
+            title="Highlight text elements embedded in the SVG geometry (T)"
+            className={clsx(
+              'flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-medium transition-colors',
+              textHighlightActive
+                ? 'bg-yellow-400/20 text-yellow-300 border border-yellow-400/40'
+                : 'bg-transparent text-text-secondary hover:text-text-primary border border-transparent hover:border-border'
+            )}
+          >
+            <Type size={12} />
+            Text
+          </button>
+        </div>
 
         {inspectorOpen && (
           <button

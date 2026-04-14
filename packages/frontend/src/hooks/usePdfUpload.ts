@@ -1,9 +1,13 @@
 import { useCallback, useRef } from 'react'
 import { useViewerStore } from '../store/viewerStore'
+import { useExtractionStore } from '../store/extractionStore'
 import { uploadPdf, pollConversion, fetchSvg } from '../api/client'
+import { extractPdf } from '../api/extractionClient'
 
 export function usePdfUpload() {
   const { setUploadState, setSvgContent, closeUploadPanel } = useViewerStore()
+  const setExtractionState = useExtractionStore((s) => s.setExtractionState)
+  const setResult = useExtractionStore((s) => s.setResult)
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   const stopPolling = () => {
@@ -47,13 +51,22 @@ export function usePdfUpload() {
             }
           }, 1500)
         })
+
+        // Auto-trigger extraction after SVG is loaded
+        setExtractionState('loading')
+        try {
+          const result = await extractPdf(file)
+          setResult(result)
+        } catch {
+          setExtractionState('error', 'Extraction failed — is the Python service running on port 8000?')
+        }
       } catch (err) {
         stopPolling()
         const msg = err instanceof Error ? err.message : 'Unknown error'
         setUploadState('error', 0, msg)
       }
     },
-    [setUploadState, setSvgContent, closeUploadPanel]
+    [setUploadState, setSvgContent, closeUploadPanel, setExtractionState, setResult]
   )
 
   return { upload }
