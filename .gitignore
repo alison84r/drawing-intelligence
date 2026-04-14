@@ -1,0 +1,7 @@
+node_modules/
+dist/
+*.zip
+PdfToSvg.NET.1.8.0/
+.pnpmfile.cjs
+.npmrc
+packages/backend/tmp/
