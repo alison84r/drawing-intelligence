@@ -5,3 +5,7 @@ PdfToSvg.NET.1.8.0/
 .pnpmfile.cjs
 .npmrc
 packages/backend/tmp/
+
+# Python
+__pycache__/
+*.pyc
