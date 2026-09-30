@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "frontend",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--filter", "frontend", "dev"],
+      "port": 5173
+    },
+    {
+      "name": "extractor",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["packages/extractor/run.py"],
+      "port": 8022
+    }
+  ]
+}

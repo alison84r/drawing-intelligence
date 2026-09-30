@@ -3,84 +3,73 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222 47% 11%;
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+    --primary: 347 77% 50%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 222 47% 11%;
+    --muted: 210 40% 96%;
+    --muted-foreground: 215 16% 47%;
+    --accent: 210 40% 96%;
+    --accent-foreground: 222 47% 11%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --ring: 347 77% 50%;
+    --radius: 0.5rem;
+    --balloon: 347 77% 50%;
+    --status-draft: 38 92% 50%;
+    --status-pass: 160 84% 39%;
+    --status-fail: 0 74% 42%;
+  }
+
+  .dark {
+    --background: 222 47% 11%;
+    --foreground: 210 40% 98%;
+    --card: 222 47% 11%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222 47% 11%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 347 77% 55%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 217 33% 17%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217 33% 17%;
+    --muted-foreground: 215 20% 65%;
+    --accent: 217 33% 17%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 63% 31%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217 33% 17%;
+    --input: 217 33% 17%;
+    --ring: 347 77% 55%;
+    --balloon: 347 77% 60%;
+  }
+
   * {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
+    @apply border-border;
   }
 
   html, body, #root {
     height: 100%;
     overflow: hidden;
-    background: #0f1117;
-    color: #e6edf3;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
     font-family: 'Inter', system-ui, sans-serif;
-    -webkit-font-smoothing: antialiased;
-  }
-}
-
-@layer components {
-  /* SVG canvas entity selection highlight */
-  .entity-selected {
-    stroke: #2563eb !important;
-    stroke-width: 2.5px !important;
-    filter: drop-shadow(0 0 4px rgba(37, 99, 235, 0.7)) !important;
+    font-size: 13px;
   }
 
-  /* Text highlight — CSS filter injected into SVG defs at runtime (feMorphology approach) */
-  .text-highlight-active text {
-    filter: url(#txt-highlight);
-  }
-
-  /* svg-pan-zoom host container */
-  .panzoom-host {
-    width: 100%;
-    height: 100%;
-    overflow: hidden;
-    position: relative;
-    background:
-      radial-gradient(circle, #2a2d35 1px, transparent 1px) 0 0 / 24px 24px,
-      #0f1117;
-  }
-
-  /* The injected SVG fills the host; svg-pan-zoom manages internal transforms */
-  .panzoom-host > svg {
-    display: block;
-    width: 100%;
-    height: 100%;
-    background: #ffffff;
-    box-shadow: 0 4px 40px rgba(0, 0, 0, 0.6);
-  }
-
-  /* Inspector panel slide-in */
-  .inspector-panel {
-    transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1),
-                opacity 0.2s ease;
-  }
-
-  .inspector-panel.open {
-    transform: translateX(0);
-    opacity: 1;
-  }
-
-  .inspector-panel.closed {
-    transform: translateX(100%);
-    opacity: 0;
-  }
-
-  /* Scrollbar styling */
-  ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
-  }
-  ::-webkit-scrollbar-track {
-    background: #161b22;
-  }
-  ::-webkit-scrollbar-thumb {
-    background: #30363d;
-    border-radius: 3px;
-  }
-  ::-webkit-scrollbar-thumb:hover {
-    background: #484f58;
-  }
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-track { @apply bg-transparent; }
+  ::-webkit-scrollbar-thumb { @apply bg-muted-foreground/30 rounded; }
+  ::-webkit-scrollbar-thumb:hover { @apply bg-muted-foreground/50; }
 }

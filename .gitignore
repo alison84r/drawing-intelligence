@@ -4,8 +4,17 @@ dist/
 PdfToSvg.NET.1.8.0/
 .pnpmfile.cjs
 .npmrc
-packages/backend/tmp/
 
 # Python
 __pycache__/
 *.pyc
+
+# Launcher runtime artifact (written by start.bat, deleted by stop.bat)
+.ports
+
+# Local-only files
+.claude/settings.local.json
+pdftosvg.exe
+packages/frontend/public/mock/
+.env
+*.di.json

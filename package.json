@@ -2,8 +2,8 @@
   "name": "drawing-intelligence",
   "private": true,
   "scripts": {
-    "dev": "concurrently -n backend,frontend,extractor -c cyan,magenta,yellow \"pnpm --filter backend dev\" \"pnpm --filter frontend dev\" \"python packages/extractor/run.py\"",
-    "build": "pnpm --filter backend build && pnpm --filter frontend build",
+    "dev": "concurrently -n frontend,extractor -c magenta,yellow \"pnpm --filter frontend dev\" \"python packages/extractor/run.py\"",
+    "build": "pnpm --filter frontend build",
     "lint": "pnpm -r lint",
     "typecheck": "pnpm -r typecheck"
   },

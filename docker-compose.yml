@@ -1,0 +1,21 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: di-postgres
+    environment:
+      POSTGRES_USER: di
+      POSTGRES_PASSWORD: di
+      POSTGRES_DB: drawing_intelligence
+    ports:
+      # Host port 5433: another Postgres on this machine already uses 5432.
+      - "5433:5432"
+    volumes:
+      - di-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U di -d drawing_intelligence"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  di-pgdata:
