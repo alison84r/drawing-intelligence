@@ -42,6 +42,7 @@ export function ExportDialog({ open, onClose }: Props) {
   const [ppap, setPpap] = useState(true)
   const [pdf, setPdf] = useState(true)
   const [includeReference, setIncludeReference] = useState(false)
+  const [includeDraft, setIncludeDraft] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -65,7 +66,7 @@ export function ExportDialog({ open, onClose }: Props) {
     try {
       // Make sure the server has the latest edits before it renders the report.
       if (saveState !== 'saved') await new Promise((r) => setTimeout(r, 1200))
-      const { blob, fileName } = await api.exportInspection(inspectionId, { as9102, ppap, pdf, includeReference })
+      const { blob, fileName } = await api.exportInspection(inspectionId, { as9102, ppap, pdf, includeReference, includeDraft })
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
@@ -105,7 +106,12 @@ export function ExportDialog({ open, onClose }: Props) {
           </label>
 
           {drafts > 0 && (
-            <p className="text-xs text-status-draft">{drafts} {drafts === 1 ? 'characteristic is' : 'characteristics are'} still Draft and export with an empty result.</p>
+            <label className="flex items-center justify-between gap-3 rounded-md border border-status-draft/40 px-3 py-2 text-xs">
+              <span className="text-status-draft">
+                {drafts} {drafts === 1 ? 'characteristic is' : 'characteristics are'} still Draft. Accept them, or include them unreviewed.
+              </span>
+              <Switch checked={includeDraft} onCheckedChange={setIncludeDraft} aria-label="Include Draft characteristics" />
+            </label>
           )}
           {error && <p className="text-xs text-status-fail" role="alert">{error}</p>}
         </div>

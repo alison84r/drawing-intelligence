@@ -16,7 +16,7 @@ function isTypingTarget(el: EventTarget | null): boolean {
 
 /**
  * Global shortcuts.
- * Tools: B single, M multiple, N sub-balloon, S select, H pan, Esc select, L leader line.
+ * Tools: B single, M multiple, N sub-balloon, S select, H pan, W window re-extract, Esc select, L leader line.
  * Edit: Delete/Backspace remove selected, Ctrl+Z undo, Ctrl+Y or Ctrl+Shift+Z redo.
  * View: + / - zoom, 0 fit, PageUp / PageDown change sheet.
  */
@@ -67,6 +67,10 @@ export function useKeyboardShortcuts() {
         case 'h':
         case 'H':
           setTool('pan')
+          break
+        case 'w':
+        case 'W':
+          setTool('window')
           break
         case 'l':
         case 'L': {

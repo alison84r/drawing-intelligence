@@ -4,6 +4,7 @@ import { useDocumentStore } from '@/store/documentStore'
 import { EMPTY_PART_INFO, usePartInfoStore, type PartInfo } from '@/store/partInfoStore'
 import { useProductAccountabilityStore, type ProductRow } from '@/store/productAccountabilityStore'
 import { useSessionStore } from '@/store/sessionStore'
+import { useRecognizeStore } from '@/store/recognizeStore'
 import { DEFAULT_BALLOON_STYLE, useSettingsStore, type DefaultTolerances, type Standard, type Units } from '@/store/settingsStore'
 
 export const PROJECT_SCHEMA_VERSION = 1
@@ -50,6 +51,7 @@ export async function openInspectionFromServer(inspectionId: string): Promise<In
 }
 
 export function closeInspection() {
+  useRecognizeStore.getState().clearTokens()
   useSessionStore.getState().closeInspection()
   useCharacteristicStore.getState().clear()
   useDocumentStore.getState().close()

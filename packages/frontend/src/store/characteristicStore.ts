@@ -84,6 +84,12 @@ interface CharacteristicState extends History {
   redo: () => void
   clear: () => void
   load: (items: Characteristic[]) => void
+  /** Adds records from the Recognize pass, numbering them after the existing balloons. One undo step. */
+  addMany: (records: Characteristic[]) => Characteristic[]
+  /** Draft rows from the pass become Accepted. One undo step. */
+  acceptAll: () => void
+  /** Removes every balloon the pass created. One undo step. */
+  removeAuto: () => void
 }
 
 const uid = () => (crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`)
@@ -236,6 +242,29 @@ export const useCharacteristicStore = create<CharacteristicState>()((set, get) =
     set({ items: next, past: [...s.past, s.items], future: rest, selectedId: null })
   },
 
+  addMany: (records) => {
+    const s = get()
+    const next = [...s.items]
+    const added: Characteristic[] = []
+    for (const r of records) {
+      const c: Characteristic = { ...r, id: r.id || uid(), balloonNumber: nextMainNumber(next), subNumber: null }
+      next.push(c)
+      added.push(c)
+    }
+    if (added.length) set(commitFrom(s, next))
+    return added
+  },
+  acceptAll: () => {
+    const s = get()
+    if (!s.items.some((c) => c.source === 'auto' && c.status === 'Draft')) return
+    set(commitFrom(s, s.items.map((c) => (c.source === 'auto' && c.status === 'Draft' ? { ...c, status: 'Accepted' } : c))))
+  },
+  removeAuto: () => {
+    const s = get()
+    if (!s.items.some((c) => c.source === 'auto')) return
+    const next = s.items.filter((c) => c.source !== 'auto')
+    set({ ...commitFrom(s, next), selectedId: next.some((c) => c.id === s.selectedId) ? s.selectedId : null })
+  },
   clear: () => set({ items: [], past: [], future: [], selectedId: null }),
   load: (items) => set({ items, past: [], future: [], selectedId: null }),
 }))

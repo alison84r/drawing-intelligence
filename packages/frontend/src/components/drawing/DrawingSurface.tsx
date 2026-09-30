@@ -11,6 +11,8 @@ import { screenToPage, type Point, type ScreenMap } from '@/lib/geometry'
 import { cn } from '@/lib/utils'
 import { PdfCanvas } from './PdfCanvas'
 import { BalloonLayer } from './BalloonLayer'
+import { TokenLayer } from './TokenLayer'
+import { useRecognizeStore } from '@/store/recognizeStore'
 
 const WHEEL_ZOOM_SENSITIVITY = 0.0015
 
@@ -45,6 +47,9 @@ export function DrawingSurface() {
   const addBalloon = useCharacteristicStore((s) => s.addBalloon)
   const selectBalloon = useCharacteristicStore((s) => s.select)
   const [hover, setHover] = useState<Point | null>(null)
+  const setBand = useRecognizeStore((s) => s.setBand)
+  const runRecognize = useRecognizeStore((s) => s.run)
+  const bandStart = useRef<Point | null>(null)
 
   const pageSize = pages[pageIndex]
   const map: ScreenMap | null = pageSize ? { scale, offsetX, offsetY, rotation, size: pageSize } : null
@@ -159,6 +164,13 @@ export function DrawingSurface() {
         return
       }
       if (e.button !== 0 || !map) return
+      if (tool === 'window') {
+        ;(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
+        const p = screenToPage(localPoint(e), map)
+        bandStart.current = p
+        setBand({ x: p.x, y: p.y, w: 0, h: 0 })
+        return
+      }
       if (tool === 'single' || tool === 'multiple') {
         addBalloon({ page: pageIndex, at: screenToPage(localPoint(e), map), leader: leaderDefault })
         if (tool === 'single') setTool('select')
@@ -166,7 +178,7 @@ export function DrawingSurface() {
       }
       if (tool === 'select') selectBalloon(null)
     },
-    [doc, panEnabled, map, tool, addBalloon, pageIndex, leaderDefault, setTool, selectBalloon],
+    [doc, panEnabled, map, tool, addBalloon, pageIndex, leaderDefault, setTool, selectBalloon, setBand],
   )
 
   const onPointerMove = useCallback(
@@ -176,15 +188,30 @@ export function DrawingSurface() {
         panLast.current = { x: e.clientX, y: e.clientY }
         return
       }
+      if (bandStart.current && map) {
+        const p = screenToPage(localPoint(e), map)
+        const s = bandStart.current
+        setBand({ x: Math.min(s.x, p.x), y: Math.min(s.y, p.y), w: Math.abs(p.x - s.x), h: Math.abs(p.y - s.y) })
+        return
+      }
       if (tool === 'single' || tool === 'multiple') setHover(localPoint(e))
     },
-    [panBy, tool],
+    [panBy, tool, map, setBand],
   )
 
   const endPan = useCallback(() => {
     panLast.current = null
     setPanning(false)
-  }, [])
+    if (bandStart.current) {
+      bandStart.current = null
+      const band = useRecognizeStore.getState().band
+      setBand(null)
+      if (band && band.w > 4 && band.h > 4) {
+        void runRecognize({ region: band, pages: [pageIndex] })
+        setTool('select')
+      }
+    }
+  }, [setBand, runRecognize, pageIndex, setTool])
 
   const onDrop = useCallback(
     (e: React.DragEvent) => {
@@ -200,7 +227,7 @@ export function DrawingSurface() {
     ? 'cursor-grabbing'
     : panEnabled
       ? 'cursor-grab'
-      : tool === 'single' || tool === 'multiple'
+      : tool === 'single' || tool === 'multiple' || tool === 'window'
         ? 'cursor-crosshair'
         : 'cursor-default'
 
@@ -223,6 +250,7 @@ export function DrawingSurface() {
       data-testid="drawing-surface"
     >
       {page && <PdfCanvas page={page} scale={scale} rotation={rotation} offsetX={offsetX} offsetY={offsetY} />}
+      {page && map && <TokenLayer map={map} page={pageIndex} />}
       {page && map && <BalloonLayer map={map} page={pageIndex} hover={hover} leaderDefault={leaderDefault} />}
 
       {status !== 'ready' && (

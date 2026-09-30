@@ -52,6 +52,42 @@ export interface InspectionDetail extends Omit<InspectionSummary, 'characteristi
   part: { id: string; partNumber: string; partName: string }
 }
 
+export interface RecognizeToken {
+  id: string
+  page: number
+  text: string
+  bbox: { x: number; y: number; w: number; h: number }
+  size: number
+  font: string
+  rot: number
+  kind: string
+  cls: 'char' | 'ruled' | 'open'
+  reason: string
+  charId: string | null
+  guess: Characteristic | null
+}
+
+export interface RecognizePage {
+  page: number
+  width: number
+  height: number
+  dimensionFontSize: number
+  zones: { cols: [number, string][]; rows: [number, string][]; synthetic: boolean }
+  tables: number[][]
+  arrowheads: number
+  tokens: RecognizeToken[]
+  characteristics: Characteristic[]
+  stats: { tokens: number; char: number; open: number; ruled: number; characteristics: number; needsYou: number }
+}
+
+export interface RecognizeRequest {
+  pages: number[] | null
+  region: { x: number; y: number; w: number; h: number } | null
+  relaxed: boolean
+  units: string
+  existing: { page: number; bbox: Characteristic['bbox'] }[]
+}
+
 export class ApiError extends Error {
   constructor(public status: number, message: string) {
     super(message)
@@ -114,9 +150,11 @@ export const api = {
   ) => request<InspectionSummary>(`/api/inspections/${id}`, json(body, 'PUT')),
   deleteInspection: (id: string) => request<void>(`/api/inspections/${id}`, { method: 'DELETE' }),
 
+  recognize: (revisionId: string, body: RecognizeRequest) => request<{ pages: RecognizePage[] }>(`/api/revisions/${revisionId}/recognize`, json(body)),
+
   exportInspection: async (
     id: string,
-    opts: { as9102: boolean; ppap: boolean; pdf: boolean; includeReference: boolean },
+    opts: { as9102: boolean; ppap: boolean; pdf: boolean; includeReference: boolean; includeDraft?: boolean },
   ): Promise<{ blob: Blob; fileName: string }> => {
     const res = await fetch(`/api/inspections/${id}/export`, json(opts))
     if (!res.ok) {

@@ -16,9 +16,12 @@ import {
   Save,
   Sparkles,
   Spline,
+  SquareDashedMousePointer,
   Trash2,
   Undo2,
+  Loader2,
 } from 'lucide-react'
+import { useRecognizeStore } from '@/store/recognizeStore'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
@@ -41,6 +44,7 @@ const TOOLS: { value: ToolMode; label: string; hint: string; icon: React.ReactNo
   { value: 'sub', label: 'Sub-Balloon', hint: 'Click a balloon to add 5.1, 5.2 (N)', icon: <GitBranch /> },
   { value: 'select', label: 'Select', hint: 'Select and drag (S)', icon: <MousePointer2 /> },
   { value: 'pan', label: 'Pan', hint: 'Pan the drawing (H)', icon: <Hand /> },
+  { value: 'window', label: 'Window', hint: 'Window re-extract: drag over a region (W)', icon: <SquareDashedMousePointer /> },
 ]
 
 export function IconButton({
@@ -105,6 +109,9 @@ export function TopBar() {
 
   const fileInput = useRef<HTMLInputElement>(null)
   const [importNote, setImportNote] = useState<string | null>(null)
+  const recognizing = useRecognizeStore((s) => s.status === 'running')
+  const runRecognize = useRecognizeStore((s) => s.run)
+  const revisionId = useSessionStore((s) => s.revisionId)
   const [exportOpen, setExportOpen] = useState(false)
 
   useEffect(() => {
@@ -157,11 +164,11 @@ export function TopBar() {
       <div className="flex flex-1 items-center justify-center gap-2">
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button variant="outline" size="sm" className="h-8 gap-1.5" disabled>
-              <Sparkles /> Auto
+            <Button variant="outline" size="sm" className="h-8 gap-1.5" disabled={!ready || !revisionId || recognizing} onClick={() => void runRecognize()} data-testid="topbar-recognize">
+              {recognizing ? <Loader2 className="animate-spin" /> : <Sparkles />} <span className="hidden xl:inline">Recognize</span>
             </Button>
           </TooltipTrigger>
-          <TooltipContent>Auto-extract characteristics (Phase 2)</TooltipContent>
+          <TooltipContent>Recognize characteristics from the drawing text and geometry</TooltipContent>
         </Tooltip>
 
         <ToggleGroup type="single" value={tool} onValueChange={(v) => v && setTool(v as ToolMode)} aria-label="Balloon tools">

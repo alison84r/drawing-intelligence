@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 
-export type ToolMode = 'select' | 'pan' | 'single' | 'multiple' | 'sub'
+export type ToolMode = 'select' | 'pan' | 'single' | 'multiple' | 'sub' | 'window'
 export type BottomTab = 'boc' | 'part' | 'accountability'
 
 interface UiState {

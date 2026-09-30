@@ -2,6 +2,7 @@
 Drawing Intelligence — API service (FastAPI, port 8000).
 
 POST /extract              — multipart PDF → token extraction (pdfplumber + PyMuPDF)
+POST /api/revisions/{id}/recognize — deterministic Recognize pass (tokens, zones, groups, balloons)
 /api/...                   — drawing library: parts, revisions, inspections (Postgres)
 GET  /health               — liveness, database status
 """
@@ -15,7 +16,7 @@ from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 
 from extractors import pdfplumber_extractor, pymupdf_extractor, table_transformer_extractor
-from routers import export, library
+from routers import export, library, recognize
 
 DB_STATUS: dict[str, Any] = {"ok": False, "error": None}
 
@@ -44,6 +45,7 @@ app.add_middleware(
 
 app.include_router(library.router)
 app.include_router(export.router)
+app.include_router(recognize.router)
 
 
 @app.get("/health")

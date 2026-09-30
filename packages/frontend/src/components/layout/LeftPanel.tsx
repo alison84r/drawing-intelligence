@@ -13,6 +13,7 @@ import {
 } from '@/store/settingsStore'
 import { useDocumentStore } from '@/store/documentStore'
 import { BalloonStyleEditor } from '@/components/balloons/BalloonStyleEditor'
+import { RecognizePanel } from './RecognizePanel'
 
 const TOLERANCE_ROWS: { key: keyof DefaultTolerances; label: string; hint: string }[] = [
   { key: 'places0', label: 'X', hint: 'no decimals' },
@@ -61,6 +62,8 @@ export function LeftPanel() {
           </p>
         )}
       </Section>
+
+      <RecognizePanel />
 
       <Section title="Units">
         <ToggleGroup type="single" value={units} onValueChange={(v) => v && setUnits(v as Units)} className="w-full">

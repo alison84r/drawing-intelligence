@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Check, MousePointerClick, Palette, Spline, Trash2 } from 'lucide-react'
+import { Check, MousePointerClick, Palette, Sparkles, Spline, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -161,6 +161,19 @@ export function RightPanel() {
         </div>
         <StatusBadge status={status} />
       </div>
+      {c.source === 'auto' && (
+        <div className="flex items-center gap-2 border-b bg-primary/5 px-4 py-2 text-[11px]" data-testid="auto-banner">
+          <Sparkles className="size-3.5 shrink-0 text-primary" />
+          <span className="text-muted-foreground">
+            Recognized · confidence <span className="font-medium text-foreground">{Math.round(c.confidence * 100)}%</span>
+          </span>
+          {c.status === 'Draft' && (
+            <Button size="sm" variant="outline" className="ml-auto h-6 gap-1 px-2 text-[11px]" onClick={() => patch({ status: 'Accepted' })}>
+              <Check className="size-3" /> Accept
+            </Button>
+          )}
+        </div>
+      )}
 
       <div className="flex-1 space-y-3 overflow-y-auto p-4">
         <div className="grid grid-cols-2 gap-2">

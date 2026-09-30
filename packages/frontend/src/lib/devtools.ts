@@ -6,6 +6,7 @@ import { useCharacteristicStore } from '@/store/characteristicStore'
 import { usePartInfoStore } from '@/store/partInfoStore'
 import { useSessionStore } from '@/store/sessionStore'
 import { useProductAccountabilityStore } from '@/store/productAccountabilityStore'
+import { useRecognizeStore } from '@/store/recognizeStore'
 import { buildProjectFile, importProjectFile, openInspectionFromServer, closeInspection } from '@/lib/project'
 
 /** Exposes stores on window.__di in dev builds so the browser console and automated checks can inspect state. */
@@ -20,6 +21,7 @@ export function installDevtools() {
     partInfo: usePartInfoStore,
     session: useSessionStore,
     productAccountability: useProductAccountabilityStore,
+    recognize: useRecognizeStore,
     project: { buildProjectFile, importProjectFile, openInspectionFromServer, closeInspection },
   }
 }
