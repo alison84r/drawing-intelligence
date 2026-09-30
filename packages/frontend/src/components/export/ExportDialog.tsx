@@ -8,6 +8,7 @@ import { useCharacteristicStore } from '@/store/characteristicStore'
 import { useSessionStore } from '@/store/sessionStore'
 import { useSettingsStore } from '@/store/settingsStore'
 import { cn } from '@/lib/utils'
+import { BRAND } from '@/components/brand/Brand'
 
 interface Props {
   open: boolean
@@ -110,7 +111,7 @@ export function ExportDialog({ open, onClose }: Props) {
         </div>
 
         <div className="flex items-center justify-between border-t px-4 py-3 text-xs text-muted-foreground">
-          <span>{[as9102, ppap, pdf].filter(Boolean).length > 1 ? 'Files download as one zip.' : 'Downloads a single file.'}</span>
+          <span>{[as9102, ppap, pdf].filter(Boolean).length > 1 ? 'Files download as one zip.' : 'Downloads a single file.'} Reports carry the {BRAND.company} mark.</span>
           <div className="flex gap-2">
             <Button variant="outline" size="sm" onClick={onClose} disabled={busy}>Cancel</Button>
             <Button size="sm" className="gap-1.5" onClick={run} disabled={busy || nothing || items.length === 0}>

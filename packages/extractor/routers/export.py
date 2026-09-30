@@ -64,7 +64,7 @@ def export_inspection(inspection_id: str, body: ExportRequest) -> Response:
     if body.ppap:
         files.append((f"{base}_PPAP_Dimensional_Results.xlsx", build_ppap_workbook(info, chars, defaults)))
     if body.pdf:
-        stamp = f"{info.get('partNumber', '')} Rev {info.get('drawingRevision', '')} · {len(chars)} characteristics · Drawing Intelligence"
+        stamp = f"{info.get('partNumber', '')} Rev {info.get('drawingRevision', '')} · {len(chars)} characteristics · Drawing Intelligence by DataVers.AI"
         files.append((f"{base}_ballooned.pdf", build_ballooned_pdf(pdf_bytes, chars, settings, stamp)))
     if not files:
         raise HTTPException(400, "Nothing selected to export")

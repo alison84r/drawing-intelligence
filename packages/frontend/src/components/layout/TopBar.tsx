@@ -24,6 +24,7 @@ import { Switch } from '@/components/ui/switch'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { ThemeToggle } from '@/components/theme/ThemeToggle'
+import { BRAND, BrandLogo } from '@/components/brand/Brand'
 import { useUiStore, type ToolMode } from '@/store/uiStore'
 import { useDocumentStore } from '@/store/documentStore'
 import { useSettingsStore } from '@/store/settingsStore'
@@ -142,9 +143,11 @@ export function TopBar() {
         <PanelLeft />
       </IconButton>
 
+      <BrandLogo height={20} className="hidden md:inline-flex" />
+      <div className="hidden h-6 w-px bg-border md:block" />
       <div className="min-w-0">
-        <div className="truncate whitespace-nowrap text-sm font-semibold tracking-tight">{partLabel || 'Drawing Intelligence'}</div>
-        <div className="truncate text-[11px] leading-none text-muted-foreground">{inspectionTitle}</div>
+        <div className="truncate whitespace-nowrap text-sm font-semibold tracking-tight">{BRAND.product}</div>
+        <div className="truncate text-[11px] leading-none text-muted-foreground">{[partLabel, inspectionTitle].filter(Boolean).join(' · ')}</div>
       </div>
 
       <div className="mx-1 hidden lg:block">

@@ -20,6 +20,7 @@ export default {
         popover: { DEFAULT: 'hsl(var(--popover))', foreground: 'hsl(var(--popover-foreground))' },
         card: { DEFAULT: 'hsl(var(--card))', foreground: 'hsl(var(--card-foreground))' },
         balloon: 'hsl(var(--balloon))',
+        brand: { navy: '#004a77', cyan: '#00d8f0' },
         status: {
           draft: 'hsl(var(--status-draft))',
           pass: 'hsl(var(--status-pass))',

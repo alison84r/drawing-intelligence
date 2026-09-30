@@ -6,6 +6,7 @@ import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
 import { useAutosave } from '@/hooks/useAutosave'
 import { useUiStore } from '@/store/uiStore'
 import { cn } from '@/lib/utils'
+import { BrandFooter } from '@/components/brand/Brand'
 import { TopBar } from './TopBar'
 import { LeftPanel } from './LeftPanel'
 import { RightPanel } from './RightPanel'
@@ -113,6 +114,7 @@ export function AppShell() {
             <RightPanel />
           </Panel>
         </Group>
+        <BrandFooter />
       </div>
     </TooltipProvider>
   )

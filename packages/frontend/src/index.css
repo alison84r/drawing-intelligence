@@ -73,3 +73,8 @@
   ::-webkit-scrollbar-thumb { @apply bg-muted-foreground/30 rounded; }
   ::-webkit-scrollbar-thumb:hover { @apply bg-muted-foreground/50; }
 }
+
+/* The white-and-cyan logo only ever sits on brand navy (light) or straight on the dark header. */
+.brand-chip { background-color: #004a77; padding: 6px 12px; border-radius: 6px; }
+.brand-chip.brand-chip-sm { padding: 2px 6px; border-radius: 4px; }
+.dark .brand-chip { background-color: transparent; padding: 0; }

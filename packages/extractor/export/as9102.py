@@ -14,6 +14,7 @@ from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from openpyxl.utils import get_column_letter
 
 from .characteristics import balloon_label, derive_limits, display_status, fmt, num, requirement_text, sort_key
+from .brand import credit_row, place_logo
 from .fcf_image import render_fcf_png
 
 THIN = Side(style="thin", color="000000")
@@ -53,9 +54,11 @@ def _header_row(ws, row: int, labels: list[str], widths: list[int]) -> None:
 
 
 def _part_header(ws, info: dict[str, Any], title: str, cols: int) -> int:
-    ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=cols)
-    ws.cell(row=1, column=1, value=title).font = TITLE_FONT
-    ws.row_dimensions[1].height = 22
+    ws.merge_cells(start_row=1, start_column=3, end_row=1, end_column=cols)
+    ws.cell(row=1, column=3, value=title).font = TITLE_FONT
+    ws.cell(row=1, column=3).alignment = Alignment(vertical="center")
+    ws.row_dimensions[1].height = 34
+    place_logo(ws, "A1", height_px=40)
     _labelled(ws, 2, 1, "1. Part Number", info.get("partNumber", ""), 3)
     _labelled(ws, 2, 4, "2. Part Name", info.get("partName", ""), 3)
     _labelled(ws, 2, 7, "3. Serial Number", info.get("serialNumbers", ""), 2)
@@ -65,8 +68,11 @@ def _part_header(ws, info: dict[str, Any], title: str, cols: int) -> int:
 
 def build_form1(ws, info: dict[str, Any], stats: dict[str, Any]) -> None:
     ws.title = "Form 1"
-    ws.merge_cells("A1:F1")
-    ws.cell(row=1, column=1, value="AS9102 Rev C  Form 1: Part Number Accountability").font = TITLE_FONT
+    ws.merge_cells("B1:F1")
+    ws.cell(row=1, column=2, value="AS9102 Rev C  Form 1: Part Number Accountability").font = TITLE_FONT
+    ws.cell(row=1, column=2).alignment = Alignment(vertical="center")
+    ws.row_dimensions[1].height = 34
+    place_logo(ws, "A1", height_px=40)
     for col in "ABCDEF":
         ws.column_dimensions[col].width = 26
     fields = [
@@ -100,6 +106,7 @@ def build_form1(ws, info: dict[str, Any], stats: dict[str, Any]) -> None:
     for j, label in enumerate(["19. Signature", "20. Date", "21. Reviewed By", "22. Date", "23. Customer Approval", "24. Date"]):
         _labelled(ws, row, 1 + j, label, "", 1)
         ws.column_dimensions[get_column_letter(1 + j)].width = 26
+    credit_row(ws, row + 2, 6)
 
 
 def build_form2(ws, info: dict[str, Any], rows: list[dict[str, Any]]) -> None:
@@ -130,6 +137,7 @@ def build_form2(ws, info: dict[str, Any], rows: list[dict[str, Any]]) -> None:
         for i in range(1, len(labels) + 1):
             ws.cell(row=row, column=i).border = BORDER
         row += 1
+    credit_row(ws, row + 1, len(labels))
 
 
 def build_form3(ws, info: dict[str, Any], chars: list[dict[str, Any]], defaults: dict[str, float], sheet_names: dict[int, str] | None = None) -> dict[str, Any]:
@@ -175,6 +183,7 @@ def build_form3(ws, info: dict[str, Any], chars: list[dict[str, Any]], defaults:
         else:
             ws.row_dimensions[row].height = 18
         row += 1
+    credit_row(ws, row + 1, len(labels))
     ws.freeze_panes = ws.cell(row=4, column=1)
     return {"count": len(chars), "measured": measured, "fails": fails}
 

@@ -9,9 +9,11 @@ from typing import Any
 
 from openpyxl import Workbook
 from openpyxl.drawing.image import Image as XlImage
+from openpyxl.styles import Alignment
 
 from .as9102 import BORDER, CELL_FONT, CENTER, FAIL_FONT, PASS_FONT, TITLE_FONT, WRAP, _header_row, _labelled
 from .characteristics import balloon_label, derive_limits, display_status, fmt, num, requirement_text, sort_key
+from .brand import credit_row, place_logo
 from .fcf_image import render_fcf_png
 
 
@@ -21,8 +23,11 @@ def build_ppap_workbook(info: dict[str, Any], chars: list[dict[str, Any]], defau
     ws.title = "Dimensional Results"
     labels = ["Item", "Dimension / Specification", "Min", "Max", "Result", "OK / Not OK", "Zone", "Sheet", "Comments"]
     widths = [8, 36, 12, 12, 12, 14, 8, 8, 30]
-    ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=len(labels))
-    ws.cell(row=1, column=1, value="PPAP Dimensional Results").font = TITLE_FONT
+    ws.merge_cells(start_row=1, start_column=3, end_row=1, end_column=len(labels))
+    ws.cell(row=1, column=3, value="PPAP Dimensional Results").font = TITLE_FONT
+    ws.cell(row=1, column=3).alignment = Alignment(vertical="center")
+    ws.row_dimensions[1].height = 34
+    place_logo(ws, "A1", height_px=40)
     _labelled(ws, 2, 1, "Part Number", info.get("partNumber", ""), 2)
     _labelled(ws, 2, 3, "Part Name", info.get("partName", ""), 2)
     _labelled(ws, 2, 5, "Supplier", info.get("organization", ""), 2)
@@ -54,6 +59,7 @@ def build_ppap_workbook(info: dict[str, Any], chars: list[dict[str, Any]], defau
             ws.add_image(img, f"B{row}")
             ws.row_dimensions[row].height = 24
         row += 1
+    credit_row(ws, row + 1, len(labels))
     ws.freeze_panes = "A4"
     out = io.BytesIO()
     wb.save(out)

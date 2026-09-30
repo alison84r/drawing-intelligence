@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { ThemeToggle } from '@/components/theme/ThemeToggle'
+import { BRAND, BrandFooter, BrandLogo } from '@/components/brand/Brand'
 import { api, type InspectionSummary, type PartSummary, type RevisionSummary } from '@/lib/api'
 import { openInspectionFromServer } from '@/lib/project'
 import { cn } from '@/lib/utils'
@@ -154,8 +155,12 @@ export function LibraryScreen() {
     <TooltipProvider delayDuration={300}>
       <div className="flex h-full flex-col bg-background" onDragOver={(e) => e.preventDefault()}>
         <header className="flex h-12 shrink-0 items-center gap-3 border-b px-4">
-          <span className="whitespace-nowrap text-sm font-semibold tracking-tight">Drawing Intelligence</span>
-          <span className="text-xs text-muted-foreground">Drawing library</span>
+          <BrandLogo height={20} />
+          <div className="h-6 w-px bg-border" />
+          <div className="min-w-0">
+            <div className="whitespace-nowrap text-sm font-semibold tracking-tight">{BRAND.product}</div>
+            <div className="text-[11px] leading-none text-muted-foreground">Drawing library</div>
+          </div>
           <div className="relative ml-auto w-64">
             <Search className="pointer-events-none absolute left-2 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
             <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search part number or name" className="h-8 pl-7" aria-label="Search parts" />
@@ -329,6 +334,7 @@ export function LibraryScreen() {
             e.target.value = ''
           }}
         />
+        <BrandFooter />
       </div>
     </TooltipProvider>
   )

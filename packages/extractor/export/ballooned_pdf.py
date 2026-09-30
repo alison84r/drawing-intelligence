@@ -12,6 +12,7 @@ from typing import Any
 
 import fitz  # PyMuPDF
 
+from .brand import COMPANY, COPYRIGHT, PRODUCT, logo_bytes
 from .characteristics import balloon_label, derive_limits, display_status, sort_key
 
 DEFAULT_STYLE = {"shape": "circle", "fill": "outline", "color": "#e11d48", "size": 22.0, "prefix": "", "weight": 600}
@@ -79,9 +80,17 @@ def build_ballooned_pdf(pdf_bytes: bytes, chars: list[dict[str, Any]], settings:
             align=fitz.TEXT_ALIGN_CENTER,
         )
 
+    logo = logo_bytes()
     for page in doc:
-        w = page.rect.width
-        page.insert_textbox(fitz.Rect(w - 300, 4, w - 6, 18), f"{stamp} · {date.today().isoformat()}", fontsize=7, fontname="helv", color=(0.3, 0.3, 0.3), align=fitz.TEXT_ALIGN_RIGHT)
+        w, h = page.rect.width, page.rect.height
+        # Top-right: navy logo chip plus the inspection stamp. Bottom-left: copyright.
+        band = page.new_shape()
+        band.draw_rect(fitz.Rect(w - 424, 2, w - 4, 22))
+        band.finish(color=(0.75, 0.75, 0.75), fill=(1, 1, 1), width=0.4, fill_opacity=0.92)
+        band.commit()
+        page.insert_image(fitz.Rect(w - 78, 3, w - 6, 21), stream=logo, keep_proportion=True)
+        page.insert_textbox(fitz.Rect(w - 420, 4, w - 82, 20), f"{stamp} · {date.today().isoformat()}", fontsize=7, fontname="helv", color=(0.3, 0.3, 0.3), align=fitz.TEXT_ALIGN_RIGHT)
+        page.insert_textbox(fitz.Rect(6, h - 14, 400, h - 2), f"{COPYRIGHT} · {PRODUCT}", fontsize=6, fontname="helv", color=(0.45, 0.45, 0.45))
 
     out = doc.tobytes(garbage=3, deflate=True)
     doc.close()
