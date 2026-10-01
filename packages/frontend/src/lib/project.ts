@@ -41,12 +41,14 @@ export async function openInspectionFromServer(inspectionId: string): Promise<In
   useProductAccountabilityStore.getState().load(detail.productAccountability ?? [])
   applySettings(detail.settings)
 
+  useRecognizeStore.getState().clearTokens()
   useSessionStore.getState().openInspection({
     inspectionId: detail.id,
     revisionId: detail.revision.id,
     partLabel: `${detail.part.partNumber} · Rev ${detail.revision.revision}`,
     inspectionTitle: detail.title,
   })
+  void useRecognizeStore.getState().loadScene(detail.revision.id)
   return detail
 }
 

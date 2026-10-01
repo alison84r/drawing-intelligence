@@ -8,7 +8,7 @@ from typing import Any
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
-from db import DrawingRevision, get_session
+from db import DrawingRevision, RevisionScene, get_session
 from recognize.intake import RECOGNIZER_VERSION, intake
 from recognize.pipeline import recognize
 
@@ -33,6 +33,16 @@ def recognize_revision(revision_id: str, body: RecognizeRequest) -> dict[str, An
     try:
         out = recognize(pdf_bytes, pages=body.pages, region=body.region, relaxed=body.relaxed, units=body.units, existing_bboxes=body.existing)
         out["recognizerVersion"] = RECOGNIZER_VERSION
+        if body.region is None and body.pages is None:
+            # Keep what was read on this revision, so reopening shows it and audits can cite it.
+            stored = {"pages": [{k: v for k, v in p.items() if k != "characteristics"} | {"characteristics": []} for p in out["pages"]]}
+            with get_session() as s:
+                row = s.get(RevisionScene, revision_id)
+                if row:
+                    row.recognizer_version, row.payload = RECOGNIZER_VERSION, stored
+                else:
+                    s.add(RevisionScene(revision_id=revision_id, recognizer_version=RECOGNIZER_VERSION, payload=stored))
+                s.commit()
         return out
     except Exception as exc:  # noqa: BLE001
         raise HTTPException(500, f"Recognize failed: {exc}") from exc
@@ -50,3 +60,13 @@ def intake_revision(revision_id: str) -> dict[str, Any]:
         return intake(pdf_bytes)
     except Exception as exc:  # noqa: BLE001
         raise HTTPException(500, f"Intake check failed: {exc}") from exc
+
+
+@router.get("/revisions/{revision_id}/scene")
+def revision_scene(revision_id: str) -> dict[str, Any]:
+    """The stored recognizer scene for a revision, or {pages: []} when Recognize has not run on it."""
+    with get_session() as s:
+        row = s.get(RevisionScene, revision_id)
+        if not row:
+            return {"pages": [], "recognizerVersion": None, "current": RECOGNIZER_VERSION}
+        return {**row.payload, "recognizerVersion": row.recognizer_version, "current": RECOGNIZER_VERSION, "storedAt": row.created_at.isoformat()}

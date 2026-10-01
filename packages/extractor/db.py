@@ -84,6 +84,15 @@ class Characteristic(Base):
     inspection: Mapped[Inspection] = relationship(back_populates="characteristics")
 
 
+class RevisionScene(Base):
+    """What the recognizer read on a revision: tokens, zones, geometry audit. One row per revision, replaced on re-run."""
+    __tablename__ = "revision_scene"
+    revision_id: Mapped[str] = mapped_column(ForeignKey("drawing_revision.id", ondelete="CASCADE"), primary_key=True)
+    recognizer_version: Mapped[str] = mapped_column(String(40))
+    payload: Mapped[dict[str, Any]] = mapped_column(JSONB)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+
+
 def init_db() -> None:
     Base.metadata.create_all(engine)
     # Columns added after the first demo install. Alembic replaces this in the production build.
@@ -95,4 +104,4 @@ def get_session() -> Session:
     return SessionLocal()
 
 
-__all__ = ["Base", "Part", "DrawingRevision", "Inspection", "Characteristic", "engine", "init_db", "get_session", "func", "Text"]
+__all__ = ["Base", "Part", "DrawingRevision", "Inspection", "Characteristic", "RevisionScene", "engine", "init_db", "get_session", "func", "Text"]

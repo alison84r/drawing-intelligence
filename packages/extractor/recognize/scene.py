@@ -128,6 +128,40 @@ def find_arrows(page: Any) -> list[Arrow]:
     return arrows
 
 
+def find_open_arrows(segs: list[tuple[Pt, Pt]]) -> list[Arrow]:
+    """Arrowheads drawn as two short strokes meeting at the tip."""
+    short = [(a, b) for a, b in segs if 3.0 <= _dist(a, b) <= 16.0]
+    ends: list[tuple[float, float, Pt]] = []
+    for a, b in short:
+        ends.append((a[0], a[1], b))
+        ends.append((b[0], b[1], a))
+    ends.sort()
+    out: list[Arrow] = []
+    used: set[int] = set()
+    for i in range(len(ends)):
+        if i in used:
+            continue
+        xi, yi, oi = ends[i]
+        j = i + 1
+        while j < len(ends) and ends[j][0] - xi <= 0.6:
+            xj, yj, oj = ends[j]
+            if j not in used and abs(yj - yi) <= 0.6:
+                v1, v2 = _sub(oi, (xi, yi)), _sub(oj, (xj, yj))
+                n1, n2 = _len(v1), _len(v2)
+                if n1 and n2 and abs(n1 - n2) <= 0.25 * max(n1, n2):
+                    ang = math.degrees(math.acos(max(-1.0, min(1.0, _dot(v1, v2) / (n1 * n2)))))
+                    if 14.0 <= ang <= 60.0:
+                        base = ((oi[0] + oj[0]) / 2, (oi[1] + oj[1]) / 2)
+                        tip = (xi, yi)
+                        length = _dist(tip, base)
+                        d = _sub(tip, base)
+                        out.append(Arrow(tip, base, (d[0] / length, d[1] / length), length))
+                        used.update((i, j))
+                        break
+            j += 1
+    return out
+
+
 def find_segments(page: Any) -> list[tuple[Pt, Pt]]:
     segs: list[tuple[Pt, Pt]] = []
     for ln in page.lines:
@@ -155,7 +189,7 @@ def _attach_shafts(arrows: list[Arrow], segs: list[tuple[Pt, Pt]]) -> None:
                 # The shaft starts somewhere on the head (tip … base) and runs backwards along its axis.
                 rel = _sub(near, ar.tip)
                 along = -_dot(rel, ar.dir)
-                if not (-0.8 <= along <= ar.length + 1.2) or abs(_cross(rel, ar.dir)) > 0.9:
+                if not (-0.8 <= along <= ar.length + 1.2) or abs(_cross(rel, ar.dir)) > 0.9 or _dist(near, far) <= ar.length * 1.3:
                     continue
                 v = _sub(far, near)
                 n = _len(v)
@@ -242,6 +276,8 @@ def _leaders(arrows: list[Arrow], segs: list[tuple[Pt, Pt]]) -> list[Leader]:
 def build_scene(page: Any) -> Scene:
     arrows = find_arrows(page)
     segs = find_segments(page)
+    if len(arrows) < 4:
+        arrows = arrows + find_open_arrows(segs)
     _attach_shafts(arrows, segs)
     dims = _pair(arrows)
     return Scene(arrows, dims, _leaders(arrows, segs), segs)
@@ -415,7 +451,8 @@ def associate(callouts: list[dict[str, Any]], scene: Scene) -> dict[str, Any]:
             c = callouts[i]
             if c.get("geometry") or d.a.used or d.b.used:
                 continue
-            c["geometry"] = {"kind": "unverified", "segments": [], "tips": [], "span": round(d.span, 2), "ratioOk": False}
+            d.a.used = d.b.used = d.used = True
+            c["geometry"] = _geometry("dimension", d) | {"ratioOk": False, "measured": round(d.span / scales[0], 2)}
     else:
         take(first, None)
         for c in callouts:
@@ -453,11 +490,23 @@ def associate(callouts: list[dict[str, Any]], scene: Scene) -> dict[str, Any]:
         near = sorted((ld for ld in scene.leaders if not ld.used and not ld.arrow.used and _dist(ld.arrow.tip, centre) <= reach),
                       key=lambda ld: _dist(ld.arrow.tip, centre))
         if c.get("angular"):
-            if near:
-                picked = near[:2]
+            picked, ok, measured = near[:2], None, None
+            nominal = c.get("nominal")
+            if nominal:
+                best = None
+                for ia, la in enumerate(near[:6]):
+                    for lb in near[ia + 1 : 6]:
+                        between = math.degrees(math.acos(max(-1.0, min(1.0, _dot(la.arrow.dir, lb.arrow.dir)))))
+                        for cand in (180.0 - between, between):
+                            err = abs(cand - nominal)
+                            if err <= 3.0 and (best is None or err < best[0]):
+                                best = (err, la, lb, cand)
+                if best is not None:
+                    picked, ok, measured = [best[1], best[2]], True, round(best[3], 1)
+            if picked:
                 for ld in picked:
                     ld.used = ld.arrow.used = True
-                c["geometry"] = {"kind": "angular", "segments": [], "tips": [list(ld.arrow.tip) for ld in picked]}
+                c["geometry"] = {"kind": "angular", "segments": [], "tips": [list(ld.arrow.tip) for ld in picked], "ratioOk": ok, "measured": measured}
             continue
         for ld in near:
             rel = _sub(centre, ld.arrow.tip)

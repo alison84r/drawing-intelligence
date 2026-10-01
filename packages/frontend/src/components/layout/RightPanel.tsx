@@ -84,11 +84,12 @@ function CommitInput({
 
 function evidenceText(c: Characteristic): string {
   const g = c.geometry
+  if (c.descriptionType === 'Note') return 'Drawing note, inspected as an attribute.'
   if (!g) return 'No dimension line or leader found for this text.'
-  if (g.kind === 'unverified') return 'Drawn length does not match this value. Check for an overridden or not-to-scale dimension.'
+  if (g.ratioOk === false) return `The dimension line is drawn ${g.measured ?? '?'} long at sheet scale, but the printed value differs. Check for an overridden or not-to-scale dimension.`
   if (g.kind === 'dimension') return g.ratioOk ? 'Verified: the dimension line length agrees with the value at sheet scale.' : 'On a dimension line.'
   if (g.kind === 'leader') return 'Tied to a leader.'
-  if (g.kind === 'angular') return 'Tied to angular arrowheads.'
+  if (g.kind === 'angular') return g.ratioOk ? `Verified: the arrowheads span ${g.measured}°.` : 'Tied to angular arrowheads.'
   return 'Shares the geometry of the callout next to it.'
 }
 
@@ -188,7 +189,7 @@ export function RightPanel() {
         <div
           className={cn(
             'border-b px-4 py-1.5 text-[11px]',
-            c.geometry?.kind === 'unverified' ? 'bg-status-fail/10 text-status-fail' : c.geometry ? 'text-muted-foreground' : 'bg-status-draft/10 text-status-draft',
+            c.geometry?.ratioOk === false ? 'bg-status-fail/10 text-status-fail' : c.geometry || c.descriptionType === 'Note' ? 'text-muted-foreground' : 'bg-status-draft/10 text-status-draft',
           )}
           data-testid="evidence"
         >

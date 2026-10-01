@@ -88,7 +88,7 @@
    "page": 0
   },
   {
-   "specification": "Ø14.55",
+   "specification": "⌴Ø14.55",
    "descriptionType": "Diameter",
    "toleranceType": "Bilateral",
    "nominal": 14.55,
@@ -99,7 +99,7 @@
    "zone": "D6",
    "gdt": null,
    "at": [
-    379.7,
+    363.2,
     356.5
    ],
    "page": 0

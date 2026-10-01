@@ -12,6 +12,7 @@ from typing import Any
 
 import pdfplumber
 
+from .scene import build_scene
 from .tokens import SYMBOL_MAP, build_tokens
 from .zones import detect_zones
 
@@ -64,6 +65,17 @@ def intake(pdf_bytes: bytes) -> dict[str, Any]:
                     rows.append(_row("symbols", "Symbols", "ok", f"read as text: {dia} diameter, {gdt} GD&T"))
                 else:
                     rows.append(_row("symbols", "Symbols", "warn", "no symbol glyphs in the text; diameter and GD&T signs are read from shapes where possible"))
+
+            if len(chars) >= 20 and len(numeric) >= 8:
+                try:
+                    scene = build_scene(page)
+                    heads, dims = len(scene.arrows), len(scene.dimensions)
+                except Exception:  # noqa: BLE001
+                    heads, dims = 0, 0
+                if heads >= 4:
+                    rows.append(_row("geometry", "Dimension geometry", "ok", f"{heads} arrowheads, {dims} dimension lines"))
+                else:
+                    rows.append(_row("geometry", "Dimension geometry", "warn", "arrowheads not found; values will not be checked against dimension lines"))
 
             unknown = [t.text for t in tokens if t.kind == "sym"]
             private = [c["text"] for c in chars if c.get("text") and (0xE000 <= ord(c["text"][0]) <= 0xF8FF or c["text"].startswith("(cid:"))]

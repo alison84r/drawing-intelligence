@@ -28,6 +28,8 @@ export interface CalloutGeometry {
   span?: number
   /** True when the measured length agrees with the value at the sheet scale; false when it does not. */
   ratioOk?: boolean | null
+  /** Length (or angle) measured on the drawing at sheet scale. */
+  measured?: number | null
   oneArrow?: boolean
 }
 

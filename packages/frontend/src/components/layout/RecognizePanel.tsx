@@ -51,6 +51,7 @@ export function RecognizePanel() {
   const acceptAll = useCharacteristicStore((s) => s.acceptAll)
   const select = useCharacteristicStore((s) => s.select)
 
+  const stale = useRecognizeStore((s) => s.stale)
   const intake = useRecognizeStore((s) => s.intake)
   const loadIntake = useRecognizeStore((s) => s.loadIntake)
   useEffect(() => {
@@ -139,6 +140,7 @@ export function RecognizePanel() {
             <Chip color="#d97706" count={needs.length + unread} label="needs you" />
             <Chip color="#94a3b8" count={page.stats.ruled} label="ruled out" />
           </div>
+          {stale && <p className="text-[11px] leading-snug text-status-draft">Read by an older recognizer version. Press Recognize to refresh.</p>}
           <p className="text-[11px] leading-snug text-muted-foreground">
             {lastAdded > 0 ? `${lastAdded} balloons added as Draft. ` : 'Nothing new to add. '}
             {page.zones.synthetic ? 'No zone labels on the border, nominal grid used.' : 'Zones read from the border.'}

@@ -185,6 +185,8 @@ def rule_out(line: Line, dim_size: float, width: float, height: float, relaxed: 
     upper = [w.upper() for w in words]
     if any(w in VIEW_WORDS for w in upper):
         return "view label"
+    if re.match(r"^\d{1,2}\.(\D|$)", words[0]) and len(words) >= 3 and sum(1 for w in upper if re.search(r"[A-Z]{3,}", w)) >= 2:
+        return "note"
     if line.tokens[0].kind == "pm":
         return "general tolerance note"
     if all(t.extra.get("datum_box") for t in line.tokens):

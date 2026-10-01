@@ -87,6 +87,29 @@ def recognize(
             pending: list[tuple[Any, Any, dict[str, Any]]] = []
             for line in lines:
                 why = rule_out(line, dim_size, width, height, relaxed, tables)
+                if why == "note":
+                    nx0, ny0, nx1, ny1 = line.bbox
+                    nbox = {"x": round(nx0, 2), "y": round(ny0, 2), "w": round(nx1 - nx0, 2), "h": round(ny1 - ny0, 2)}
+                    text = " ".join(t.text for t in line.tokens)
+                    number, _, body = text.partition(".")
+                    note = {
+                        "id": str(uuid.uuid4()), "balloonNumber": 0, "subNumber": None, "page": index,
+                        "anchor": {"x": round(nx0, 2), "y": round((ny0 + ny1) / 2, 2)},
+                        "balloonPos": {"x": round(max(14.0, nx0 - 1.6 * line.size), 2), "y": round((ny0 + ny1) / 2, 2)},
+                        "leader": False, "bbox": nbox, "obox": None, "zone": grid.zone((nx0 + nx1) / 2, (ny0 + ny1) / 2),
+                        "designator": "", "result": None, "status": "Draft", "source": "auto", "confidence": 0.5,
+                        "comments": f"Drawing note {number.strip()}", "style": None, "geometry": None,
+                        "descriptionType": "Note", "specification": body.strip(), "nominal": None, "tolHigh": None, "tolLow": None,
+                        "toleranceType": "Attribute", "gdt": None, "places": 0, "count": 1, "measurementType": "Attribute", "units": units,
+                    }
+                    if any(e.get("page") == index and e.get("bbox") and _overlaps(e["bbox"], nbox) for e in existing):
+                        for t in line.all_tokens:
+                            t.cls, t.reason = "char", "already ballooned"
+                    else:
+                        open_groups += 1
+                        for t in line.all_tokens:
+                            t.cls, t.reason, t.guess = "open", "drawing note: add it if it is inspected", note
+                    continue
                 if why:
                     for t in line.all_tokens:
                         t.cls, t.reason = "ruled", why
@@ -166,6 +189,8 @@ def recognize(
                 })
             info = associate(callouts, scene)
             scales = info["scales"]
+            linear = [c for c in callouts if c["linear"]]
+            geometry_readable = bool(scales) or (len(linear) >= 5 and sum(1 for c in linear if c.get("geometry")) >= 0.6 * len(linear))
             audit_none, audit_mismatch = [], []
             for (line, group, record), c in zip(pending, callouts):
                 g = c.get("geometry")
@@ -174,15 +199,14 @@ def recognize(
                 kind = g["kind"] if g else "none"
                 if kind == "dimension" and g.get("ratioOk") and group.confidence == 0.5 and group.reason.startswith("single digit"):
                     group.confidence, group.reason = 0.8, "single digit on a dimension line"
-                if kind == "unverified":
-                    measured = g["span"] / scales[0] if scales else None
-                    audit_mismatch.append({"id": record["id"], "specification": record["specification"], "at": at, "measured": round(measured, 2) if measured else None})
+                if g and g.get("ratioOk") is False:
+                    audit_mismatch.append({"id": record["id"], "specification": record["specification"], "at": at, "measured": g.get("measured")})
                     if not record["comments"]:
-                        record["comments"] = "Drawn length does not match the value (overridden or not to scale?)"
+                        record["comments"] = f"Drawn length is {g.get('measured')} at sheet scale; the printed value differs (overridden or not to scale?)"
                 if kind == "none" and c["linear"]:
                     audit_none.append({"id": record["id"], "specification": record["specification"], "at": at})
                     # On a sheet where geometry is readable, a value with no dimension line or leader is not trusted.
-                    if scales and not relaxed and record["toleranceType"] not in ("Basic",) and group.confidence < 1.0:
+                    if geometry_readable and not relaxed and record["toleranceType"] not in ("Basic",) and group.confidence < 1.0:
                         group.confidence, group.reason = 0.5, "no dimension line or leader found"
                 record["confidence"] = group.confidence
                 confident = relaxed or group.confidence >= 0.8

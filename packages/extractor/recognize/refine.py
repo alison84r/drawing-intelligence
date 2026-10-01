@@ -170,13 +170,13 @@ def add_vector_symbols(lines: list[Line], page: Any, segs: list[tuple[tuple[floa
                 continue
             s_ = t.size
             right = t.x0 - 0.02 * s_
-            for _ in range(2):  # a value can carry two symbols: counterbore then diameter
+            for turn in range(2):  # a value can carry two symbols: counterbore then diameter
                 idx = ln.tokens.index(t)
                 before = [o for o in ln.tokens[:idx] if not o.extra.get("synthetic")]
                 prev = before[-1] if before else None
                 if prev is not None and prev.kind in ("dia", "gdt", "pm"):
                     break
-                left = right - 1.7 * s_
+                left = right - (1.7 if turn == 0 else 2.6) * s_
                 if prev is not None:
                     left = max(left, prev.x1 - 0.05 * s_)
                 if right - left < 0.35 * s_:

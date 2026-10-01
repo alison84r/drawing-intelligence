@@ -187,6 +187,8 @@ export const api = {
   ) => request<InspectionSummary>(`/api/inspections/${id}`, json(body, 'PUT')),
   deleteInspection: (id: string) => request<void>(`/api/inspections/${id}`, { method: 'DELETE' }),
 
+  scene: (revisionId: string) =>
+    request<{ pages: RecognizePage[]; recognizerVersion: string | null; current: string }>(`/api/revisions/${revisionId}/scene`),
   intake: (revisionId: string) => request<IntakeReport>(`/api/revisions/${revisionId}/intake`),
   recognize: (revisionId: string, body: RecognizeRequest) => request<{ pages: RecognizePage[] }>(`/api/revisions/${revisionId}/recognize`, json(body)),
 

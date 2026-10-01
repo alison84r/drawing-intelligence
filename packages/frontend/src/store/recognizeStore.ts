@@ -36,6 +36,10 @@ interface RecognizeState {
   intakeFor: string | null
 
   loadIntake: (revisionId: string) => Promise<void>
+  /** What an earlier Recognize run read on this revision; restores the overlays and the audit on reopen. */
+  loadScene: (revisionId: string) => Promise<void>
+  /** True when the stored scene came from an older recognizer version. */
+  stale: boolean
   run: (opts?: { region?: Region; pages?: number[] }) => Promise<void>
   adopt: (guessId: string) => void
   setTokenView: (v: TokenView) => void
@@ -79,6 +83,26 @@ export const useRecognizeStore = create<RecognizeState>()((set, get) => ({
   band: null,
   intake: null,
   intakeFor: null,
+  stale: false,
+
+  loadScene: async (revisionId) => {
+    try {
+      const stored = await api.scene(revisionId)
+      if (!stored.pages.length || useSessionStore.getState().revisionId !== revisionId) return
+      const items = useCharacteristicStore.getState().items
+      const pages: Record<number, RecognizePage> = {}
+      for (const p of stored.pages) {
+        // A guess that was already added as a balloon is no longer open.
+        const tokens = p.tokens.map((t) =>
+          t.guess && items.some((c) => c.page === p.page && c.bbox && intersects(c.bbox, t.bbox)) ? { ...t, cls: 'char' as const, guess: null, reason: 'already ballooned' } : t,
+        )
+        pages[p.page] = { ...p, tokens }
+      }
+      set({ pages, status: 'done', lastAdded: 0, stale: stored.recognizerVersion !== stored.current })
+    } catch {
+      /* no stored scene: Recognize has not run on this revision */
+    }
+  },
 
   loadIntake: async (revisionId) => {
     if (get().intakeFor === revisionId) return
@@ -124,7 +148,7 @@ export const useRecognizeStore = create<RecognizeState>()((set, get) => ({
           added += p.characteristics.length
         }
       }
-      set({ status: 'done', pages, lastRun: Date.now(), lastAdded: added, tokenView: get().tokenView === 'off' ? 'review' : get().tokenView })
+      set({ stale: false, status: 'done', pages, lastRun: Date.now(), lastAdded: added, tokenView: get().tokenView === 'off' ? 'review' : get().tokenView })
       if (added > 0) useUiStore.getState().setTool('select')
     } catch (e) {
       set({ status: 'error', error: e instanceof Error ? e.message : 'Recognize failed' })

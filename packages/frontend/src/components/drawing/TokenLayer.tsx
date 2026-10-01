@@ -113,11 +113,11 @@ export function TokenLayer({ map, page }: Props) {
               {c.geometry?.segments.map((s, i) => {
                 const a = pageToScreen({ x: s[0], y: s[1] }, map)
                 const b = pageToScreen({ x: s[2], y: s[3] }, map)
-                return <line key={i} x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke={INK.select} strokeWidth={2.25} strokeLinecap="round" strokeOpacity={0.85} />
+                return <line key={i} x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke={c.geometry?.ratioOk === false ? INK.fail : INK.select} strokeWidth={2.25} strokeLinecap="round" strokeOpacity={0.85} />
               })}
               {c.geometry?.tips.map((t, i) => {
                 const p = pageToScreen({ x: t[0], y: t[1] }, map)
-                return <circle key={i} cx={p.x} cy={p.y} r={3.5} fill={INK.select} />
+                return <circle key={i} cx={p.x} cy={p.y} r={3.5} fill={c.geometry?.ratioOk === false ? INK.fail : INK.select} />
               })}
             </g>
           ))}
