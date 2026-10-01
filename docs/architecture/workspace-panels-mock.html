@@ -1,0 +1,339 @@
+<title>Workspace Panels Redesign</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+<style>
+/* layout: verdict strip, then one full workspace mock (left queue · sheet + grid · detail), then collapsed states and the decisions */
+:root{--bg:#f2f5f8;--fg:#13212d;--muted:#5d6b78;--faint:#8a97a3;--line:#dbe2e9;--panel:#ffffff;--soft:#f6f8fa;--navy:#004a77;--navyfg:#ffffff;--navysoft:#e3eef5;
+--ok:#15803d;--okbg:#dcfce7;--warn:#b45309;--warnbg:#fef3c7;--bad:#b91c1c;--badbg:#fee2e2;--info:#1d4ed8;--infobg:#dbeafe;--sheet:#fdfdfb;--ink:#34414d;
+--sans:Inter,system-ui,-apple-system,"Segoe UI",sans-serif}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0c131a;--fg:#e6edf3;--muted:#9aa8b5;--faint:#6f7e8c;--line:#243140;--panel:#131d27;--soft:#18232f;--navy:#4fb4e6;--navyfg:#06202e;--navysoft:#12303f;
+--ok:#4ade80;--okbg:#12301d;--warn:#fbbf24;--warnbg:#382a0a;--bad:#f87171;--badbg:#3a1515;--info:#93c5fd;--infobg:#172a4a;--sheet:#e9ecef;--ink:#34414d;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0c131a;--fg:#e6edf3;--muted:#9aa8b5;--faint:#6f7e8c;--line:#243140;--panel:#131d27;--soft:#18232f;--navy:#4fb4e6;--navyfg:#06202e;--navysoft:#12303f;
+--ok:#4ade80;--okbg:#12301d;--warn:#fbbf24;--warnbg:#382a0a;--bad:#f87171;--badbg:#3a1515;--info:#93c5fd;--infobg:#172a4a;--sheet:#e9ecef;--ink:#34414d;color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:14px;line-height:1.45;padding-block:26px 64px;padding-inline:16px}
+main{max-width:1240px;margin:0 auto;display:grid;gap:24px}
+h1{font-size:1.5rem;font-weight:700;margin:0;text-wrap:balance}h2{font-size:1.05rem;font-weight:600;margin:0 0 4px;text-wrap:balance}
+p{margin:0}.lead{color:var(--muted);max-width:68ch;margin-top:6px}.sub{color:var(--muted);font-size:.86rem;margin-bottom:12px;max-width:70ch}
+.eyebrow{font-size:.7rem;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--muted)}
+svg.i{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
+/* status lozenges: one shape everywhere */
+.lz{display:inline-flex;align-items:center;gap:4px;font-size:.68rem;font-weight:600;padding:2px 8px;border-radius:999px;white-space:nowrap;line-height:1.5}
+.lz.ok{background:var(--okbg);color:var(--ok)}.lz.warn{background:var(--warnbg);color:var(--warn)}.lz.bad{background:var(--badbg);color:var(--bad)}.lz.info{background:var(--infobg);color:var(--info)}.lz.n{background:var(--soft);color:var(--muted);border:1px solid var(--line)}
+.kbd{font-size:.66rem;border:1px solid var(--line);border-bottom-width:2px;border-radius:4px;padding:0 5px;color:var(--muted);background:var(--panel)}
+/* verdict */
+.scores{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,270px),1fr));gap:12px}
+.score{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px;display:grid;gap:8px;align-content:start}
+.score .n{font-size:1.7rem;font-weight:700;font-variant-numeric:tabular-nums}.score .n small{font-size:.85rem;font-weight:500;color:var(--muted)}
+.score ul{margin:0;padding-left:17px;color:var(--muted);font-size:.84rem;display:grid;gap:3px}
+/* app frame */
+.app{background:var(--panel);border:1px solid var(--line);border-radius:14px;overflow:hidden;box-shadow:0 10px 30px -18px rgba(10,30,50,.45)}
+.top{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;padding:9px 14px;border-bottom:1px solid var(--line)}
+.brand{background:var(--navy);color:var(--navyfg);font-weight:700;font-size:.72rem;padding:5px 9px;border-radius:7px;letter-spacing:.02em}
+.crumb{color:var(--muted);font-size:.8rem}.crumb b{color:var(--fg);font-weight:600}
+.flow{display:flex;align-items:center;gap:0;margin-inline:auto;flex-wrap:wrap}
+.stage{display:flex;align-items:center;gap:7px;font-size:.78rem;font-weight:500;color:var(--muted);padding:4px 4px}
+.stage .dot{width:20px;height:20px;border-radius:50%;display:grid;place-items:center;font-size:.66rem;font-weight:700;background:var(--soft);border:1px solid var(--line);color:var(--muted)}
+.stage.done .dot{background:var(--ok);border-color:var(--ok);color:#fff}.stage.now{color:var(--fg);font-weight:600}.stage.now .dot{background:var(--navy);border-color:var(--navy);color:var(--navyfg)}
+.stage small{font-weight:500;color:var(--muted);font-variant-numeric:tabular-nums}
+.link{width:26px;height:2px;background:var(--line);border-radius:2px}.link.done{background:var(--ok)}
+.btn{display:inline-flex;align-items:center;gap:6px;font:600 .78rem var(--sans);border-radius:8px;padding:7px 12px;border:1px solid var(--line);background:var(--panel);color:var(--fg)}
+.btn.p{background:var(--navy);border-color:var(--navy);color:var(--navyfg)}.btn.ghost{border-color:transparent;color:var(--muted);padding:7px 8px}
+.filters{display:flex;flex-wrap:wrap;gap:6px;padding:8px 14px;border-bottom:1px solid var(--line);background:var(--soft);align-items:center}
+.chip{display:inline-flex;align-items:center;gap:6px;font-size:.76rem;font-weight:500;padding:4px 10px;border-radius:999px;border:1px solid var(--line);background:var(--panel);color:var(--muted)}
+.chip b{font-variant-numeric:tabular-nums;font-weight:600;color:var(--fg)}.chip.on{background:var(--navy);border-color:var(--navy);color:var(--navyfg)}.chip.on b{color:var(--navyfg)}
+.chip .sw{width:8px;height:8px;border-radius:50%}
+.cols{display:grid;grid-template-columns:284px minmax(0,1fr) 316px}
+@media (max-width:1020px){.cols{grid-template-columns:1fr}.left,.right{border:0!important;border-bottom:1px solid var(--line)!important}}
+.left{border-right:1px solid var(--line);padding:14px;display:grid;gap:14px;align-content:start;min-width:0}
+.right{border-left:1px solid var(--line);display:flex;flex-direction:column;min-width:0}
+.mid{min-width:0;display:grid;grid-template-rows:auto auto;background:var(--soft)}
+/* left */
+.prog{display:grid;grid-template-columns:54px 1fr;gap:12px;align-items:center}
+.ring{width:54px;height:54px}.prog .big{font-size:1.05rem;font-weight:700;font-variant-numeric:tabular-nums}.prog .big small{font-weight:500;color:var(--muted);font-size:.8rem}
+.bar{display:flex;height:6px;border-radius:6px;overflow:hidden;background:var(--line);margin-top:6px}.bar span{display:block}
+.legend{display:flex;flex-wrap:wrap;gap:4px 10px;font-size:.7rem;color:var(--muted);margin-top:6px}.legend i{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:4px}
+details.grp{border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--panel)}
+details.grp>summary{list-style:none;display:flex;align-items:center;gap:8px;padding:8px 10px;font-weight:600;font-size:.8rem;cursor:pointer;background:var(--soft)}
+details.grp>summary::-webkit-details-marker{display:none}
+details.grp>summary .car{transition:transform .15s;color:var(--faint)}details.grp[open]>summary .car{transform:rotate(90deg)}
+details.grp>summary .count{margin-left:auto}
+.issue{display:grid;grid-template-columns:auto 1fr auto;gap:2px 9px;padding:8px 10px;border-top:1px solid var(--line);align-items:center}
+.issue.sel{background:var(--navysoft);box-shadow:inset 3px 0 0 var(--navy)}
+.bn{width:24px;height:24px;border-radius:50%;border:1.6px solid var(--bad);color:var(--bad);font-size:.68rem;font-weight:700;display:grid;place-items:center;font-variant-numeric:tabular-nums;grid-row:span 2}
+.bn.warn{border-color:var(--warn);color:var(--warn);border-style:dashed}
+.issue .t{font-weight:600;font-size:.82rem}.issue .d{grid-column:2;color:var(--muted);font-size:.74rem}
+.issue .act{grid-row:span 2;display:flex;gap:2px;color:var(--faint)}
+.fact{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center;padding:8px 10px;border-top:1px solid var(--line);font-size:.8rem}
+.fact .k{color:var(--muted)}.fact .v{font-weight:500;text-align:right}
+.tip{position:relative}.tipbox{background:var(--fg);color:var(--bg);font-size:.7rem;padding:5px 8px;border-radius:6px;width:max-content;max-width:210px}
+/* middle */
+.canvas{position:relative;padding:14px;min-height:300px;display:grid;place-items:center}
+.float{position:absolute;display:flex;gap:2px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:3px;box-shadow:0 6px 16px -10px rgba(0,0,0,.5);color:var(--muted)}
+.float span{width:28px;height:28px;display:grid;place-items:center;border-radius:7px}.float span.on{background:var(--navy);color:var(--navyfg)}
+.gridw{overflow-x:auto;border-top:1px solid var(--line);background:var(--panel)}
+table{border-collapse:collapse;width:100%;font-size:.8rem;min-width:520px}th,td{text-align:left;padding:7px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+th{font-size:.68rem;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:600;background:var(--soft)}
+tr.sel td{background:var(--navysoft)}td.num{font-variant-numeric:tabular-nums}
+/* right */
+.rh{display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid var(--line)}
+.rh .bn{grid-row:auto;width:28px;height:28px;font-size:.76rem}
+.rbody{padding:14px;display:grid;gap:14px;align-content:start;flex:1}
+.crop{border:1px solid var(--line);border-radius:10px;background:var(--sheet);overflow:hidden}
+.req{font-size:1.7rem;font-weight:700;letter-spacing:-.01em;font-variant-numeric:tabular-nums;line-height:1.1}.req small{font-size:1rem;font-weight:500;color:var(--muted)}
+.tags{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
+.check{display:grid;grid-template-columns:auto 1fr;gap:8px;font-size:.8rem;align-items:start;padding:6px 0;border-top:1px dashed var(--line)}.check:first-child{border-top:0}
+.check .d{color:var(--muted);font-size:.74rem}.check.bad svg{color:var(--bad)}.check.ok svg{color:var(--ok)}
+details.sec{border-top:1px solid var(--line);padding-top:10px}details.sec>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:6px;font-weight:600;font-size:.8rem}
+details.sec>summary::-webkit-details-marker{display:none}details.sec>summary .car{color:var(--faint);transition:transform .15s}details.sec[open]>summary .car{transform:rotate(90deg)}
+details.sec>summary span.h{margin-left:auto;font-weight:400;color:var(--muted);font-size:.74rem}
+.fields{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}.f label{display:block;font-size:.7rem;color:var(--muted);margin-bottom:3px}
+.f div{border:1px solid var(--line);border-radius:7px;padding:6px 9px;font-size:.82rem;background:var(--panel);font-variant-numeric:tabular-nums}
+.band{position:relative;height:26px;margin-top:10px}.band .tr{position:absolute;left:0;right:0;top:6px;height:5px;border-radius:5px;background:var(--line)}.band .okz{position:absolute;left:22%;right:22%;top:6px;height:5px;border-radius:5px;background:var(--ok);opacity:.55}
+.band span{position:absolute;top:14px;font-size:.66rem;color:var(--muted);transform:translateX(-50%);font-variant-numeric:tabular-nums}
+.rf{display:flex;gap:8px;padding:10px 14px;border-top:1px solid var(--line);background:var(--soft);align-items:center}
+/* collapsed + decisions */
+.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr));gap:14px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;min-width:0}
+.rail{display:flex;gap:14px;align-items:stretch;flex-wrap:wrap}.railcol{width:46px;border:1px solid var(--line);border-radius:10px;padding:8px 0;display:grid;gap:8px;justify-items:center;align-content:start;background:var(--soft)}
+.ri{position:relative;width:32px;height:32px;border-radius:8px;display:grid;place-items:center;color:var(--muted)}.ri.on{background:var(--navysoft);color:var(--navy)}
+.ri b{position:absolute;top:-4px;right:-6px;font-size:.6rem;font-weight:700;background:var(--bad);color:#fff;border-radius:999px;padding:0 5px;line-height:1.5}.ri b.n{background:var(--navy);color:var(--navyfg)}
+.opt{border:1px solid var(--line);border-radius:10px;padding:12px;display:grid;gap:6px}.opt.pick{border-color:var(--navy);box-shadow:inset 0 0 0 1px var(--navy)}
+.ask{background:var(--navy);color:var(--navyfg);border-radius:14px;padding:16px 18px;display:grid;gap:6px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="car" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></symbol>
+  <symbol id="chk" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+  <symbol id="x" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol>
+  <symbol id="flag" viewBox="0 0 24 24"><path d="M4 22V4s1-1 4-1 5 2 8 2 4-1 4-1v11s-1 1-4 1-5-2-8-2-4 1-4 1"/></symbol>
+  <symbol id="zoom" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3M11 8v6M8 11h6"/></symbol>
+  <symbol id="ruler" viewBox="0 0 24 24"><path d="M21.3 15.3 8.7 2.7a1 1 0 0 0-1.4 0L2.7 7.3a1 1 0 0 0 0 1.4l12.6 12.6a1 1 0 0 0 1.4 0l4.6-4.6a1 1 0 0 0 0-1.4zM7.5 10.5l2-2M10.5 13.5l2-2M13.5 16.5l2-2"/></symbol>
+  <symbol id="grid" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></symbol>
+  <symbol id="tbl" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18M9 4v16"/></symbol>
+  <symbol id="spark" viewBox="0 0 24 24"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/></symbol>
+  <symbol id="file" viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></symbol>
+  <symbol id="list" viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></symbol>
+  <symbol id="more" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></symbol>
+  <symbol id="left" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></symbol>
+  <symbol id="cur" viewBox="0 0 24 24"><path d="m4 4 7 17 2.5-7.5L21 11z"/></symbol>
+  <symbol id="circ" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/></symbol>
+  <symbol id="hand" viewBox="0 0 24 24"><path d="M8 13V5a1.5 1.5 0 0 1 3 0v6M11 11V4a1.5 1.5 0 0 1 3 0v7M14 11V6a1.5 1.5 0 0 1 3 0v8a6 6 0 0 1-6 6h-1a6 6 0 0 1-5-3l-2-4a1.5 1.5 0 0 1 2.6-1.5L8 14"/></symbol>
+  <symbol id="dl" viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></symbol>
+  <symbol id="info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></symbol>
+</svg>
+
+<main>
+<header>
+  <p class="eyebrow">Drawing Intelligence · mock for approval · nothing is coded</p>
+  <h1>Left panel, right panel and the Review / Measure question</h1>
+  <p class="lead">My honest rating of what is on screen today, then one mock of the whole workspace as I would rebuild it. The numbers are the real heat sink sheet.</p>
+</header>
+
+<section class="scores" aria-label="Rating of today's screen">
+  <div class="score"><span class="eyebrow">Left panel today</span><span class="n">4<small> / 10</small></span><ul>
+    <li>Everything has the same weight: problems, facts and links run together</li>
+    <li>"17.5 is drawn 21.48" does not say what is wrong or what to do</li>
+    <li>Clicking a problem shows nothing on the sheet</li>
+    <li>Views and tables sit there as loose chips</li></ul></div>
+  <div class="score"><span class="eyebrow">Right panel today</span><span class="n">6.5<small> / 10</small></span><ul>
+    <li>The requirement is clear and large, which is right</li>
+    <li>No picture of what was read, so you must find it on the sheet</li>
+    <li>"Measured value" shows while you are still checking</li>
+    <li>Empty High / Low boxes, Delete beside the main button</li></ul></div>
+  <div class="score"><span class="eyebrow">Review and Measure tabs</span><span class="n">5<small> / 10</small></span><ul>
+    <li>They look like steps but behave like two screens</li>
+    <li>The same balloon list appears in both with different columns</li>
+    <li>Nothing says when you are done with one and may start the other</li></ul></div>
+</section>
+
+<section>
+  <h2>The proposed workspace</h2>
+  <p class="sub">One screen, one list of balloons, one status per balloon. The top shows how far the job is; the chips choose what you are looking at. Sections open and close; try them.</p>
+
+  <div class="app">
+    <div class="top">
+      <span class="btn ghost" title="Back to library"><svg class="i"><use href="#left"/></svg></span>
+      <span class="brand">DATAVERS.AI</span>
+      <span class="crumb">Library › 01270007-01 · Rev 01 › <b>Full FAI</b></span>
+      <div class="flow" aria-label="Progress of the job">
+        <span class="stage done"><span class="dot"><svg class="i" style="width:11px;height:11px;stroke-width:3"><use href="#chk"/></svg></span>Read</span><span class="link done"></span>
+        <span class="stage now"><span class="dot">2</span>Check <small>0 / 78</small></span><span class="link"></span>
+        <span class="stage"><span class="dot">3</span>Measure <small>0 / 53</small></span><span class="link"></span>
+        <span class="stage"><span class="dot">4</span>Report</span>
+      </div>
+      <span class="lz ok"><svg class="i" style="width:11px;height:11px"><use href="#chk"/></svg>Saved 6:26 PM</span>
+      <span class="btn p"><svg class="i"><use href="#dl"/></svg>Export FAI</span>
+    </div>
+
+    <div class="filters" aria-label="What to show">
+      <span class="eyebrow" style="margin-right:4px">Show</span>
+      <span class="chip">All <b>78</b></span>
+      <span class="chip on"><span class="sw" style="background:#fff"></span>To check <b>78</b></span>
+      <span class="chip"><span class="sw" style="background:var(--bad)"></span>Flagged <b>5</b></span>
+      <span class="chip"><span class="sw" style="background:var(--info)"></span>To measure <b>53</b></span>
+      <span class="chip"><span class="sw" style="background:var(--ok)"></span>Passed <b>0</b></span>
+      <span class="chip"><span class="sw" style="background:var(--bad)"></span>Failed <b>0</b></span>
+      <span style="margin-left:auto;color:var(--muted);font-size:.74rem">Next <span class="kbd">J</span> · Accept <span class="kbd">A</span> · Flag <span class="kbd">F</span></span>
+    </div>
+
+    <div class="cols">
+      <!-- LEFT -->
+      <aside class="left" aria-label="Work queue">
+        <div class="prog">
+          <svg class="ring" viewBox="0 0 54 54" role="img" aria-label="0 percent checked"><circle cx="27" cy="27" r="22" fill="none" stroke="var(--line)" stroke-width="6"/><text x="27" y="31" text-anchor="middle" font-size="12" font-weight="700" fill="var(--fg)" font-family="Inter,sans-serif">0%</text></svg>
+          <div><div class="big">0 <small>of 78 checked</small></div>
+            <div class="bar"><span style="width:6.4%;background:var(--bad)"></span><span style="width:93.6%;background:var(--line)"></span></div>
+            <div class="legend"><span><i style="background:var(--bad)"></i>5 flagged</span><span><i style="background:var(--faint)"></i>73 waiting</span></div></div>
+        </div>
+
+        <details class="grp" open>
+          <summary><svg class="i car"><use href="#car"/></svg><svg class="i" style="color:var(--bad)"><use href="#flag"/></svg>Needs a decision<span class="lz bad count">5</span></summary>
+          <div class="issue sel"><span class="bn">21</span><span class="t">11.8</span><span class="act"><svg class="i"><use href="#zoom"/></svg><svg class="i"><use href="#chk"/></svg></span><span class="d">Line on the sheet measures 22.45</span></div>
+          <div class="issue"><span class="bn">17</span><span class="t">17.5</span><span class="act"><svg class="i"><use href="#zoom"/></svg><svg class="i"><use href="#chk"/></svg></span><span class="d">Line on the sheet measures 21.48</span></div>
+          <div class="issue"><span class="bn">24</span><span class="t">17.1</span><span class="act"><svg class="i"><use href="#zoom"/></svg><svg class="i"><use href="#chk"/></svg></span><span class="d">Line on the sheet measures 48.85</span></div>
+          <div class="issue"><span class="bn">56</span><span class="t">74.6</span><span class="act"><svg class="i"><use href="#zoom"/></svg><svg class="i"><use href="#chk"/></svg></span><span class="d">Line on the sheet measures 78.69</span></div>
+          <div class="issue"><span class="bn">26</span><span class="t">2X 70.9</span><span class="act"><svg class="i"><use href="#zoom"/></svg><svg class="i"><use href="#chk"/></svg></span><span class="d">Line on the sheet measures 79.97</span></div>
+        </details>
+
+        <details class="grp">
+          <summary><svg class="i car"><use href="#car"/></svg><svg class="i" style="color:var(--warn)"><use href="#info"/></svg>Suggested to add<span class="lz n count">0</span></summary>
+          <div class="fact" style="grid-template-columns:1fr"><span class="k">Nothing was left unplaced on this sheet.</span></div>
+        </details>
+
+        <details class="grp">
+          <summary><svg class="i car"><use href="#car"/></svg><svg class="i" style="color:var(--navy)"><use href="#file"/></svg>About this sheet<span class="lz ok count">All good</span></summary>
+          <div class="fact"><svg class="i" style="color:var(--ok)"><use href="#chk"/></svg><span class="k">Readable</span><span class="v">CAD text and lines</span></div>
+          <div class="fact"><svg class="i" style="color:var(--navy)"><use href="#ruler"/></svg><span class="k">General tolerance</span><span class="v">ISO 2768-m <span class="lz ok">From the sheet</span></span></div>
+          <div class="fact"><svg class="i" style="color:var(--ok)"><use href="#chk"/></svg><span class="k">Lengths that agree</span><span class="v">53 of 58</span></div>
+          <div class="fact"><svg class="i" style="color:var(--navy)"><use href="#grid"/></svg><span class="k">Views</span><span class="v">6 <span class="lz n">open list</span></span></div>
+          <div class="fact"><svg class="i" style="color:var(--navy)"><use href="#tbl"/></svg><span class="k">Tables</span><span class="v">3 <span class="lz n">open list</span></span></div>
+          <div class="fact"><svg class="i" style="color:var(--navy)"><use href="#spark"/></svg><span class="k">AI reading</span><span class="v"><span class="lz info">On</span></span></div>
+        </details>
+      </aside>
+
+      <!-- MIDDLE -->
+      <div class="mid">
+        <div class="canvas">
+          <svg viewBox="0 0 520 300" style="width:100%;max-width:560px;height:auto" role="img" aria-label="Sheet with the selected balloon highlighted">
+            <rect x="4" y="4" width="512" height="292" fill="var(--sheet)" stroke="var(--ink)"/>
+            <path d="M90 70h210v28h-40v24h-130v-24h-40z" fill="none" stroke="var(--ink)" stroke-width="1.6"/>
+            <path d="M90 190h210v52h-210z" fill="none" stroke="var(--ink)" stroke-width="1.6"/>
+            <path d="M380 40l70 40-30 60-60-30z" fill="none" stroke="var(--ink)"/>
+            <g stroke="var(--ink)" stroke-width=".7"><path d="M320 98v24M316 98h8M316 122h8"/></g>
+            <text x="330" y="114" font-size="11" fill="var(--ink)" font-family="Inter,sans-serif">11.8</text>
+            <rect x="326" y="103" width="30" height="15" rx="3" fill="rgba(185,28,28,.14)" stroke="#b91c1c"/>
+            <circle cx="372" cy="92" r="11" fill="#fff" stroke="#b91c1c" stroke-width="1.8"/><text x="372" y="96" text-anchor="middle" font-size="10" font-weight="700" fill="#b91c1c" font-family="Inter,sans-serif">21</text>
+            <circle cx="372" cy="92" r="19" fill="none" stroke="#b91c1c" stroke-opacity=".35" stroke-width="5"/>
+            <g fill="#fff" stroke="#1d4ed8" stroke-width="1.4" stroke-dasharray="3 2"><circle cx="76" cy="60" r="8"/><circle cx="200" cy="52" r="8"/><circle cx="150" cy="180" r="8"/><circle cx="320" cy="210" r="8"/></g>
+            <rect x="170" y="252" width="150" height="36" fill="none" stroke="var(--ink)" stroke-width=".6"/><rect x="360" y="246" width="150" height="44" fill="none" stroke="var(--ink)" stroke-width=".6"/>
+          </svg>
+          <div class="float" style="left:12px;top:12px"><span><svg class="i"><use href="#left"/></svg></span><span style="width:auto;padding:0 8px;font-size:.74rem">Sheet 1 / 1</span><span><svg class="i"><use href="#car"/></svg></span></div>
+          <div class="float" style="left:50%;bottom:12px;transform:translateX(-50%)"><span class="on"><svg class="i"><use href="#cur"/></svg></span><span><svg class="i"><use href="#circ"/></svg></span><span><svg class="i"><use href="#hand"/></svg></span><span><svg class="i"><use href="#zoom"/></svg></span></div>
+          <div class="tipbox" style="position:absolute;right:12px;top:12px">Pick a problem on the left: the sheet zooms to it and the balloon pulses</div>
+        </div>
+        <div class="gridw">
+          <table>
+            <tr><th>#</th><th>Requirement</th><th>View</th><th>Limits</th><th>Result</th><th>Status</th><th>Check</th></tr>
+            <tr class="sel"><td class="num">21</td><td class="num"><b>11.8</b> ±0.2</td><td>View 2</td><td class="num">11.6 … 12.0</td><td style="color:var(--faint)">—</td><td><span class="lz bad"><svg class="i" style="width:10px;height:10px"><use href="#flag"/></svg>Flagged</span></td><td><span class="lz bad">Length differs</span></td></tr>
+            <tr><td class="num">1</td><td class="num"><b>[20.2]</b></td><td>View 2</td><td style="color:var(--faint)">basic</td><td style="color:var(--faint)">—</td><td><span class="lz n">To check</span></td><td><span class="lz ok">Length agrees</span></td></tr>
+            <tr><td class="num">7</td><td class="num"><b>113.4</b> ±0.3</td><td>View 2</td><td class="num">113.1 … 113.7</td><td class="num">113.25</td><td><span class="lz ok"><svg class="i" style="width:10px;height:10px"><use href="#chk"/></svg>Pass</span></td><td><span class="lz ok">Length agrees</span></td></tr>
+            <tr><td class="num">9</td><td class="num"><b>6X Ø3.6</b> ±0.1</td><td>View 2</td><td class="num">3.5 … 3.7</td><td class="num">3.82</td><td><span class="lz bad"><svg class="i" style="width:10px;height:10px"><use href="#x"/></svg>Fail</span></td><td><span class="lz info">On a leader</span></td></tr>
+            <tr><td class="num">12</td><td class="num"><b>⌖ Ø0.2</b> A B C</td><td>View 2</td><td class="num">0 … 0.2</td><td style="color:var(--faint)">—</td><td><span class="lz info">To measure</span></td><td><span class="lz ok">Accepted</span></td></tr>
+          </table>
+        </div>
+      </div>
+
+      <!-- RIGHT -->
+      <aside class="right" aria-label="Selected balloon">
+        <div class="rh">
+          <span class="bn">21</span>
+          <div style="min-width:0"><div style="font-weight:600;font-size:.84rem">Balloon 21</div><div style="color:var(--muted);font-size:.72rem">3 of 5 flagged</div></div>
+          <span class="lz bad" style="margin-left:auto"><svg class="i" style="width:10px;height:10px"><use href="#flag"/></svg>Flagged</span>
+          <span class="btn ghost" title="Previous (K)"><svg class="i"><use href="#left"/></svg></span><span class="btn ghost" title="Next (J)" style="margin-left:-10px"><svg class="i"><use href="#car"/></svg></span>
+        </div>
+        <div class="rbody">
+          <div>
+            <div class="crop"><svg viewBox="0 0 280 92" role="img" aria-label="The callout as printed on the sheet"><g stroke="var(--ink)" stroke-width="1"><path d="M70 20v52M62 20h16M62 72h16M70 30l-4 9h8zM70 62l-4-9h8z" fill="var(--ink)"/></g><text x="92" y="54" font-size="24" fill="var(--ink)" font-family="Inter,sans-serif">11.8</text><rect x="86" y="30" width="62" height="32" rx="4" fill="rgba(185,28,28,.1)" stroke="#b91c1c"/><text x="272" y="84" text-anchor="end" font-size="9" fill="#5d6b78" font-family="Inter,sans-serif">as printed · View 2 · G7</text></svg></div>
+            <div class="req" style="margin-top:12px">11.8 <small>±0.2 mm</small></div>
+            <div class="tags"><span class="lz n">Linear</span><span class="lz n">View 2 · 1:2</span><span class="lz n">Zone G7</span><span class="lz ok">ISO 2768-m · 6 to 30</span></div>
+          </div>
+
+          <div>
+            <div class="eyebrow" style="margin-bottom:4px">Checks</div>
+            <div class="check bad"><svg class="i"><use href="#x"/></svg><div><b>The line is drawn 22.45, not 11.8</b><div class="d">Measured on the sheet at 1:2. The value may be overridden in CAD, or it belongs to another line.</div></div></div>
+            <div class="check ok"><svg class="i"><use href="#chk"/></svg><div>Tolerance comes from the table on the sheet<div class="d">Class m, 6 to 30 → ±0.2</div></div></div>
+            <div class="check ok"><svg class="i"><use href="#chk"/></svg><div>Text read exactly from the CAD file</div></div>
+          </div>
+
+          <details class="sec"><summary><svg class="i car"><use href="#car"/></svg>Requirement<span class="h">edit type, nominal, tolerance</span></summary>
+            <div class="fields"><div class="f"><label>Type</label><div>Linear</div></div><div class="f"><label>Tolerance</label><div>From table</div></div><div class="f"><label>Nominal</label><div>11.8</div></div><div class="f"><label>± (auto)</label><div>0.2</div></div></div></details>
+          <details class="sec" open><summary><svg class="i car"><use href="#car"/></svg>Result<span class="h">appears once the balloon is accepted</span></summary>
+            <div class="f" style="margin-top:10px"><div style="color:var(--faint)">Accept first, then type the measured value</div></div>
+            <div class="band"><div class="tr"></div><div class="okz"></div><span style="left:22%">11.6</span><span style="left:78%">12.0</span></div></details>
+          <details class="sec"><summary><svg class="i car"><use href="#car"/></svg>Details<span class="h">units, quantity, comments</span></summary></details>
+          <details class="sec"><summary><svg class="i car"><use href="#car"/></svg>History<span class="h">who changed what</span></summary></details>
+        </div>
+        <div class="rf">
+          <span class="btn p" style="flex:1;justify-content:center"><svg class="i"><use href="#chk"/></svg>Accept as printed <span class="kbd" style="background:transparent;color:inherit;border-color:currentColor;opacity:.7">A</span></span>
+          <span class="btn" title="Keep it flagged with a note"><svg class="i"><use href="#flag"/></svg></span>
+          <span class="btn" title="Delete, renumber, change style"><svg class="i"><use href="#more"/></svg></span>
+        </div>
+      </aside>
+    </div>
+  </div>
+</section>
+
+<section class="two">
+  <div class="card">
+    <h2>Collapsed panels</h2>
+    <p class="sub">Collapsed, each panel becomes a slim strip that still tells you what is waiting. Hovering shows a tooltip; clicking opens the panel on that group.</p>
+    <div class="rail">
+      <div class="railcol" aria-label="Left panel collapsed">
+        <span class="ri on" title="Needs a decision: 5"><svg class="i"><use href="#flag"/></svg><b>5</b></span>
+        <span class="ri" title="To check: 78"><svg class="i"><use href="#list"/></svg><b class="n">78</b></span>
+        <span class="ri" title="About this sheet"><svg class="i"><use href="#file"/></svg></span>
+        <span class="ri" title="Tables: 3"><svg class="i"><use href="#tbl"/></svg></span>
+      </div>
+      <div style="flex:1;min-width:150px;border:1px dashed var(--line);border-radius:10px;display:grid;place-items:center;color:var(--muted);font-size:.8rem;padding:14px;text-align:center">the sheet gets the room</div>
+      <div class="railcol" aria-label="Right panel collapsed">
+        <span class="bn" style="grid-row:auto">21</span>
+        <span class="ri" title="Flagged: length differs" style="color:var(--bad)"><svg class="i"><use href="#flag"/></svg></span>
+        <span class="ri" title="Accept (A)"><svg class="i"><use href="#chk"/></svg></span>
+        <span class="ri" title="Next (J)"><svg class="i"><use href="#car"/></svg></span>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>What changes, in plain words</h2>
+    <ul style="margin:8px 0 0;padding-left:18px;display:grid;gap:6px;font-size:.86rem">
+      <li><b>Left panel becomes a work queue.</b> Three groups that open and close: what needs a decision, what could be added, facts about the sheet.</li>
+      <li><b>Every problem says what is wrong.</b> Balloon number, the value, and one sentence. Click it and the sheet zooms there with the balloon pulsing.</li>
+      <li><b>Right panel shows the callout itself.</b> A small picture of what was read, then the requirement, then the checks as a short list with ticks and crosses.</li>
+      <li><b>One status vocabulary everywhere.</b> To check, Flagged, To measure, Pass, Fail. Same pill in the list, the grid, the panel and on the sheet.</li>
+      <li><b>Cues.</b> Keyboard hints on the buttons, tooltips on every icon, a toast after each action, a "what next" line when a group is empty.</li>
+      <li><b>The sheet fills the space.</b> In your screenshot it sits at 18% in a large empty area; fit should use the room.</li>
+    </ul>
+  </div>
+</section>
+
+<section class="card">
+  <h2>Review and Measure: do we need both?</h2>
+  <p class="sub">They are two moments of the same job, not two screens. My proposal removes the tabs and keeps one list.</p>
+  <div class="two">
+    <div class="opt pick"><span class="lz ok" style="justify-self:start">My pick</span><b>A · One workspace, statuses instead of tabs</b>
+      <span style="color:var(--muted);font-size:.86rem">The top bar only shows progress (Read → Check → Measure → Report). The chips under it choose what you see. A balloon moves To check → To measure → Pass or Fail. The result box unlocks when the balloon is accepted. This is how Jira and Monday treat work: one board, items change status.</span></div>
+    <div class="opt"><b>B · Keep two steps, rename and explain them</b>
+      <span style="color:var(--muted);font-size:.86rem">"1 Check balloons" and "2 Enter results", each with a one-line hint and a "done, go to results" button when the first is complete. Smaller change, but the list still appears twice with different columns.</span></div>
+  </div>
+</section>
+
+<section class="ask">
+  <b>Your decisions before I code anything</b>
+  <span>1. Review / Measure: option <b>A</b> (one workspace) or <b>B</b> (two renamed steps)?</span>
+  <span>2. Left panel as a three-group work queue: yes, or changes?</span>
+  <span>3. Right panel with the picture of the callout and the checks list: yes, or changes?</span>
+  <span>4. Build before tomorrow's demo, or keep today's tagged screen for the demo and build after?</span>
+</section>
+</main>

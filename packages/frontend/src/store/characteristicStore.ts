@@ -115,6 +115,8 @@ interface CharacteristicState extends History {
   addMany: (records: Characteristic[]) => Characteristic[]
   /** Draft rows from the pass become Accepted. One undo step. */
   acceptAll: () => void
+  /** The given Draft rows become Accepted. One undo step. */
+  acceptIds: (ids: string[]) => void
   /** Removes every balloon the pass created. One undo step. */
   removeAuto: () => void
 }
@@ -285,6 +287,12 @@ export const useCharacteristicStore = create<CharacteristicState>()((set, get) =
     const s = get()
     if (!s.items.some((c) => c.source === 'auto' && c.status === 'Draft')) return
     set(commitFrom(s, s.items.map((c) => (c.source === 'auto' && c.status === 'Draft' ? { ...c, status: 'Accepted' } : c))))
+  },
+  acceptIds: (ids) => {
+    const s = get()
+    const want = new Set(ids)
+    if (!s.items.some((c) => want.has(c.id) && c.status === 'Draft')) return
+    set(commitFrom(s, s.items.map((c) => (want.has(c.id) && c.status === 'Draft' ? { ...c, status: 'Accepted' } : c))))
   },
   removeAuto: () => {
     const s = get()

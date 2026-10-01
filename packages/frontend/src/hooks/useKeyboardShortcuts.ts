@@ -6,6 +6,7 @@ import { useSettingsStore } from '@/store/settingsStore'
 import { useCharacteristicStore } from '@/store/characteristicStore'
 import { downloadProjectFile } from '@/lib/project'
 import { toggleZoomTo } from '@/lib/focus'
+import { acceptSelectedAndNext, selectRelative } from '@/lib/workflow'
 
 function isTypingTarget(el: EventTarget | null): boolean {
   if (!(el instanceof HTMLElement)) return false
@@ -18,6 +19,7 @@ function isTypingTarget(el: EventTarget | null): boolean {
 /**
  * Global shortcuts.
  * Tools: B single, M multiple, N sub-balloon, S select, H pan, W window re-extract, F zoom to the selected balloon and back, Esc select, L leader line.
+ * Work: J next balloon, K previous, A accept the selected one and go to the next that needs work.
  * Edit: Delete/Backspace remove selected, Ctrl+Z undo, Ctrl+Y or Ctrl+Shift+Z redo.
  * View: + / - zoom, 0 fit, PageUp / PageDown change sheet.
  */
@@ -72,6 +74,18 @@ export function useKeyboardShortcuts() {
         case 'f':
         case 'F':
           toggleZoomTo()
+          break
+        case 'j':
+        case 'J':
+          selectRelative(1)
+          break
+        case 'k':
+        case 'K':
+          selectRelative(-1)
+          break
+        case 'a':
+        case 'A':
+          acceptSelectedAndNext()
           break
         case 'w':
         case 'W':

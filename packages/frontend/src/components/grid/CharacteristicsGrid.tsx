@@ -19,8 +19,8 @@ import {
 } from 'ag-grid-community'
 import { useTheme } from '@/components/theme/ThemeProvider'
 import { Fcf } from '@/components/gdt/Fcf'
-import { StatusBadge } from '@/components/status/StatusBadge'
-import { isMeasurable } from '@/lib/progress'
+import { WorkBadge, WORK_LABEL } from '@/components/status/WorkBadge'
+import { matchesFilter, workStateOf, type WorkState } from '@/lib/progress'
 import { balloonLabel, useCharacteristicStore, type Characteristic } from '@/store/characteristicStore'
 import { useDocumentStore } from '@/store/documentStore'
 import { useSettingsStore, type DefaultTolerances } from '@/store/settingsStore'
@@ -88,7 +88,8 @@ function FcfCell(p: ICellRendererParams<Row>) {
 }
 
 function StatusCell(p: ICellRendererParams<Row, string>) {
-  return p.value ? <StatusBadge status={p.value as 'Draft' | 'Accepted' | 'Pass' | 'Fail'} /> : null
+  const state = (Object.keys(WORK_LABEL) as WorkState[]).find((k) => WORK_LABEL[k] === p.value)
+  return state ? <WorkBadge state={state} /> : null
 }
 
 function buildColumns(defaults: DefaultTolerances): ColDef<Row>[] {
@@ -191,13 +192,13 @@ function buildColumns(defaults: DefaultTolerances): ColDef<Row>[] {
     {
       headerName: 'Status',
       colId: 'status',
-      width: 96,
+      width: 124,
       editable: false,
-      valueGetter: (p: ValueGetterParams<Row>) => (p.data ? displayStatus(p.data, limitsOf(p.data)) : ''),
+      valueGetter: (p: ValueGetterParams<Row>) => (p.data ? WORK_LABEL[workStateOf(p.data, defaults)] : ''),
       cellRenderer: StatusCell,
     },
     {
-      headerName: 'Evidence',
+      headerName: 'Check',
       colId: 'evidence',
       width: 210,
       editable: false,
@@ -223,11 +224,8 @@ function buildColumns(defaults: DefaultTolerances): ColDef<Row>[] {
   ]
 }
 
-/** Columns shown for each step. "Columns" in the toolbar brings back the rest. */
-const COLUMN_SETS: Record<'review' | 'measure', string[]> = {
-  review: ['balloon', 'specification', 'gdt', 'zone', 'view', 'result', 'status', 'evidence'],
-  measure: ['balloon', 'specification', 'gdt', 'min', 'max', 'result', 'status', 'zone'],
-}
+/** The working set: what a balloon requires, where it is, its limits, the result, where it stands. "All columns" brings back the rest. */
+const WORKING_COLUMNS = ['balloon', 'specification', 'gdt', 'view', 'min', 'max', 'result', 'status', 'evidence']
 
 export function CharacteristicsGrid({ quickFilter }: { quickFilter: string }) {
   const { theme } = useTheme()
@@ -243,13 +241,12 @@ export function CharacteristicsGrid({ quickFilter }: { quickFilter: string }) {
   const rowData = useMemo(() => items.map((c) => ({ ...c })), [items])
   const columnDefs = useMemo(() => buildColumns(defaults), [defaults])
 
-  const step = useUiStore((s) => s.step)
+  const show = useUiStore((s) => s.show)
   const allColumns = useUiStore((s) => s.allColumns)
-  const measureFilter = useUiStore((s) => s.measureFilter)
 
-  const applyColumnSet = useCallback((api: GridApi<Row>, which: 'review' | 'measure', all: boolean) => {
+  const applyColumnSet = useCallback((api: GridApi<Row>, all: boolean) => {
     const ids = (api.getColumns() ?? []).map((col) => col.getColId())
-    const show = new Set(COLUMN_SETS[which])
+    const show = new Set(WORKING_COLUMNS)
     api.setColumnsVisible(ids.filter((id) => all || show.has(id)), true)
     api.setColumnsVisible(ids.filter((id) => !all && !show.has(id)), false)
   }, [])
@@ -264,27 +261,24 @@ export function CharacteristicsGrid({ quickFilter }: { quickFilter: string }) {
       /* ignore bad saved state */
     }
     const ui = useUiStore.getState()
-    applyColumnSet(e.api, ui.step, ui.allColumns)
+    applyColumnSet(e.api, ui.allColumns)
   }, [applyColumnSet])
 
   useEffect(() => {
-    if (apiRef.current) applyColumnSet(apiRef.current, step, allColumns)
-  }, [step, allColumns, applyColumnSet])
+    if (apiRef.current) applyColumnSet(apiRef.current, allColumns)
+  }, [allColumns, applyColumnSet])
 
-  // While measuring, the side panel chooses which rows are listed.
-  const stepRef = useRef({ step, measureFilter, defaults })
-  stepRef.current = { step, measureFilter, defaults }
-  const isExternalFilterPresent = useCallback(() => stepRef.current.step === 'measure' && stepRef.current.measureFilter !== 'all', [])
+  // The chips above the workspace choose which rows are listed.
+  const filterRef = useRef({ show, defaults })
+  filterRef.current = { show, defaults }
+  const isExternalFilterPresent = useCallback(() => filterRef.current.show !== 'all', [])
   const doesExternalFilterPass = useCallback((node: { data?: Row }) => {
     const c = node.data
-    const { measureFilter: f, defaults: d } = stepRef.current
-    if (!c) return true
-    if (f === 'failed') return displayStatus(c, deriveLimits(c, d)) === 'Fail'
-    return isMeasurable(c) && (c.result === null || c.result === '')
+    return !c || matchesFilter(workStateOf(c, filterRef.current.defaults), filterRef.current.show)
   }, [])
   useEffect(() => {
     apiRef.current?.onFilterChanged()
-  }, [step, measureFilter, items])
+  }, [show, items, defaults])
 
   const saveColumnState = useCallback(() => {
     const api = apiRef.current

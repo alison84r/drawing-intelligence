@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { ArrowRight, Check, ChevronDown, ChevronRight, MousePointerClick, Palette, Sparkles, Spline, Trash2 } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import { ArrowRight, Check, ChevronLeft, ChevronRight, CircleAlert, Info, MoreHorizontal, MousePointerClick, Palette, RotateCcw, Spline, Trash2, X, ZoomIn } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { NativeSelect } from '@/components/ui/native-select'
 import { Switch } from '@/components/ui/switch'
@@ -7,7 +7,8 @@ import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { FcfBuilder } from '@/components/gdt/FcfBuilder'
 import { Fcf } from '@/components/gdt/Fcf'
 import { BalloonStyleEditor } from '@/components/balloons/BalloonStyleEditor'
-import { StatusBadge } from '@/components/status/StatusBadge'
+import { WorkBadge } from '@/components/status/WorkBadge'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { CommitInput, CommitTextarea, Field } from '@/components/inspector/fields'
 import {
   balloonLabel,
@@ -22,8 +23,12 @@ import {
 } from '@/store/characteristicStore'
 import { useSettingsStore } from '@/store/settingsStore'
 import { useUiStore } from '@/store/uiStore'
+import { useSessionStore } from '@/store/sessionStore'
+import { api } from '@/lib/api'
+import { toggleZoomTo } from '@/lib/focus'
+import { acceptSelectedAndNext, selectRelative } from '@/lib/workflow'
 import { deriveLimits, displayStatus, fmt, hasNumericTolerance, limitPlaces, parseNumber, placesOf, requirementText } from '@/lib/tolerance'
-import { nextId } from '@/lib/progress'
+import { visibleItems, workStateOf } from '@/lib/progress'
 import { cn } from '@/lib/utils'
 
 const DESCRIPTIONS: DescriptionType[] = [
@@ -60,12 +65,50 @@ function evidence(c: Characteristic): { text: string; tone: 'ok' | 'warn' | 'bad
   return { text: 'Shares the geometry of the callout next to it', tone: 'plain' }
 }
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+/** A part of the panel that opens and closes. The hint says what is inside while it is closed. */
+function Section({ title, hint, open, onToggle, children, testId }: { title: string; hint?: string; open: boolean; onToggle: () => void; children: React.ReactNode; testId?: string }) {
   return (
-    <section className="space-y-2 border-b px-4 py-3">
-      <h3 className="text-xs font-semibold text-muted-foreground">{title}</h3>
-      {children}
+    <section className="border-t" data-testid={testId} data-open={open}>
+      <button type="button" onClick={onToggle} aria-expanded={open}
+        className="flex w-full items-center gap-1.5 px-4 py-2.5 text-left text-xs font-semibold transition-colors hover:bg-accent/50 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-ring">
+        <ChevronRight className={cn('size-3.5 text-muted-foreground transition-transform', open && 'rotate-90')} />
+        {title}
+        {!open && hint && <span className="ml-auto truncate pl-3 font-normal text-muted-foreground">{hint}</span>}
+      </button>
+      {open && <div className="space-y-2 px-4 pb-4">{children}</div>}
     </section>
+  )
+}
+
+/** One check on a callout: passed, failed, or just a fact. */
+function CheckLine({ tone, title, detail }: { tone: 'ok' | 'warn' | 'bad' | 'plain'; title: string; detail?: string }) {
+  return (
+    <li className="flex items-start gap-2 border-t border-dashed py-1.5 first:border-t-0 [&>svg]:mt-0.5 [&>svg]:size-3.5 [&>svg]:shrink-0" data-tone={tone}>
+      {tone === 'ok' ? <Check className="text-status-pass" /> : tone === 'bad' ? <X className="text-status-fail" /> : tone === 'warn' ? <CircleAlert className="text-status-draft" /> : <Info className="text-muted-foreground" />}
+      <span className="min-w-0">
+        <span className={cn('block text-xs', tone === 'bad' && 'font-semibold')}>{title}</span>
+        {detail && <span className="block text-[11px] leading-snug text-muted-foreground">{detail}</span>}
+      </span>
+    </li>
+  )
+}
+
+/** The callout exactly as it is printed, cut from the sheet, so the reading can be checked without hunting for it. */
+function Printed({ c }: { c: Characteristic }) {
+  const revisionId = useSessionStore((s) => s.revisionId)
+  const [failed, setFailed] = useState(false)
+  useEffect(() => setFailed(false), [c.id])
+  if (!revisionId || !c.bbox || failed) return null
+  const pad = Math.max(16, 1.4 * Math.min(c.bbox.w, c.bbox.h))
+  const side = Math.max(0, (3.2 * (c.bbox.h + 2 * pad) - (c.bbox.w + 2 * pad)) / 2)  // keep the picture about three times as wide as tall
+  const box = { x: Math.max(0, c.bbox.x - pad - side), y: Math.max(0, c.bbox.y - pad), w: c.bbox.w + 2 * (pad + side), h: c.bbox.h + 2 * pad }
+  const round = (v: number) => Math.round(v * 10) / 10
+  return (
+    <figure className="overflow-hidden rounded-lg border bg-white" data-testid="printed">
+      <img src={api.assistCropUrl(revisionId, c.page, { x: round(box.x), y: round(box.y), w: round(box.w), h: round(box.h) })} alt="The callout as printed on the sheet"
+        className="h-[84px] w-full object-contain" onError={() => setFailed(true)} />
+      <figcaption className="border-t bg-muted/40 px-2 py-0.5 text-right text-[10px] text-muted-foreground">as printed{c.view ? ` · ${c.view}` : ''}{c.zone ? ` · zone ${c.zone}` : ''}</figcaption>
+    </figure>
   )
 }
 
@@ -87,27 +130,34 @@ function LimitBand({ min, max, value, places }: { min: number; max: number; valu
   )
 }
 
-/** Right panel: the requirement first, the result directly under it, everything else folded into Details. */
+/** Right panel: the callout as printed, what it requires, the checks on it, then the result. Editing is folded away. */
 export function Inspector() {
   const selected = useCharacteristicStore((s) => s.items.find((c) => c.id === s.selectedId) ?? null)
   const items = useCharacteristicStore((s) => s.items)
-  const select = useCharacteristicStore((s) => s.select)
   const remove = useCharacteristicStore((s) => s.remove)
   const setLeader = useCharacteristicStore((s) => s.setLeader)
   const update = useCharacteristicStore((s) => s.update)
   const defaults = useSettingsStore((s) => s.defaults)
   const globalStyle = useSettingsStore((s) => s.balloonStyle)
-  const step = useUiStore((s) => s.step)
-  const [details, setDetails] = useState(false)
+  const show = useUiStore((s) => s.show)
+  const [open, setOpen] = useState<{ result: boolean | null; requirement: boolean; details: boolean }>({ result: null, requirement: false, details: false })
   const [showStyle, setShowStyle] = useState(false)
+  const [menu, setMenu] = useState(false)
+  const menuRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (!menu) return
+    const onDown = (e: PointerEvent) => !menuRef.current?.contains(e.target as Node) && setMenu(false)
+    window.addEventListener('pointerdown', onDown, true)
+    return () => window.removeEventListener('pointerdown', onDown, true)
+  }, [menu])
 
   if (!selected) {
     return (
       <aside className="flex h-full flex-col bg-background" data-testid="inspector">
         <div className="flex flex-1 flex-col items-center justify-center gap-2 p-8 text-center text-xs text-muted-foreground">
           <MousePointerClick className="size-5" />
-          <p>Select a balloon or a row to see its requirement here.</p>
-          <p>Press B and click a dimension to add one by hand.</p>
+          <p>Select a balloon, a row, or a problem in the queue to see it here.</p>
+          <p>Press <kbd className="rounded border border-b-2 px-1 font-sans text-[10px]">J</kbd> for the next one, or <kbd className="rounded border border-b-2 px-1 font-sans text-[10px]">B</kbd> and click a dimension to add one by hand.</p>
         </div>
       </aside>
     )
@@ -125,16 +175,12 @@ export function Inspector() {
   const resultNumber = typeof c.result === 'number' ? c.result : c.result === null ? null : parseNumber(String(c.result))
   const color = c.style?.color ?? globalStyle.color
 
-  const goNext = () => {
-    const id = nextId(items, defaults, c.id, step)
-    select(id)
-  }
-  const acceptAndNext = () => {
-    if (c.status === 'Draft') patch({ status: 'Accepted' })
-    // The store update is synchronous; pick the next draft from the fresh list.
-    const fresh = useCharacteristicStore.getState().items
-    select(nextId(fresh, defaults, c.id, 'review'))
-  }
+  const state = workStateOf(c, defaults)
+  const unchecked = state === 'check' || state === 'flagged'
+  const list = visibleItems(items, defaults, show)
+  const position = list.findIndex((i) => i.id === c.id)
+  // The result opens by itself once the balloon is confirmed; the person's own choice wins after that.
+  const resultOpen = open.result ?? !unchecked
 
   const onDescription = (d: DescriptionType) => {
     const p: Partial<Characteristic> = { descriptionType: d }
@@ -163,44 +209,59 @@ export function Inspector() {
 
   return (
     <aside className="flex h-full flex-col bg-background" data-testid="inspector">
-      <header className="border-b px-4 py-3">
-        <div className="flex items-center justify-between gap-2">
-          <span className="flex items-center gap-2 text-xs text-muted-foreground">
-            <span className="inline-flex h-6 min-w-6 items-center justify-center rounded-full border-2 px-1 text-xs font-semibold" style={{ borderColor: color, color }}>
-              {(c.style?.prefix ?? globalStyle.prefix) + balloonLabel(c)}
-            </span>
-            Sheet {c.page + 1}{c.zone ? ` · Zone ${c.zone}` : ''}{c.view ? ` · ${c.view}` : ''}{c.designator ? ` · ${c.designator}` : ''}
-          </span>
-          <StatusBadge status={status} />
+      <header className="flex items-center gap-2 border-b px-3 py-2">
+        <span className="inline-flex h-7 min-w-7 items-center justify-center rounded-full border-2 px-1 text-xs font-bold tabular-nums" style={{ borderColor: color, color }}>
+          {(c.style?.prefix ?? globalStyle.prefix) + balloonLabel(c)}
+        </span>
+        <div className="min-w-0">
+          <p className="truncate text-xs font-semibold">Balloon {balloonLabel(c)}</p>
+          <p className="truncate text-[11px] tabular-nums text-muted-foreground" data-testid="position">{position >= 0 ? `${position + 1} of ${list.length} shown` : 'Not in the current filter'}</p>
         </div>
-        <div className="mt-2 min-h-8 text-2xl font-semibold leading-tight tracking-tight tabular-nums" data-testid="requirement">
-          {isGdt && c.gdt ? <Fcf gdt={c.gdt} /> : requirementText(c, limits) || <span className="text-base font-normal text-muted-foreground">No requirement yet</span>}
+        <WorkBadge state={state} className="ml-auto" />
+        <div className="flex items-center">
+          <Tooltip><TooltipTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => selectRelative(-1)} aria-label="Previous balloon"><ChevronLeft /></Button>
+          </TooltipTrigger><TooltipContent>Previous (K)</TooltipContent></Tooltip>
+          <Tooltip><TooltipTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => selectRelative(1)} aria-label="Next balloon"><ChevronRight /></Button>
+          </TooltipTrigger><TooltipContent>Next (J)</TooltipContent></Tooltip>
         </div>
-        {numeric && !isGdt && limits.origin && (
-          <p className="mt-1 text-[11px] text-muted-foreground" data-testid="tolerance-origin">
-            Tolerance {limits.auto ? 'from' : ''} <span className="font-medium text-foreground">{limits.origin}</span>
-          </p>
-        )}
-        <p
-          className={cn(
-            'mt-1.5 flex items-start gap-1.5 text-[11px]',
-            ev.tone === 'ok' && 'text-status-pass',
-            ev.tone === 'warn' && 'text-status-draft',
-            ev.tone === 'bad' && 'text-status-fail',
-            ev.tone === 'plain' && 'text-muted-foreground',
-          )}
-          data-testid="evidence"
-        >
-          {ev.tone === 'ok' ? <Check className="mt-px size-3.5 shrink-0" /> : <Sparkles className="mt-px size-3.5 shrink-0" />}
-          <span>
-            {ev.text}
-            {c.source === 'auto' && <span className="text-muted-foreground"> · read with {Math.round(c.confidence * 100)}% confidence</span>}
-          </span>
-        </p>
       </header>
 
       <div className="min-h-0 flex-1 overflow-y-auto">
-        <Section title="Result">
+        <div className="space-y-3 px-4 py-3">
+          <Printed c={c} />
+          <div>
+            <div className="min-h-8 text-[26px] font-bold leading-tight tracking-tight tabular-nums" data-testid="requirement">
+              {isGdt && c.gdt ? <Fcf gdt={c.gdt} /> : requirementText(c, limits) || <span className="text-base font-normal text-muted-foreground">No requirement yet</span>}
+            </div>
+            <div className="mt-2 flex flex-wrap gap-1 text-[11px] font-medium [&>span]:rounded-full [&>span]:border [&>span]:px-2 [&>span]:py-px [&>span]:text-muted-foreground">
+              <span>{c.descriptionType}</span>
+              {c.view && <span>{c.view}</span>}
+              {c.zone && <span>Zone {c.zone}</span>}
+              {c.count > 1 && <span>{c.count} places</span>}
+              {c.designator && <span>{c.designator}</span>}
+              <span>Sheet {c.page + 1}</span>
+            </div>
+          </div>
+
+          <div>
+            <h3 className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Checks</h3>
+            <ul className="mt-1" data-testid="checks">
+              <CheckLine tone={ev.tone} title={ev.text} detail={ev.tone === 'bad' ? 'The value may be overridden in CAD, or it belongs to another line. Accept it as printed, or correct the requirement.' : undefined} />
+              {numeric && !isGdt && limits.origin && (
+                <CheckLine tone="ok" title={limits.auto ? `Tolerance from ${limits.origin}` : 'Tolerance printed with the value'} />
+              )}
+              {(c.toleranceType === 'Basic' || c.toleranceType === 'Reference') && <CheckLine tone="plain" title={c.toleranceType === 'Basic' ? 'Basic dimension: boxed, no tolerance of its own' : 'Reference dimension: for information, not measured'} />}
+              {c.source === 'auto'
+                ? <CheckLine tone={c.confidence >= 0.8 ? 'ok' : 'warn'} title={`Text read from the CAD file, ${Math.round(c.confidence * 100)}% confidence`} />
+                : <CheckLine tone="plain" title="Placed by hand" />}
+            </ul>
+          </div>
+        </div>
+
+        <Section title="Result" testId="section-result" open={resultOpen} onToggle={() => setOpen((o) => ({ ...o, result: !resultOpen }))} hint={c.result !== null && c.result !== '' ? String(c.result) : unchecked ? 'after it is accepted' : 'waiting for a value'}>
+          {unchecked && <p className="rounded-md border border-dashed px-2.5 py-1.5 text-[11px] text-muted-foreground">Not confirmed yet. Entering a result here also confirms the balloon.</p>}
           {isAttribute ? (
             <ToggleGroup type="single" value={typeof c.result === 'string' ? c.result : ''} onValueChange={(v) => patch({ result: v || null })} className="w-full">
               <ToggleGroupItem value="Pass" className="flex-1 data-[state=on]:bg-status-pass data-[state=on]:text-white">Pass</ToggleGroupItem>
@@ -211,25 +272,26 @@ export function Inspector() {
               <CommitInput
                 key={c.id}
                 inputMode="decimal"
-                autoFocus={step === 'measure'}
+                autoFocus={state === 'measure'}
                 value={c.result === null ? '' : String(c.result)}
                 placeholder={limits.min !== null ? `${fmt(limits.min, limitPlaces(c.places, limits))} … ${fmt(limits.max, limitPlaces(c.places, limits))} ${c.units}` : 'Measured value'}
                 onCommit={(v) => patch({ result: v.trim() === '' ? null : (parseNumber(v) ?? v.trim()) })}
-                onEnter={step === 'measure' ? goNext : undefined}
+                onEnter={acceptSelectedAndNext}
                 aria-label="Measured result"
                 className={cn(
                   'h-10 text-base font-semibold tabular-nums',
-                  step === 'measure' && 'border-primary ring-2 ring-primary/15',
+                  state === 'measure' && 'border-primary ring-2 ring-primary/15',
                   status === 'Pass' && 'border-status-pass text-status-pass',
                   status === 'Fail' && 'border-status-fail text-status-fail',
                 )}
               />
               {limits.min !== null && limits.max !== null && !isGdt && <LimitBand min={limits.min} max={limits.max} value={resultNumber} places={limitPlaces(c.places, limits)} />}
+              <p className="text-[11px] text-muted-foreground">Enter saves it and moves to the next one.</p>
             </>
           )}
         </Section>
 
-        <Section title="Requirement">
+        <Section title="Requirement" testId="section-requirement" open={open.requirement} onToggle={() => setOpen((o) => ({ ...o, requirement: !o.requirement }))} hint="edit type, nominal, tolerance">
           <div className="grid grid-cols-2 gap-2">
             <Field label="Type">
               <NativeSelect value={c.descriptionType} onChange={(e) => onDescription(e.target.value as DescriptionType)}>
@@ -275,13 +337,7 @@ export function Inspector() {
           </Field>
         </Section>
 
-        <section className="border-b">
-          <button type="button" className="flex w-full items-center gap-1.5 px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground hover:text-foreground" onClick={() => setDetails((v) => !v)} aria-expanded={details}>
-            {details ? <ChevronDown className="size-3.5" /> : <ChevronRight className="size-3.5" />} Details
-            {!details && <span className="font-normal">units, places, quantity, zone, designator, comments</span>}
-          </button>
-          {details && (
-            <div className="space-y-3 px-4 pb-4">
+        <Section title="Details" testId="section-details" open={open.details} onToggle={() => setOpen((o) => ({ ...o, details: !o.details }))} hint="units, quantity, zone, comments, style">
               <div className="grid grid-cols-3 gap-2">
                 <Field label="Units">
                   <NativeSelect value={c.units} onChange={(e) => patch({ units: e.target.value as Units })}>
@@ -340,24 +396,37 @@ export function Inspector() {
                   </div>
                 )}
               </div>
-            </div>
-          )}
-        </section>
+        </Section>
       </div>
 
-      <footer className="flex items-center gap-2 border-t px-4 py-3">
-        <Button variant="outline" size="sm" className="gap-1.5" onClick={() => remove(c.id)}>
-          <Trash2 /> Delete
-        </Button>
-        {step === 'review' ? (
-          <Button size="sm" className="flex-1 gap-1.5" onClick={acceptAndNext} data-testid="accept-next">
-            {c.status === 'Draft' ? 'Accept and next' : 'Next to review'} <ArrowRight />
+      <footer className="flex items-center gap-2 border-t bg-muted/30 px-3 py-2.5">
+        <Tooltip><TooltipTrigger asChild>
+          <Button size="sm" className="flex-1 gap-1.5" onClick={acceptSelectedAndNext} data-testid="accept-next">
+            {unchecked ? <Check /> : null}
+            {state === 'flagged' ? 'Accept as printed' : state === 'check' ? 'Accept' : state === 'measure' ? 'Next to measure' : 'Next'}
+            {unchecked ? <kbd className="ml-1 rounded border border-current/40 px-1 font-sans text-[10px] opacity-80">A</kbd> : <ArrowRight />}
           </Button>
-        ) : (
-          <Button size="sm" className="flex-1 gap-1.5" onClick={goNext} data-testid="save-next">
-            Next to measure <ArrowRight />
-          </Button>
-        )}
+        </TooltipTrigger><TooltipContent>{unchecked ? 'Confirm this balloon and go to the next one to check (A)' : 'Go to the next one that needs work (A)'}</TooltipContent></Tooltip>
+        <Tooltip><TooltipTrigger asChild>
+          <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => toggleZoomTo(c.id)} aria-label="Zoom to it on the sheet"><ZoomIn /></Button>
+        </TooltipTrigger><TooltipContent>Zoom to it on the sheet, and back (F)</TooltipContent></Tooltip>
+        <div className="relative" ref={menuRef}>
+          <Tooltip><TooltipTrigger asChild>
+            <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setMenu((v) => !v)} aria-label="More actions" aria-expanded={menu} data-testid="inspector-more"><MoreHorizontal /></Button>
+          </TooltipTrigger><TooltipContent>More actions</TooltipContent></Tooltip>
+          {menu && (
+            <div role="menu" className="absolute bottom-10 right-0 z-40 w-52 rounded-md border bg-background p-1 text-xs shadow-xl">
+              {!unchecked && (
+                <button type="button" role="menuitem" className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left hover:bg-accent [&_svg]:size-3.5" onClick={() => { patch({ status: 'Draft', result: null }); setMenu(false) }}>
+                  <RotateCcw /> Send back to check
+                </button>
+              )}
+              <button type="button" role="menuitem" className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-status-fail hover:bg-status-fail/10 [&_svg]:size-3.5" onClick={() => { remove(c.id); setMenu(false) }} data-testid="inspector-delete">
+                <Trash2 /> Delete this balloon <span className="ml-auto text-[10px] text-muted-foreground">Del</span>
+              </button>
+            </div>
+          )}
+        </div>
       </footer>
     </aside>
   )

@@ -16,35 +16,45 @@ import { closeInspection, downloadProjectFile, importProjectFile } from '@/lib/p
 import { progressOf } from '@/lib/progress'
 import { cn } from '@/lib/utils'
 
-function Step({ n, label, count, state, onClick, testId }: { n: number; label: string; count?: string; state: 'done' | 'on' | 'todo'; onClick: () => void; testId: string }) {
+function Stage({ n, label, count, state, hint, onClick, testId, last }: { n: number; label: string; count?: string; state: 'done' | 'now' | 'todo'; hint: string; onClick?: () => void; testId: string; last?: boolean }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      data-testid={testId}
-      aria-current={state === 'on' ? 'step' : undefined}
-      className={cn(
-        'flex h-8 items-center gap-2 whitespace-nowrap rounded-lg px-3 text-xs font-medium transition-colors',
-        state === 'on' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground',
-      )}
-    >
-      <span
-        className={cn(
-          'grid size-[18px] place-items-center rounded-full text-[10px] font-bold',
-          state === 'done' && 'bg-status-pass text-white',
-          state === 'on' && 'bg-primary text-primary-foreground',
-          state === 'todo' && 'bg-muted-foreground/30 text-background',
-        )}
-      >
-        {state === 'done' ? <Check className="size-3" strokeWidth={3} /> : n}
-      </span>
-      {label}
-      {count && <span className="hidden font-normal tabular-nums text-muted-foreground lg:inline">{count}</span>}
-    </button>
+    <>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button
+            type="button"
+            onClick={onClick}
+            disabled={!onClick}
+            data-testid={testId}
+            data-state={state}
+            aria-current={state === 'now' ? 'step' : undefined}
+            className={cn(
+              'flex h-8 items-center gap-2 whitespace-nowrap rounded-lg px-2 text-xs font-medium text-muted-foreground transition-colors enabled:hover:bg-accent enabled:hover:text-foreground disabled:cursor-default',
+              state === 'now' && 'font-semibold text-foreground',
+            )}
+          >
+            <span
+              className={cn(
+                'grid size-5 place-items-center rounded-full border text-[10px] font-bold',
+                state === 'done' && 'border-status-pass bg-status-pass text-white',
+                state === 'now' && 'border-primary bg-primary text-primary-foreground',
+                state === 'todo' && 'bg-muted text-muted-foreground',
+              )}
+            >
+              {state === 'done' ? <Check className="size-3" strokeWidth={3} /> : n}
+            </span>
+            {label}
+            {count && <span className="hidden font-normal tabular-nums text-muted-foreground lg:inline">{count}</span>}
+          </button>
+        </TooltipTrigger>
+        <TooltipContent>{hint}</TooltipContent>
+      </Tooltip>
+      {!last && <span className={cn('h-0.5 w-5 rounded-full', state === 'done' ? 'bg-status-pass' : 'bg-border')} aria-hidden />}
+    </>
   )
 }
 
-/** Brand and place on the left, the four steps in the middle, save state and the one primary action on the right. */
+/** Brand and place on the left, how far the job is in the middle, save state and the one primary action on the right. */
 export function WorkspaceTopBar() {
   const partLabel = useSessionStore((s) => s.partLabel)
   const inspectionTitle = useSessionStore((s) => s.inspectionTitle)
@@ -58,8 +68,7 @@ export function WorkspaceTopBar() {
   const redo = useCharacteristicStore((s) => s.redo)
   const renumber = useCharacteristicStore((s) => s.renumber)
   const defaults = useSettingsStore((s) => s.defaults)
-  const step = useUiStore((s) => s.step)
-  const setStep = useUiStore((s) => s.setStep)
+  const setShow = useUiStore((s) => s.setShow)
   const recognized = useRecognizeStore((s) => Object.keys(s.pages).length > 0) || items.some((c) => c.source === 'auto')
   const recognizing = useRecognizeStore((s) => s.status === 'running')
   const runRecognize = useRecognizeStore((s) => s.run)
@@ -122,11 +131,17 @@ export function WorkspaceTopBar() {
         <span className="truncate font-semibold text-foreground">{inspectionTitle}</span>
       </nav>
 
-      <div className="mx-auto flex items-center gap-0.5 rounded-xl bg-muted p-1" role="group" aria-label="Steps">
-        <Step n={1} label={recognizing ? 'Reading…' : 'Recognize'} state={recognized ? 'done' : 'todo'} testId="step-recognize" onClick={() => revisionId && !recognizing && void runRecognize()} />
-        <Step n={2} label="Review" count={hasItems ? `${p.accepted} / ${p.total}` : undefined} state={step === 'review' ? 'on' : reviewDone ? 'done' : 'todo'} testId="step-review" onClick={() => setStep('review')} />
-        <Step n={3} label="Measure" count={hasItems ? `${p.measured} / ${p.measurable}` : undefined} state={step === 'measure' ? 'on' : measureDone ? 'done' : 'todo'} testId="step-measure" onClick={() => setStep('measure')} />
-        <Step n={4} label="Export" state="todo" testId="step-export" onClick={() => hasItems && setExportOpen(true)} />
+      {/* Progress of the job, not tabs: one workspace, and these say how far it is. */}
+      <div className="mx-auto flex items-center" role="group" aria-label="Progress of the inspection" data-testid="job-progress">
+        <Stage n={1} label={recognizing ? 'Reading…' : 'Read'} state={recognized ? 'done' : 'now'} testId="stage-read"
+          hint={recognized ? 'The drawing has been read and balloons placed' : 'Read the drawing to place balloons'}
+          onClick={!recognized && revisionId && !recognizing ? () => void runRecognize() : undefined} />
+        <Stage n={2} label="Check" count={hasItems ? `${p.accepted} / ${p.total}` : undefined} state={reviewDone ? 'done' : recognized ? 'now' : 'todo'} testId="stage-check"
+          hint={reviewDone ? 'Every balloon is confirmed' : `${p.drafts} still to confirm. Click to list them`} onClick={hasItems ? () => setShow('check') : undefined} />
+        <Stage n={3} label="Measure" count={hasItems ? `${p.measured} / ${p.measurable}` : undefined} state={measureDone ? 'done' : reviewDone ? 'now' : 'todo'} testId="stage-measure"
+          hint={measureDone ? 'Every result is entered' : `${p.toMeasure} confirmed and waiting for a result. Click to list them`} onClick={hasItems ? () => setShow('measure') : undefined} />
+        <Stage n={4} label="Report" state={measureDone ? 'now' : 'todo'} testId="stage-report" last
+          hint="AS9102 forms, PPAP results and the ballooned drawing" onClick={hasItems ? () => setExportOpen(true) : undefined} />
       </div>
 
       {note && <span className="max-w-[220px] truncate text-[11px] text-muted-foreground" role="status">{note}</span>}

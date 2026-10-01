@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { Group, Panel, Separator, usePanelRef } from 'react-resizable-panels'
-import { ListChecks, Maximize2, PanelRight, Settings2 } from 'lucide-react'
+import { Check, ChevronLeft, ChevronRight, Flag, ListChecks, Maximize2, PanelRight, Settings2 } from 'lucide-react'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { BrandFooter } from '@/components/brand/Brand'
 import { BalloonContextMenu } from '@/components/balloons/BalloonContextMenu'
@@ -9,6 +9,12 @@ import { Inspector } from '@/components/workspace/Inspector'
 import { SettingsDrawer } from '@/components/workspace/SettingsDrawer'
 import { SidePanel } from '@/components/workspace/SidePanel'
 import { WorkspaceTopBar } from '@/components/workspace/WorkspaceTopBar'
+import { FilterBar } from '@/components/workspace/FilterBar'
+import { WorkBadge } from '@/components/status/WorkBadge'
+import { balloonLabel, useCharacteristicStore } from '@/store/characteristicStore'
+import { useSettingsStore } from '@/store/settingsStore'
+import { progressOf, workStateOf } from '@/lib/progress'
+import { acceptSelectedAndNext, selectRelative } from '@/lib/workflow'
 import { DrawingSurface } from '@/components/drawing/DrawingSurface'
 import { usePersistedLayout } from '@/hooks/usePersistedLayout'
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
@@ -39,7 +45,7 @@ function HSeparator() {
   )
 }
 
-function RailButton({ hint, active, onClick, children, className }: { hint: string; active?: boolean; onClick: () => void; children: React.ReactNode; className?: string }) {
+function RailButton({ hint, active, onClick, children, className, badge, badgeTone }: { hint: string; active?: boolean; onClick: () => void; children: React.ReactNode; className?: string; badge?: number; badgeTone?: 'bad' | 'plain' }) {
   return (
     <Tooltip>
       <TooltipTrigger asChild>
@@ -49,12 +55,15 @@ function RailButton({ hint, active, onClick, children, className }: { hint: stri
           aria-pressed={active}
           onClick={onClick}
           className={cn(
-            'grid size-9 place-items-center rounded-lg text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring [&_svg]:size-[18px]',
+            'relative grid size-9 place-items-center rounded-lg text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring [&_svg]:size-[18px]',
             active && 'bg-primary/10 text-primary',
             className,
           )}
         >
           {children}
+          {badge !== undefined && badge > 0 && (
+            <span className={cn('absolute -right-1 -top-1 min-w-4 rounded-full px-1 text-center text-[9px] font-bold leading-4 tabular-nums', badgeTone === 'bad' ? 'bg-status-fail text-white' : 'bg-primary text-primary-foreground')}>{badge}</span>
+          )}
         </button>
       </TooltipTrigger>
       <TooltipContent side="right">{hint}</TooltipContent>
@@ -62,7 +71,27 @@ function RailButton({ hint, active, onClick, children, className }: { hint: stri
   )
 }
 
-/** The inspection workspace: steps on top, a rail and today's work on the left, the sheet in the middle, the requirement on the right. */
+/** The right panel folded to a strip: which balloon is selected, where it stands, and the two things done most. */
+function DetailStrip({ onOpen }: { onOpen: () => void }) {
+  const selected = useCharacteristicStore((s) => s.items.find((c) => c.id === s.selectedId) ?? null)
+  const defaults = useSettingsStore((s) => s.defaults)
+  const state = selected ? workStateOf(selected, defaults) : null
+  return (
+    <nav aria-label="Selected balloon" className="flex w-12 shrink-0 flex-col items-center gap-1 border-l bg-background py-2" data-testid="detail-strip">
+      <RailButton hint="Show the detail panel" onClick={onOpen}><ChevronLeft /></RailButton>
+      {selected && state && (
+        <>
+          <span className="mt-1 grid size-8 place-items-center rounded-full border-2 border-primary text-[11px] font-bold tabular-nums text-primary" title={`Balloon ${balloonLabel(selected)}`}>{balloonLabel(selected)}</span>
+          <WorkBadge state={state} className="[&]:px-1 [&]:text-[0px] [&_svg]:size-3.5" />
+          <RailButton hint={state === 'check' || state === 'flagged' ? 'Accept and go to the next (A)' : 'Next that needs work (A)'} onClick={acceptSelectedAndNext}><Check /></RailButton>
+        </>
+      )}
+      <RailButton hint="Next balloon (J)" onClick={() => selectRelative(1)}><ChevronRight /></RailButton>
+    </nav>
+  )
+}
+
+/** The inspection workspace: progress on top, the work queue on the left, the sheet in the middle, the selected balloon on the right. */
 export function AppShell() {
   useKeyboardShortcuts()
   useAutosave()
@@ -85,7 +114,10 @@ export function AppShell() {
   const toggleFocus = useUiStore((s) => s.toggleFocus)
   const settingsOpen = useUiStore((s) => s.settingsOpen)
   const setSettingsOpen = useUiStore((s) => s.setSettingsOpen)
-  const step = useUiStore((s) => s.step)
+  const setShow = useUiStore((s) => s.setShow)
+  const items = useCharacteristicStore((s) => s.items)
+  const defaults = useSettingsStore((s) => s.defaults)
+  const progress = progressOf(items, defaults)
 
   const leftRef = usePanelRef()
   const rightRef = usePanelRef()
@@ -108,30 +140,30 @@ export function AppShell() {
     if (!want && p.isCollapsed()) p.expand()
   }, [rightCollapsed, focus, rightRef])
 
-  // The grid leads while measuring, the drawing leads while reviewing.
+  // Focus mode folds the grid away too.
   useEffect(() => {
     const p = bottomRef.current
     if (!p) return
-    if (focus) {
-      p.collapse()
-      return
-    }
-    if (p.isCollapsed()) p.expand()
-    p.resize(step === 'measure' ? '46' : '30')
-  }, [step, focus, bottomRef])
+    if (focus) p.collapse()
+    else if (p.isCollapsed()) p.expand()
+  }, [focus, bottomRef])
 
   return (
     <TooltipProvider delayDuration={300}>
       <div className="relative flex h-full flex-col bg-muted/40">
         <WorkspaceTopBar />
+        <FilterBar />
         <div className="flex min-h-0 flex-1">
           <nav aria-label="Workspace" className="flex w-12 shrink-0 flex-col items-center gap-1 border-r bg-background py-2">
-            <RailButton hint={leftCollapsed ? 'Show the work list' : 'Hide the work list'} active={!leftCollapsed && !focus} onClick={toggleLeft}><ListChecks /></RailButton>
-            <RailButton hint={rightCollapsed ? 'Show the requirement panel' : 'Hide the requirement panel'} active={!rightCollapsed && !focus} onClick={toggleRight}><PanelRight /></RailButton>
+            <RailButton hint={leftCollapsed ? 'Show the work queue' : 'Hide the work queue'} active={!leftCollapsed && !focus} onClick={toggleLeft} badge={leftCollapsed || focus ? progress.drafts : undefined}><ListChecks /></RailButton>
+            {(leftCollapsed || focus) && progress.flagged + progress.fails > 0 && (
+              <RailButton hint={`${progress.flagged + progress.fails} need a decision. Click to list them`} onClick={() => { setShow(progress.flagged > 0 ? 'flagged' : 'fail'); setLeftCollapsed(false); if (focus) toggleFocus() }} badge={progress.flagged + progress.fails} badgeTone="bad"><Flag /></RailButton>
+            )}
+            <RailButton hint={rightCollapsed ? 'Show the detail panel' : 'Hide the detail panel'} active={!rightCollapsed && !focus} onClick={toggleRight}><PanelRight /></RailButton>
             <RailButton hint={focus ? 'Bring the panels back' : 'Focus on the drawing'} active={focus} onClick={toggleFocus}><Maximize2 /></RailButton>
             <RailButton hint="Inspection settings" active={settingsOpen} onClick={() => setSettingsOpen(true)} className="mt-auto"><Settings2 /></RailButton>
           </nav>
-          <Group orientation="horizontal" className="min-h-0 flex-1" {...outer}>
+          <Group orientation="horizontal" className="min-h-0 min-w-0 flex-1" {...outer}>
             <Panel className="h-full" id="left" panelRef={leftRef} defaultSize={272} minSize={232} maxSize={400} collapsible collapsedSize={0}
               onResize={(size) => !focus && setLeftCollapsed(size.inPixels === 0)}>
               <SidePanel />
@@ -157,6 +189,7 @@ export function AppShell() {
               <Inspector />
             </Panel>
           </Group>
+          {(rightCollapsed || focus) && <DetailStrip onOpen={() => { setRightCollapsed(false); if (focus) toggleFocus() }} />}
         </div>
         <BrandFooter />
         <BalloonContextMenu />

@@ -1,26 +1,23 @@
 import { create } from 'zustand'
+import type { WorkFilter } from '@/lib/progress'
 
 export type ToolMode = 'select' | 'pan' | 'single' | 'multiple' | 'sub' | 'window'
 export type BottomTab = 'boc' | 'part' | 'accountability'
-/** Which step of the inspection the workspace is arranged for. A place, not a gate: any step can be opened at any time. */
-export type WorkStep = 'review' | 'measure'
-export type MeasureFilter = 'todo' | 'failed' | 'all'
 
 interface UiState {
   tool: ToolMode
   leftCollapsed: boolean
   rightCollapsed: boolean
   bottomTab: BottomTab
-  step: WorkStep
-  setStep: (s: WorkStep) => void
-  measureFilter: MeasureFilter
-  setMeasureFilter: (f: MeasureFilter) => void
+  /** Which balloons the workspace shows. One list, filtered by where each balloon stands in the job. */
+  show: WorkFilter
+  setShow: (f: WorkFilter) => void
   settingsOpen: boolean
   setSettingsOpen: (v: boolean) => void
   /** Both side panels and the grid folded away, leaving the drawing. */
   focus: boolean
   toggleFocus: () => void
-  /** Every grid column shown, not just the set for the current step. */
+  /** Every grid column shown, not just the working set. */
   allColumns: boolean
   toggleAllColumns: () => void
   /** Characteristic under the pointer: its balloon or its callout text. */
@@ -46,10 +43,8 @@ export const useUiStore = create<UiState>()((set) => ({
   leftCollapsed: false,
   rightCollapsed: false,
   bottomTab: 'boc',
-  step: 'review',
-  setStep: (step) => set({ step }),
-  measureFilter: 'todo',
-  setMeasureFilter: (measureFilter) => set({ measureFilter }),
+  show: 'all',
+  setShow: (show) => set({ show }),
   settingsOpen: false,
   setSettingsOpen: (settingsOpen) => set({ settingsOpen }),
   focus: false,

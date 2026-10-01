@@ -17,6 +17,8 @@ interface ViewportState {
   rotation: Rotation
   containerW: number
   containerH: number
+  /** The view the last fit produced. While the view still equals it, the user has not zoomed or panned. */
+  lastFit: { scale: number; offsetX: number; offsetY: number } | null
   setContainerSize: (w: number, h: number) => void
   zoomAt: (sx: number, sy: number, factor: number) => void
   zoomBy: (factor: number) => void
@@ -35,6 +37,7 @@ export const useViewportStore = create<ViewportState>()((set, get) => ({
   rotation: 0,
   containerW: 0,
   containerH: 0,
+  lastFit: null,
 
   setContainerSize: (containerW, containerH) => set({ containerW, containerH }),
 
@@ -70,7 +73,9 @@ export const useViewportStore = create<ViewportState>()((set, get) => ({
       MIN_SCALE,
       MAX_SCALE,
     )
-    set({ scale, offsetX: (containerW - width * scale) / 2, offsetY: (containerH - height * scale) / 2 })
+    const offsetX = (containerW - width * scale) / 2
+    const offsetY = (containerH - height * scale) / 2
+    set({ scale, offsetX, offsetY, lastFit: { scale, offsetX, offsetY } })
   },
 
   rotate: () => {

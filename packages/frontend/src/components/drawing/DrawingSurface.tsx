@@ -97,16 +97,15 @@ export function DrawingSurface() {
     }
   }, [doc, pageIndex, fit])
 
-  // Fit again while the container is still settling after the page arrived (first 600 ms),
-  // so a size measured before the panels laid out never leaves the sheet at minimum zoom.
+  // Keep the sheet fitted while the space around it changes (panels opening, the grid resizing, the window),
+  // for as long as the user has not zoomed or panned themselves. Their own view is never taken away.
   const containerW = useViewportStore((s) => s.containerW)
   const containerH = useViewportStore((s) => s.containerH)
-  const fitDeadline = useRef(0)
   useEffect(() => {
-    if (page) fitDeadline.current = performance.now() + 600
-  }, [page])
-  useEffect(() => {
-    if (page && containerW > 0 && containerH > 0 && (needsFit.current || performance.now() < fitDeadline.current)) {
+    if (!page || containerW === 0 || containerH === 0) return
+    const v = useViewportStore.getState()
+    const untouched = v.lastFit !== null && v.lastFit.scale === v.scale && v.lastFit.offsetX === v.offsetX && v.lastFit.offsetY === v.offsetY
+    if (needsFit.current || untouched) {
       needsFit.current = false
       fit()
     }
