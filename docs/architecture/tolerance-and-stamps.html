@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tolerance Source and Stamps</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+<style>
+:root{--bg:#f4f6f8;--fg:#14202b;--muted:#5d6b78;--line:#d9e0e7;--panel:#fff;--navy:#004a77;--chip:#eef2f6;--ok:#15803d;--warn:#b45309;--bad:#b91c1c;--okbg:#dcfce7;--warnbg:#fef3c7;--badbg:#fee2e2}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0e151d;--fg:#e7edf3;--muted:#98a6b4;--line:#263241;--panel:#151f2a;--navy:#5cc8ee;--chip:#1c2835;--ok:#4ade80;--warn:#fbbf24;--bad:#f87171;--okbg:#14321f;--warnbg:#3a2c0b;--badbg:#3b1616;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0e151d;--fg:#e7edf3;--muted:#98a6b4;--line:#263241;--panel:#151f2a;--navy:#5cc8ee;--chip:#1c2835;--ok:#4ade80;--warn:#fbbf24;--bad:#f87171;--okbg:#14321f;--warnbg:#3a2c0b;--badbg:#3b1616;color-scheme:dark}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font-family:Inter,system-ui,sans-serif;font-size:15px;line-height:1.45;padding:24px 16px 64px}
+main{max-width:1080px;margin:0 auto;display:grid;gap:26px}h1{font-size:1.5rem;font-weight:700;margin:0}h2{font-size:1.08rem;font-weight:600;margin:0 0 10px}
+.lead{color:var(--muted);margin:6px 0 0;max-width:68ch}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;overflow:hidden}.pad{padding:14px 16px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:14px}
+.pill{display:inline-block;font-size:.72rem;font-weight:600;padding:1px 8px;border-radius:999px;white-space:nowrap}.g{background:var(--okbg);color:var(--ok)}.a{background:var(--warnbg);color:var(--warn)}.r{background:var(--badbg);color:var(--bad)}
+table{border-collapse:collapse;width:100%;font-size:.88rem}th,td{text-align:left;padding:7px 10px;border-bottom:1px solid var(--line);vertical-align:top}th{font-size:.7rem;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
+td.n{font-variant-numeric:tabular-nums;white-space:nowrap}.wrap{overflow-x:auto}
+.src{border:1px solid var(--line);border-radius:12px;padding:12px 14px;background:var(--panel)}.src b{display:block;font-weight:600}.src span{color:var(--muted);font-size:.9rem}
+.sheet{position:relative;background:#fff;color:#16202b;aspect-ratio:1.414/1;border:1px solid #c9d2db;font-size:11px;overflow:hidden}
+.sheet .frame{position:absolute;inset:3.2%;border:1.5px solid #222}
+.sheet .part{position:absolute;left:14%;top:26%;width:46%;height:34%;border:2px solid #222;border-radius:6px 40px 6px 6px}
+.sheet .tb{position:absolute;right:3.2%;bottom:3.2%;width:34%;height:17%;border:1.5px solid #222;background:repeating-linear-gradient(0deg,transparent 0 24%,#bbb 24% 25%)}
+.st{position:absolute;font-weight:700;line-height:1.2}
+.s1{left:5%;top:5.5%;border:2.5px solid #15803d;color:#15803d;border-radius:6px;padding:5px 10px;transform:rotate(-4deg);font-size:12px;text-align:center}
+.s1 small{display:block;font-weight:500;font-size:9.5px}
+.s2{right:5%;top:5.5%;display:flex;align-items:center;gap:7px;background:#004a77;color:#fff;padding:4px 9px;border-radius:5px;font-size:10px;letter-spacing:.04em}
+.s3{left:50%;top:1%;transform:translateX(-50%);color:#b91c1c;font-size:9.5px;letter-spacing:.08em}
+.s4{left:5%;bottom:5.5%;border:1px solid #666;padding:5px 8px;font-weight:500;font-size:9.5px;background:#fff}
+.s4 i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:4px;vertical-align:-1px}
+.s5{left:29%;bottom:5.5%;border:1px solid #666;padding:5px 8px;font-weight:500;font-size:9.5px;background:#fff;min-width:150px}
+.s6{right:39%;bottom:5.5%;width:44px;height:44px;background:conic-gradient(#111 25%,#fff 0 50%,#111 0 75%,#fff 0) 0 0/11px 11px;border:3px solid #fff;outline:1px solid #666}
+.s7{left:50%;top:46%;transform:translate(-50%,-50%) rotate(-24deg);font-size:34px;color:rgba(0,74,119,.10);letter-spacing:.12em;white-space:nowrap}
+.bal{position:absolute;width:20px;height:20px;border-radius:50%;border:2px solid #1d4ed8;color:#1d4ed8;font-weight:700;font-size:9.5px;display:grid;place-items:center;background:#fff}
+.key{display:grid;grid-template-columns:28px 1fr;gap:6px 10px;padding:14px 16px;font-size:.9rem}.key i{width:24px;height:24px;border-radius:50%;background:var(--navy);color:#fff;font:700 12px/24px Inter;text-align:center;font-style:normal}
+:root[data-theme="dark"] .key i{color:#06222f}
+.key span{color:var(--muted)}.key b{font-weight:600}
+</style></head><body><main>
+<header><h1>Read the tolerances from the drawing, and stamp what we export</h1><p class="lead">Two ideas from your screenshot. Both are proposals to discuss, not built.</p></header>
+
+<section class="card"><div class="pad"><h2>What I found when I looked: our defaults are wrong on the heat sink today</h2>
+<p class="lead" style="margin:0 0 12px">The heat sink prints an ISO 2768 table and note 5 says "UNSPECIFIED TOLERANCE CLASS :- MEDIUM". That standard sets tolerance by <b>size range</b>. Our settings apply tolerance by <b>decimal places</b>. The limits on Form 3 differ.</p></div>
+<div class="wrap"><table><thead><tr><th>Value on the drawing</th><th>We apply today (by decimals)</th><th>Drawing says (ISO 2768 medium)</th><th></th></tr></thead><tbody>
+<tr><td class="n">11.5</td><td class="n">±0.2</td><td class="n">±0.2 <span style="color:var(--muted)">(6 to 30)</span></td><td><span class="pill g">same</span></td></tr>
+<tr><td class="n">62.4</td><td class="n">±0.2</td><td class="n">±0.3 <span style="color:var(--muted)">(30 to 120)</span></td><td><span class="pill r">too tight</span></td></tr>
+<tr><td class="n">113.4</td><td class="n">±0.2</td><td class="n">±0.3 <span style="color:var(--muted)">(30 to 120)</span></td><td><span class="pill r">too tight</span></td></tr>
+<tr><td class="n">134.95</td><td class="n">±0.1</td><td class="n">±0.5 <span style="color:var(--muted)">(120 to 400)</span></td><td><span class="pill r">five times too tight</span></td></tr>
+<tr><td class="n">119</td><td class="n">±0.5</td><td class="n">±0.3 <span style="color:var(--muted)">(30 to 120)</span></td><td><span class="pill r">too loose</span></td></tr>
+</tbody></table></div></section>
+
+<section><h2>Where a general tolerance can come from, and what we can do with each</h2><div class="grid">
+<div class="src"><span class="pill g">readable</span><b style="margin-top:6px">A table printed as text</b><span>Heat sink: range columns "OVER 30 UPTO 120", rows f, m, c, v. We already see every cell; today we rule them out as "general tolerance note". Parse the grid instead.</span></div>
+<div class="src"><span class="pill g">readable</span><b style="margin-top:6px">A standard named in a note</b><span>"ISO 2768-mK", "TOLERANCE CLASS: MEDIUM". The standard's tables are fixed, so we ship them and only need the class letter.</span></div>
+<div class="src"><span class="pill g">readable</span><b style="margin-top:6px">Decimal-place block</b><span>".X ±0.1 · .XX ±0.05 · ANGLES ±0.5°", common on ASME drawings. This is the only style our settings handle today.</span></div>
+<div class="src"><span class="pill a">ask once</span><b style="margin-top:6px">A company standard</b><span>The bracket drawings say "REFER THINQX STANDARD FOR UNSPECIFIED TOLERANCE". Not on the sheet. Entered once as a customer profile, reused on every drawing from them.</span></div>
+<div class="src"><span class="pill a">needs OCR</span><b style="margin-top:6px">Title block that is a picture</b><span>No text to read. Options: read just that region with a small local OCR, or ask once and save to the customer profile. The intake card says which.</span></div>
+<div class="src"><span class="pill r">not there</span><b style="margin-top:6px">Nothing stated</b><span>The app asks, and marks every default-toleranced row "tolerance assumed" until someone confirms.</span></div>
+</div></section>
+
+<section class="card"><div class="pad"><h2>How it would look in the app</h2></div>
+<div class="key"><i>1</i><div><b>Tolerance source card on first open.</b> <span>"Found: ISO 2768 medium, from note 5 and the table at A11." Confirm once, or pick another source.</span></div>
+<i>2</i><div><b>Each row says where its tolerance came from.</b> <span>"113.4 ±0.3 · ISO 2768-m, 30 to 120" instead of an unexplained ±.</span></div>
+<i>3</i><div><b>Settings drawer gets a scheme choice.</b> <span>From drawing · ISO 2768 class · Decimal places · Custom table · Customer profile.</span></div>
+<i>4</i><div><b>Title block fields prefill Part Info.</b> <span>Part number, description, material, revision, drawn by and date use the same reading. Form 1 starts filled.</span></div></div></section>
+
+<section class="card"><div class="pad"><h2>Stamps on the exported drawing</h2><p class="lead" style="margin:0">Schematic of an exported sheet. Today only the logo band and a copyright line exist.</p></div>
+<div style="padding:0 16px 16px"><div class="sheet"><div class="frame"></div><div class="part"></div><div class="tb"></div>
+ <span class="bal" style="left:22%;top:20%">1</span><span class="bal" style="left:44%;top:21%">2</span><span class="bal" style="left:63%;top:38%">3</span>
+ <div class="st s7">FIRST ARTICLE</div>
+ <div class="st s3">PROPRIETARY · EXPORT CONTROLLED · UNCONTROLLED WHEN PRINTED</div>
+ <div class="st s1">FAI ACCEPTED<small>FAIR-2026-0412 · 02 Oct 2026</small></div>
+ <div class="st s2">DATAVERS.AI <span style="opacity:.6">|</span> CUSTOMER LOGO</div>
+ <div class="st s4"><i style="border:1.5px dashed #1d4ed8"></i>Draft <i style="border:1.5px solid #1d4ed8;margin-left:6px"></i>Accepted <i style="background:#16a34a;margin-left:6px"></i>Pass <i style="background:#dc2626;margin-left:6px"></i>Fail<br>76 characteristics · 75 pass · 1 fail</div>
+ <div class="st s5">Inspected: ______  Reviewed: ______<br>Customer approval: ______</div>
+ <div class="st s6"></div>
+</div></div>
+<div class="wrap"><table><thead><tr><th>Stamp</th><th>What it carries</th><th>Worth it?</th></tr></thead><tbody>
+<tr><td>Status stamp</td><td>FAI accepted, rejected or in progress, with FAIR number and date</td><td><span class="pill g">yes, first</span></td></tr>
+<tr><td>Balloon legend and totals</td><td>What the marks mean, and the counts</td><td><span class="pill g">yes, first</span></td></tr>
+<tr><td>Sign-off block</td><td>Inspected, reviewed, customer approval; matches Form 1 fields 19 to 24</td><td><span class="pill g">yes</span></td></tr>
+<tr><td>Customer logo or white label</td><td>Their logo beside ours, or theirs alone</td><td><span class="pill g">yes</span></td></tr>
+<tr><td>Marking banner</td><td>Proprietary, export controlled, uncontrolled when printed. Text set per customer</td><td><span class="pill g">yes, for aerospace</span></td></tr>
+<tr><td>Traceability code</td><td>A QR code with the inspection id and the hash of the original drawing</td><td><span class="pill a">nice</span></td></tr>
+<tr><td>Watermark</td><td>Faint diagonal text such as FIRST ARTICLE or DRAFT</td><td><span class="pill a">optional</span></td></tr>
+<tr><td>Your own stamp images</td><td>Upload a company seal as PNG or SVG, place it once, reused on export</td><td><span class="pill a">later</span></td></tr>
+<tr><td>Signed PDF</td><td>A digital signature so the file shows if it was altered</td><td><span class="pill a">later</span></td></tr>
+</tbody></table></div>
+<div class="pad" style="color:var(--muted);font-size:.9rem">Two rules I would hold to: stamps go where the sheet is empty (we know where every text and line is), and the original drawing is never altered. The stamped file is always a marked copy.</div></section>
+</main></body></html>

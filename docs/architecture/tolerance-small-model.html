@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tolerance Understanding Plan</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+<style>
+:root{--bg:#f4f6f8;--fg:#14202b;--muted:#5d6b78;--line:#d9e0e7;--panel:#fff;--navy:#004a77;--chip:#eef2f6;--ok:#15803d;--bad:#b91c1c;--okbg:#dcfce7;--badbg:#fee2e2;--ai:#6d28d9;--aibg:#ede9fe}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0e151d;--fg:#e7edf3;--muted:#98a6b4;--line:#263241;--panel:#151f2a;--navy:#5cc8ee;--chip:#1c2835;--ok:#4ade80;--bad:#f87171;--okbg:#14321f;--badbg:#3b1616;--ai:#c4b5fd;--aibg:#2a2145;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0e151d;--fg:#e7edf3;--muted:#98a6b4;--line:#263241;--panel:#151f2a;--navy:#5cc8ee;--chip:#1c2835;--ok:#4ade80;--bad:#f87171;--okbg:#14321f;--badbg:#3b1616;--ai:#c4b5fd;--aibg:#2a2145;color-scheme:dark}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font-family:Inter,system-ui,sans-serif;font-size:15px;line-height:1.45;padding:24px 16px 64px}
+main{max-width:1060px;margin:0 auto;display:grid;gap:26px}h1{font-size:1.5rem;font-weight:700;margin:0}h2{font-size:1.08rem;font-weight:600;margin:0 0 10px}
+.lead{color:var(--muted);margin:6px 0 0;max-width:68ch}
+.flow{display:flex;gap:8px;align-items:stretch;flex-wrap:wrap}
+.step{flex:1 1 150px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px;position:relative}
+.step b{display:block;font-weight:600;margin-bottom:4px}.step small{color:var(--muted);display:block;font-size:.84rem}
+.step.ai{border-color:var(--ai);background:var(--aibg)}.step.ai b{color:var(--ai)}
+.who{position:absolute;top:-9px;left:12px;font-size:.62rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:1px 7px;border-radius:999px;background:var(--chip);color:var(--muted)}
+.step.ai .who{background:var(--ai);color:#fff}:root[data-theme="dark"] .step.ai .who{color:#1b1033}
+.arrow{align-self:center;color:var(--muted);font-size:1.2rem}
+.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:14px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px 16px}
+.card h3{margin:0 0 8px;font-size:.98rem;font-weight:600}.card ul{margin:0;padding-left:18px;color:var(--muted);font-size:.92rem}.card li{margin:3px 0}.card li b{color:var(--fg);font-weight:600}
+.yes{border-top:4px solid var(--ai)}.no{border-top:4px solid var(--bad)}.rule{border-top:4px solid var(--ok)}
+pre{margin:0;background:var(--chip);border-radius:10px;padding:12px 14px;font:12.5px/1.5 ui-monospace,Consolas,monospace;overflow-x:auto;color:var(--fg)}
+table{border-collapse:collapse;width:100%;font-size:.9rem}th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}th{font-size:.7rem;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
+.wrap{overflow-x:auto}
+</style></head><body><main>
+<header><h1>A small model reads the context. Rules do the arithmetic.</h1><p class="lead">Yes, a small local model is enough, because its job is narrow: understand what the drawing says about tolerances and write that down in a fixed form. It never calculates a limit.</p></header>
+
+<section><h2>The path of one drawing</h2><div class="flow">
+ <div class="step"><span class="who">recognizer</span><b>Collect the evidence</b><small>Notes, table cells, title block text, with their positions. Already available.</small></div><span class="arrow">→</span>
+ <div class="step ai"><span class="who">small model</span><b>Interpret</b><small>Which scheme applies, which class, what exceptions. Output is a fixed form, with the text it relied on.</small></div><span class="arrow">→</span>
+ <div class="step"><span class="who">checks</span><b>Verify the answer</b><small>Every quoted phrase must exist on the sheet. Standard tables come from our library, never from the model.</small></div><span class="arrow">→</span>
+ <div class="step"><span class="who">inspector</span><b>Confirm once</b><small>"ISO 2768 medium, from note 5." One click, saved for the drawing and the customer.</small></div><span class="arrow">→</span>
+ <div class="step"><span class="who">rules</span><b>Apply</b><small>Range lookup and limits for every row. Same input, same answer, every time.</small></div>
+</div></section>
+
+<section class="two">
+ <div class="card yes"><h3>What the model is for</h3><ul>
+  <li><b>Naming the scheme:</b> "ISO 2768-mK", "tolerance class medium", "refer company standard"</li>
+  <li><b>Exceptions in notes:</b> "unless otherwise specified", "dimensions in brackets are reference", "after plating"</li>
+  <li><b>Scope:</b> "machined surfaces only", different rule for bends, welds or castings</li>
+  <li><b>Other languages:</b> "Allgemeintoleranzen DIN ISO 2768-m"</li>
+  <li><b>Notes into requirements:</b> "break sharp edges 0.2 max" becomes an attribute characteristic</li></ul></div>
+ <div class="card no"><h3>What the model must never do</h3><ul>
+  <li>Compute a minimum or maximum</li>
+  <li>Decide pass or fail</li>
+  <li>Recall table values from memory</li>
+  <li>Read dimension values off the sheet</li>
+  <li>Change a row without a person confirming</li></ul></div>
+ <div class="card rule"><h3>What stays as plain rules</h3><ul>
+  <li>Reading a printed tolerance table cell by cell</li>
+  <li>Matching "ISO 2768-m" style names directly, no model needed</li>
+  <li>Looking up the range for each value</li>
+  <li>All arithmetic and the Form 3 text</li>
+  <li>The model is only called when rules do not settle it</li></ul></div>
+</section>
+
+<section class="card" style="padding:0"><div style="padding:14px 16px"><h2>The fixed form the model fills in</h2><p class="lead" style="margin:0 0 10px">For the heat sink it would return this. The "evidence" lines are checked against the sheet before anything is shown.</p></div>
+<div style="padding:0 16px 16px"><pre>{
+  "scheme": "size_range_table",
+  "standard": "ISO 2768-1",
+  "class": "m",
+  "table_on_sheet": true,
+  "angular": "from_table",
+  "exceptions": [
+    { "applies_to": "boxed dimensions", "rule": "basic, no tolerance" },
+    { "applies_to": "dimensions in brackets", "rule": "reference" }
+  ],
+  "needs_customer_profile": false,
+  "evidence": [
+    "5.UNSPECIFIED TOLERANCE CLASS :- MEDIUM.",
+    "m Medium ± 0.1 ± 0.1 ± 0.2 ± 0.3 ± 0.5"
+  ],
+  "confidence": "high"
+}</pre></div></section>
+
+<section class="card" style="padding:0"><div style="padding:14px 16px"><h2>How small is small</h2></div><div class="wrap"><table><thead><tr><th>Question</th><th>Answer</th></tr></thead><tbody>
+<tr><td>Size of model</td><td>A 4 to 8 billion parameter instruction model, quantised. The input is a few hundred words and the output is a short form.</td></tr>
+<tr><td>Hardware</td><td>Runs on a workstation CPU in a few seconds per drawing, faster on a modest GPU. It runs once per drawing, not per row.</td></tr>
+<tr><td>Where it runs</td><td>Locally in the same container stack at the customer. For our own demo data it can run through OpenRouter. Only note and table text is sent, never the drawing.</td></tr>
+<tr><td>Title block that is an image</td><td>Text model alone cannot read it. It needs a small OCR step first, or the customer profile.</td></tr>
+<tr><td>Which model exactly</td><td>Not decided. Pick by testing two or three candidates on our own drawings and scoring the form they return.</td></tr>
+<tr><td>How we know it is right</td><td>Each drawing in the golden set gets an expected tolerance scheme. A model or prompt change is scored against it, like the recognizer.</td></tr>
+</tbody></table></div></section>
+</main></body></html>

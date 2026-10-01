@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Layout-First Architecture</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+<style>
+:root{--bg:#f4f6f8;--fg:#14202b;--muted:#5d6b78;--line:#d9e0e7;--panel:#fff;--chip:#eef2f6;--have:#15803d;--havebg:#dcfce7;--new:#1d4ed8;--newbg:#dbeafe;--ai:#6d28d9;--aibg:#ede9fe;--sec:#b45309;--secbg:#fef3c7}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0e151d;--fg:#e7edf3;--muted:#98a6b4;--line:#263241;--panel:#151f2a;--chip:#1c2835;--have:#4ade80;--havebg:#14321f;--new:#93c5fd;--newbg:#172a4a;--ai:#c4b5fd;--aibg:#2a2145;--sec:#fbbf24;--secbg:#3a2c0b;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0e151d;--fg:#e7edf3;--muted:#98a6b4;--line:#263241;--panel:#151f2a;--chip:#1c2835;--have:#4ade80;--havebg:#14321f;--new:#93c5fd;--newbg:#172a4a;--ai:#c4b5fd;--aibg:#2a2145;--sec:#fbbf24;--secbg:#3a2c0b;color-scheme:dark}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font-family:Inter,system-ui,sans-serif;font-size:15px;line-height:1.45;padding:24px 16px 64px}
+main{max-width:1100px;margin:0 auto;display:grid;gap:26px}h1{font-size:1.5rem;font-weight:700;margin:0}h2{font-size:1.08rem;font-weight:600;margin:0 0 10px}
+.lead{color:var(--muted);margin:6px 0 0;max-width:68ch}
+.legend{display:flex;flex-wrap:wrap;gap:8px}.lg{font-size:.78rem;font-weight:600;padding:2px 10px;border-radius:999px}
+.have{background:var(--havebg);color:var(--have)}.new{background:var(--newbg);color:var(--new)}.ai{background:var(--aibg);color:var(--ai)}.sec{background:var(--secbg);color:var(--sec)}
+.pipe{display:grid;gap:8px}
+.stage{display:grid;grid-template-columns:150px 1fr;gap:12px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px;align-items:start}
+.stage>b{font-weight:600}.stage>b small{display:block;font-weight:400;color:var(--muted);font-size:.8rem}
+.items{display:flex;flex-wrap:wrap;gap:6px}.it{font-size:.84rem;padding:4px 10px;border-radius:8px;border:1px solid transparent}
+.it.have{border-color:color-mix(in srgb,var(--have) 35%,transparent)}.it.new{border-color:color-mix(in srgb,var(--new) 35%,transparent)}.it.ai{border-color:color-mix(in srgb,var(--ai) 35%,transparent)}
+.down{text-align:center;color:var(--muted);line-height:1;font-size:1.1rem}
+.sheet{position:relative;aspect-ratio:1.414/1;background:#fff;border:1px solid #c9d2db;color:#16202b;font:600 11px Inter,sans-serif;overflow:hidden}
+.rg{position:absolute;border:2px dashed;border-radius:4px;display:grid;place-items:center;text-align:center;padding:4px}
+.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:14px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px 16px}.card h3{margin:0 0 8px;font-size:.98rem;font-weight:600}
+.card ul{margin:0;padding-left:18px;color:var(--muted);font-size:.92rem}.card li{margin:4px 0}.card li b{color:var(--fg);font-weight:600}
+table{border-collapse:collapse;width:100%;font-size:.9rem}th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}th{font-size:.7rem;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}.wrap{overflow-x:auto}
+@media (max-width:560px){.stage{grid-template-columns:1fr}}
+</style></head><body><main>
+<header><h1>Layout first, read second</h1><p class="lead">Your idea, stated as an architecture: split the sheet into regions, then read each region with the reader that suits it. The principle is right. Two details change.</p>
+<div class="legend" style="margin-top:12px"><span class="lg have">exists today</span><span class="lg new">to build, deterministic</span><span class="lg ai">model, optional and local</span><span class="lg sec">security and audit</span></div></header>
+
+<section><h2>Step one: the sheet becomes named regions</h2>
+<div class="sheet">
+ <div class="rg" style="left:5%;top:8%;width:42%;height:36%;border-color:#1d4ed8;color:#1d4ed8">VIEW 1 · scale 1:2</div>
+ <div class="rg" style="left:50%;top:10%;width:14%;height:30%;border-color:#1d4ed8;color:#1d4ed8">SECTION A-A</div>
+ <div class="rg" style="left:5%;top:47%;width:42%;height:32%;border-color:#1d4ed8;color:#1d4ed8">VIEW 2</div>
+ <div class="rg" style="left:52%;top:50%;width:18%;height:20%;border-color:#1d4ed8;color:#1d4ed8">DETAIL A · scale 2:1</div>
+ <div class="rg" style="left:70%;top:6%;width:26%;height:38%;border-color:#64748b;color:#64748b">ISOMETRIC · no dimensions</div>
+ <div class="rg" style="left:4%;top:82%;width:46%;height:14%;border-color:#b45309;color:#b45309">GENERAL TOLERANCE TABLE</div>
+ <div class="rg" style="left:52%;top:74%;width:20%;height:9%;border-color:#6d28d9;color:#6d28d9">NOTES</div>
+ <div class="rg" style="left:60%;top:84%;width:36%;height:12%;border-color:#b91c1c;color:#b91c1c">TITLE BLOCK · image</div>
+ <div class="rg" style="left:74%;top:76%;width:22%;height:7%;border-color:#0f766e;color:#0f766e">REVISION TABLE</div>
+</div></section>
+
+<section><h2>The whole path</h2><div class="pipe">
+ <div class="stage"><b>1 · Intake<small>is it safe, is it readable</small></b><div class="items"><span class="it have">hash the file</span><span class="it have">vector, scan or outlines</span><span class="it sec">parse in a sandboxed worker, size and time limits</span></div></div><div class="down">↓</div>
+ <div class="stage"><b>2 · Layout<small>name the regions</small></b><div class="items"><span class="it have">border and zones</span><span class="it have">tables by ruling</span><span class="it have">numbered notes</span><span class="it new">views by geometry clusters</span><span class="it new">title block, revision table, parts list</span><span class="it new">picture regions</span><span class="it ai">layout detector, for scans only</span></div></div><div class="down">↓</div>
+ <div class="stage"><b>3 · Read<small>one reader per region</small></b><div class="items"><span class="it have">text layer, exact</span><span class="it new">OCR on picture regions</span><span class="it ai">small vision model, as a second opinion</span></div></div><div class="down">↓</div>
+ <div class="stage"><b>4 · Geometry<small>what the lines say</small></b><div class="items"><span class="it have">arrowheads, dimension lines, leaders</span><span class="it have">scale check</span><span class="it new">scale per view</span><span class="it new">hidden lines by dash pattern</span></div></div><div class="down">↓</div>
+ <div class="stage"><b>5 · Interpret<small>meaning</small></b><div class="items"><span class="it have">callouts into characteristics</span><span class="it new">tolerance table by rules</span><span class="it ai">tolerance scheme and exceptions</span><span class="it ai">notes into requirements</span><span class="it ai">title block into Part Info</span></div></div><div class="down">↓</div>
+ <div class="stage"><b>6 · Apply and review<small>rules and people</small></b><div class="items"><span class="it have">limits by rules</span><span class="it have">review, accept, measure</span><span class="it have">coverage audit</span><span class="it sec">who confirmed what, when</span></div></div><div class="down">↓</div>
+ <div class="stage"><b>7 · Export<small>the record</small></b><div class="items"><span class="it have">AS9102, PPAP, ballooned PDF</span><span class="it new">status stamp, legend, sign-off</span><span class="it sec">every value carries its source</span></div></div>
+</div></section>
+
+<section class="cols">
+ <div class="card"><h3>Where I agree</h3><ul>
+  <li><b>Regions first.</b> A reader should know it is looking at a tolerance table, not guess from loose words.</li>
+  <li><b>Views matter.</b> A detail at 2:1 has its own scale. Today the scale check assumes one scale per sheet.</li>
+  <li><b>Different readers for different regions.</b> Text, OCR and a vision model each have a place.</li></ul></div>
+ <div class="card"><h3>Where I push back</h3><ul>
+  <li><b>The POC does not identify views, tables or title blocks.</b> It extracts lines, hidden lines, arcs and slots, with stable ids, and highlights them. Useful ideas, not the segmentation.</li>
+  <li><b>OCR only where there is no text.</b> On a CAD-exported PDF the text layer is exact. OCR over it would add errors.</li>
+  <li><b>No detector model as the backbone for vector drawings.</b> Rules are exact and explainable there. A model earns its place on scans.</li></ul></div>
+ <div class="card"><h3>What I would take from the POC</h3><ul>
+  <li><b>Hidden-line detection by dash pattern.</b> We do not separate dashed lines yet.</li>
+  <li><b>Slot grouping.</b> A feature made of several primitives treated as one.</li>
+  <li><b>Stable ids from content.</b> Already adopted.</li>
+  <li>It renders with a library whose licence does not suit shipping, so the code is a reference, not a dependency.</li></ul></div>
+</section>
+
+<section class="card" style="padding:0"><div style="padding:14px 16px"><h2>The enterprise and security side</h2></div><div class="wrap"><table><thead><tr><th>Concern</th><th>Design answer</th><th>Today</th></tr></thead><tbody>
+<tr><td>A PDF is untrusted input</td><td>Parse in a separate worker with memory, time and page limits. No scripts run. Reject on breach.</td><td>Not yet</td></tr>
+<tr><td>Air gap</td><td>Every model and table ships in the box. No outbound calls. Weights pinned by checksum.</td><td>Partly: viewer assets are local</td></tr>
+<tr><td>Licences</td><td>Permissive only, with a bill of materials. Replace the PDF renderer before shipping.</td><td>Renderer still to replace</td></tr>
+<tr><td>Provenance</td><td>Each value records its region, reader, model and version, and the evidence it came from.</td><td>Recognizer version and geometry evidence exist</td></tr>
+<tr><td>Text on a drawing is untrusted too</td><td>A note cannot instruct the model. The model only fills a fixed form, and the form is validated.</td><td>Design rule for the model work</td></tr>
+<tr><td>Access and audit</td><td>Sign-in, roles, and an append-only log of accept, edit and export.</td><td>No sign-in yet</td></tr>
+<tr><td>Data at rest and in transit</td><td>Encrypted database volume, encrypted connections between services, per-customer separation.</td><td>Not yet</td></tr>
+<tr><td>Change control for models</td><td>A model or prompt change must pass the golden set before release, same as code.</td><td>Golden set exists for the recognizer</td></tr>
+</tbody></table></div></section>
+</main></body></html>

@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Architecture Blueprint</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+<style>
+:root{--bg:#f4f6f8;--fg:#14202b;--muted:#5d6b78;--line:#d9e0e7;--panel:#fff;--chip:#eef2f6;--navy:#004a77;
+--have:#15803d;--havebg:#dcfce7;--part:#b45309;--partbg:#fef3c7;--none:#b91c1c;--nonebg:#fee2e2;--ai:#6d28d9;--aibg:#ede9fe;--sec:#0f766e;--secbg:#ccfbf1;--core:#1d4ed8;--corebg:#dbeafe}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0e151d;--fg:#e7edf3;--muted:#98a6b4;--line:#263241;--panel:#151f2a;--chip:#1c2835;--navy:#5cc8ee;--have:#4ade80;--havebg:#14321f;--part:#fbbf24;--partbg:#3a2c0b;--none:#f87171;--nonebg:#3b1616;--ai:#c4b5fd;--aibg:#2a2145;--sec:#5eead4;--secbg:#0f2f2c;--core:#93c5fd;--corebg:#172a4a;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0e151d;--fg:#e7edf3;--muted:#98a6b4;--line:#263241;--panel:#151f2a;--chip:#1c2835;--navy:#5cc8ee;--have:#4ade80;--havebg:#14321f;--part:#fbbf24;--partbg:#3a2c0b;--none:#f87171;--nonebg:#3b1616;--ai:#c4b5fd;--aibg:#2a2145;--sec:#5eead4;--secbg:#0f2f2c;--core:#93c5fd;--corebg:#172a4a;color-scheme:dark}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font-family:Inter,system-ui,sans-serif;font-size:15px;line-height:1.5;padding:24px 16px 72px}
+main{max-width:1120px;margin:0 auto;display:grid;gap:30px}
+h1{font-size:1.7rem;font-weight:700;margin:0;letter-spacing:-.01em}h2{font-size:1.15rem;font-weight:600;margin:0 0 4px}h3{font-size:.98rem;font-weight:600;margin:0 0 6px}
+.eyebrow{font-size:.72rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.lead{color:var(--muted);margin:6px 0 0;max-width:70ch}.sub{color:var(--muted);margin:0 0 12px;max-width:74ch;font-size:.93rem}
+nav{display:flex;flex-wrap:wrap;gap:6px}nav a{font-size:.82rem;color:var(--fg);text-decoration:none;border:1px solid var(--line);background:var(--panel);padding:4px 11px;border-radius:999px}nav a:hover{border-color:var(--navy)}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 18px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,250px),1fr));gap:12px}
+.box{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px}.box b{display:block;font-weight:600;margin-bottom:2px}.box span{color:var(--muted);font-size:.9rem}
+.pill{display:inline-block;font-size:.7rem;font-weight:600;padding:1px 8px;border-radius:999px;white-space:nowrap}
+.p-have{background:var(--havebg);color:var(--have)}.p-part{background:var(--partbg);color:var(--part)}.p-none{background:var(--nonebg);color:var(--none)}
+table{border-collapse:collapse;width:100%;font-size:.89rem}th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}th{font-size:.69rem;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);white-space:nowrap}.wrap{overflow-x:auto}
+/* context diagram */
+.ctx{display:grid;gap:10px}
+.zone{border:1.5px dashed var(--line);border-radius:14px;padding:12px;position:relative}
+.zone>em{position:absolute;top:-10px;left:14px;background:var(--bg);padding:0 8px;font-style:normal;font-size:.7rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.row{display:flex;flex-wrap:wrap;gap:8px}
+.n{flex:1 1 150px;border-radius:10px;padding:9px 11px;border:1px solid var(--line);background:var(--panel);font-size:.88rem}.n b{display:block;font-weight:600}.n small{color:var(--muted);display:block;font-size:.8rem}
+.n.core{border-color:color-mix(in srgb,var(--core) 45%,transparent);background:var(--corebg)}.n.sec{border-color:color-mix(in srgb,var(--sec) 45%,transparent);background:var(--secbg)}.n.ai{border-color:color-mix(in srgb,var(--ai) 45%,transparent);background:var(--aibg)}
+.arrow{text-align:center;color:var(--muted);line-height:1}
+/* modules */
+.mods{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,210px),1fr));gap:10px}
+.mod{border:1px solid var(--line);border-radius:12px;background:var(--panel);padding:11px 13px}.mod b{display:block;font-weight:600}.mod small{display:block;color:var(--muted);font-size:.82rem;margin-top:2px}
+.mod code{font:12px ui-monospace,Consolas,monospace;color:var(--muted)}
+.ports{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}.port{font-size:.8rem;border:1px dashed var(--line);border-radius:8px;padding:3px 9px;color:var(--muted)}
+/* pipeline */
+.pipe{display:flex;gap:6px;flex-wrap:wrap;align-items:stretch}.st{flex:1 1 120px;border:1px solid var(--line);border-radius:10px;background:var(--panel);padding:9px 10px;font-size:.84rem}.st b{display:block;font-weight:600}.st small{color:var(--muted);display:block;font-size:.78rem}
+.st.ai{background:var(--aibg);border-color:color-mix(in srgb,var(--ai) 45%,transparent)}
+/* layers */
+.layers{display:grid;gap:6px}.layer{display:grid;grid-template-columns:170px 1fr;gap:12px;border:1px solid var(--line);border-radius:10px;background:var(--panel);padding:9px 12px;font-size:.9rem}.layer b{font-weight:600}.layer span{color:var(--muted)}
+/* roadmap */
+.road{display:grid;gap:8px}.ph{display:grid;grid-template-columns:44px 1fr auto;gap:12px;border:1px solid var(--line);border-radius:12px;background:var(--panel);padding:12px 14px;align-items:start}
+.ph i{width:34px;height:34px;border-radius:50%;background:var(--navy);color:#fff;font:700 14px/34px Inter;text-align:center;font-style:normal}:root[data-theme="dark"] .ph i{color:#06222f}
+.ph b{font-weight:600}.ph span{display:block;color:var(--muted);font-size:.9rem}.ph .t{font-size:.8rem;color:var(--muted);white-space:nowrap}
+@media (max-width:620px){.layer,.ph{grid-template-columns:1fr}}
+code.k{font:12.5px ui-monospace,Consolas,monospace;background:var(--chip);padding:1px 5px;border-radius:5px}
+pre{margin:0;background:var(--chip);border-radius:10px;padding:12px 14px;font:12.5px/1.55 ui-monospace,Consolas,monospace;overflow-x:auto}
+</style></head><body><main>
+
+<header><div class="eyebrow">Drawing Intelligence · for approval</div><h1>Architecture blueprint</h1>
+<p class="lead">The structure every feature will be built into from now on: modular, scalable, security-first and aligned with SOC 2. It says what exists, what must be rebuilt, and in what order.</p>
+<nav style="margin-top:14px"><a href="#principles">Principles</a><a href="#context">System</a><a href="#backend">Backend modules</a><a href="#pipeline">Recognition</a><a href="#data">Data</a><a href="#frontend">Frontend</a><a href="#scale">Scale</a><a href="#security">Security</a><a href="#soc2">SOC 2</a><a href="#standards">Engineering rules</a><a href="#roadmap">Roadmap</a><a href="#decisions">Your decisions</a></nav></header>
+
+<section id="principles"><h2>1 · Principles</h2><p class="sub">Six rules that decide every later choice.</p><div class="grid">
+<div class="box"><b>Modules with contracts</b><span>Each capability is a module with a published interface. Nothing reaches into another module's tables or files.</span></div>
+<div class="box"><b>Deterministic core, models at the edge</b><span>Rules compute. Models only interpret, in a fixed form, behind an interface, and a person confirms.</span></div>
+<div class="box"><b>Everything has a source</b><span>Each value records where it came from, which reader and version produced it, and who accepted it.</span></div>
+<div class="box"><b>Untrusted until proven</b><span>Files, drawing text and model output are all treated as untrusted and validated at the boundary.</span></div>
+<div class="box"><b>Swappable infrastructure</b><span>Storage, queue, renderer, OCR, model runtime and sign-in sit behind adapters. One box today, a cluster later, same code.</span></div>
+<div class="box"><b>Evidence by default</b><span>Tests, logs and approvals are produced as a side effect of normal work, so an audit is a report, not a project.</span></div>
+</div></section>
+
+<section id="context"><h2>2 · The system and its trust boundaries</h2><p class="sub">Dashed boxes are trust boundaries. Everything runs inside the customer's network; nothing calls out.</p><div class="ctx">
+<div class="zone"><em>people and their browser</em><div class="row"><div class="n"><b>Inspector</b><small>reviews, measures</small></div><div class="n"><b>Quality reviewer</b><small>approves, signs</small></div><div class="n"><b>Administrator</b><small>users, profiles, settings</small></div><div class="n sec"><b>Customer sign-in</b><small>single sign-on, or local accounts when air-gapped</small></div></div></div>
+<div class="arrow">↓ encrypted, authenticated, versioned API</div>
+<div class="zone"><em>application</em><div class="row"><div class="n sec"><b>Gateway</b><small>sessions, roles, rate limits, request ids</small></div><div class="n core"><b>API service</b><small>stateless; hosts the modules</small></div><div class="n core"><b>Job queue</b><small>recognise, export, import</small></div><div class="n sec"><b>Audit service</b><small>append-only, tamper-evident</small></div></div></div>
+<div class="arrow">↓ jobs only, no direct user access</div>
+<div class="zone"><em>workers: no network, limited memory and time</em><div class="row"><div class="n core"><b>Parse worker</b><small>opens untrusted PDFs and DXFs in a sandbox</small></div><div class="n core"><b>Recognition worker</b><small>layout, geometry, callouts</small></div><div class="n ai"><b>Model worker</b><small>OCR and small models, local weights only</small></div><div class="n core"><b>Export worker</b><small>forms, stamped PDF</small></div></div></div>
+<div class="arrow">↓</div>
+<div class="zone"><em>data: encrypted at rest</em><div class="row"><div class="n"><b>Database</b><small>records, scene, audit, jobs</small></div><div class="n"><b>File store</b><small>original drawings and exports, addressed by hash</small></div><div class="n"><b>Model and standards library</b><small>pinned weights, tolerance tables</small></div><div class="n sec"><b>Secrets and keys</b><small>never in code or images</small></div></div></div>
+</div></section>
+
+<section id="backend"><h2>3 · Backend: a modular monolith</h2><p class="sub">One deployable service made of modules with hard boundaries. It is simple to run on one box, and any module can later become its own service without rewriting it, because the others only know its interface.</p>
+<div class="mods">
+<div class="mod"><b>Identity and access</b><small>users, roles, sessions, tenants</small><code>identity/</code></div>
+<div class="mod"><b>Library</b><small>parts, revisions, customer profiles</small><code>library/</code></div>
+<div class="mod"><b>Documents</b><small>file intake, hashing, safe parsing, rendering</small><code>documents/</code></div>
+<div class="mod"><b>Recognition</b><small>the staged pipeline and the stored scene</small><code>recognition/</code></div>
+<div class="mod"><b>Tolerance</b><small>schemes, standards tables, limit rules</small><code>tolerance/</code></div>
+<div class="mod"><b>Inspection</b><small>characteristics, results, review state</small><code>inspection/</code></div>
+<div class="mod"><b>Export</b><small>AS9102, PPAP, stamped drawing</small><code>export/</code></div>
+<div class="mod"><b>Audit</b><small>who did what, when, to which record</small><code>audit/</code></div>
+<div class="mod"><b>Jobs</b><small>queue, retries, progress, idempotency</small><code>jobs/</code></div>
+<div class="mod"><b>Platform</b><small>config, logging, errors, health</small><code>platform/</code></div>
+</div>
+<p class="sub" style="margin:14px 0 6px">Each module has the same four layers, so anyone can find anything:</p>
+<pre>module/
+  api.py         routes and request/response schemas (versioned, /api/v1)
+  service.py     use cases; the only place business rules live
+  domain.py      plain data types and rules; no database, no web
+  ports.py       interfaces this module needs from outside
+  adapters/      implementations of those interfaces
+  tests/         unit tests for domain and service; contract tests for adapters</pre>
+<div class="ports"><span class="port">FileStore: disk · MinIO · S3</span><span class="port">Queue: Postgres · Redis</span><span class="port">PdfRenderer: pypdfium2</span><span class="port">TextReader: pdfplumber</span><span class="port">Ocr: local engine</span><span class="port">LanguageModel: local runtime</span><span class="port">IdentityProvider: OIDC · SAML · local</span><span class="port">Clock, Ids</span></div></section>
+
+<section id="pipeline"><h2>4 · Recognition as a pipeline of stages</h2><p class="sub">Today it is one function that grew. It becomes stages with typed inputs and outputs. Each stage's output is stored, versioned and testable alone, so a failure names the stage, and a re-run can start from any point.</p>
+<div class="pipe">
+<div class="st"><b>Intake</b><small>safe? readable? what kind?</small></div><div class="st"><b>Layout</b><small>views, tables, notes, title block, pictures</small></div><div class="st"><b>Read</b><small>text layer; OCR for pictures</small></div><div class="st"><b>Scene</b><small>arrowheads, dimension lines, leaders, scale per view</small></div><div class="st"><b>Callouts</b><small>values, frames, symbols</small></div><div class="st ai"><b>Interpret</b><small>tolerance scheme, notes, title block fields</small></div><div class="st"><b>Apply</b><small>limits by rules</small></div><div class="st"><b>Audit</b><small>coverage, mismatches</small></div></div>
+<div class="grid" style="margin-top:12px">
+<div class="box"><b>Stage contract</b><span>Each stage declares its input type, output type and version. Outputs are immutable and keyed by drawing hash plus stage version.</span></div>
+<div class="box"><b>Named settings, not magic numbers</b><span>Every threshold lives in one typed configuration with a description and a test that covers it.</span></div>
+<div class="box"><b>Golden gate</b><span>A change to any stage must reproduce the golden set, or the expected change must be reviewed and re-approved.</span></div>
+<div class="box"><b>Readers are plug-ins</b><span>A new CAD style, a DXF reader or a new OCR engine is a new adapter, not a change to the pipeline.</span></div>
+</div></section>
+
+<section id="data"><h2>5 · Data model</h2><p class="sub">The additions are tenancy, the stored scene, provenance on every value, approvals, and the audit trail.</p><div class="wrap"><table><thead><tr><th>Record</th><th>Holds</th><th>Today</th></tr></thead><tbody>
+<tr><td>Tenant, user, role</td><td>Who may see and do what; every other record belongs to a tenant</td><td><span class="pill p-none">missing</span></td></tr>
+<tr><td>Part, drawing revision</td><td>Identity of the part; file hash and a pointer to the file store</td><td><span class="pill p-part">exists; file is inside the database row</span></td></tr>
+<tr><td>Scene, region, entity</td><td>What was read: regions, text, geometry, each with a stable id</td><td><span class="pill p-part">one stored blob per revision</span></td></tr>
+<tr><td>Characteristic</td><td>The requirement, with typed columns for what is queried</td><td><span class="pill p-part">exists as one free-form blob</span></td></tr>
+<tr><td>Provenance</td><td>For each value: source region, reader, stage and model versions, evidence ids</td><td><span class="pill p-part">recognizer version and geometry only</span></td></tr>
+<tr><td>Tolerance scheme</td><td>Scheme, class, exceptions, where it was found, who confirmed</td><td><span class="pill p-none">missing</span></td></tr>
+<tr><td>Inspection, result</td><td>Measurements with who, when and which instrument</td><td><span class="pill p-part">result stored on the characteristic</span></td></tr>
+<tr><td>Approval</td><td>Review and sign-off steps with identity and time</td><td><span class="pill p-none">missing</span></td></tr>
+<tr><td>Audit event</td><td>Append-only; each entry carries the hash of the one before it</td><td><span class="pill p-none">missing</span></td></tr>
+<tr><td>Job</td><td>Queued work with state, attempts and result</td><td><span class="pill p-none">missing</span></td></tr>
+<tr><td>Customer profile</td><td>House tolerance standard, logo, stamps, marking text</td><td><span class="pill p-none">missing</span></td></tr>
+</tbody></table></div>
+<p class="sub" style="margin-top:10px">Schema changes go through versioned migrations with a tested downgrade. The start-up statement that adds a column today is removed.</p></section>
+
+<section id="frontend"><h2>6 · Frontend</h2><p class="sub">Feature modules on a shared design system. The rearranged workspace you approved is built here, not patched onto the current files.</p><div class="mods">
+<div class="mod"><b>Design system</b><small>tokens for colour, type, spacing; buttons, chips, inputs, panels, tables. One source for light and dark.</small></div>
+<div class="mod"><b>App shell</b><small>sign-in, navigation, steps, error boundaries, permissions-aware menus</small></div>
+<div class="mod"><b>Library</b><small>parts, revisions, import</small></div>
+<div class="mod"><b>Workspace</b><small>canvas, overlays, review queue, inspector, grid; each a sub-module</small></div>
+<div class="mod"><b>Settings and profiles</b><small>inspection settings, customer profile, tolerance source</small></div>
+<div class="mod"><b>Export</b><small>forms, stamps, preview</small></div>
+</div><div class="grid" style="margin-top:12px">
+<div class="box"><b>Typed API client</b><span>Generated from the backend's published schema, so the two cannot drift apart.</span></div>
+<div class="box"><b>Server data and local state kept apart</b><span>Fetched records are cached and invalidated in one place; only view state lives in local stores.</span></div>
+<div class="box"><b>Tested like the backend</b><span>Unit tests for logic, component tests for the design system, a few end-to-end runs of the main flow.</span></div>
+<div class="box"><b>Accessible and translatable</b><span>Keyboard reachable, readable contrast, all text through one translation layer.</span></div>
+</div></section>
+
+<section id="scale"><h2>7 · Scale</h2><div class="wrap"><table><thead><tr><th>Dimension</th><th>Design</th></tr></thead><tbody>
+<tr><td>More users</td><td>The API holds no state between requests, so more copies can run behind the gateway.</td></tr>
+<tr><td>More or larger drawings</td><td>Recognition and export are jobs. Add workers to add throughput. Results are cached by file hash and stage version.</td></tr>
+<tr><td>Many sheets</td><td>One job per sheet, run side by side, progress reported per sheet.</td></tr>
+<tr><td>Big tables</td><td>Typed, indexed columns for what is filtered; pages of rows, never whole sets.</td></tr>
+<tr><td>Files</td><td>Stored once by hash in a file store, not in database rows.</td></tr>
+<tr><td>Deployment sizes</td><td>One machine with containers first. The same images run on a cluster when a customer needs it.</td></tr>
+<tr><td>Availability</td><td>Health checks, graceful shutdown, retried jobs, scheduled backups with a tested restore.</td></tr>
+</tbody></table></div></section>
+
+<section id="security"><h2>8 · Security, in layers</h2><div class="layers">
+<div class="layer"><b>Identity</b><span>Single sign-on through the customer's provider, local accounts with strong password rules when air-gapped, session expiry, optional second factor.</span></div>
+<div class="layer"><b>Authorisation</b><span>Roles: viewer, inspector, reviewer, administrator. Checked on every route in one place. Every query is scoped to the tenant.</span></div>
+<div class="layer"><b>Untrusted files</b><span>Opened only in the parse worker: no network, capped memory, time and pages, read-only file system. A hostile file can crash that worker and nothing else.</span></div>
+<div class="layer"><b>Untrusted text and models</b><span>Drawing text is data, never instruction. Model output must match a schema and cite text that exists, or it is discarded.</span></div>
+<div class="layer"><b>Data protection</b><span>Encrypted volumes and connections, keys held outside the code, export-control markings carried on every export.</span></div>
+<div class="layer"><b>Audit</b><span>Sign-in, view, edit, accept, export and settings changes are logged with user, time and record. The log is append-only and tamper-evident.</span></div>
+<div class="layer"><b>Web hardening</b><span>Restricted origins, security headers, input size limits, rate limits, no secrets in the browser.</span></div>
+<div class="layer"><b>Supply chain</b><span>Permissive licences only, pinned dependencies, a bill of materials per release, vulnerability and secret scans as release gates, signed images.</span></div>
+<div class="layer"><b>Operations</b><span>Structured logs with no drawing content, metrics, alerts, backups, documented restore and incident steps.</span></div>
+</div></section>
+
+<section id="soc2"><h2>9 · SOC 2 alignment</h2><p class="sub">One thing to be precise about: SOC 2 is an audit report on an organisation's controls, issued by an auditor. Software cannot hold it. What we can do is build the product so each control has a feature behind it, and run our own development so the evidence exists. If we ever host this for customers, that hosted service is what gets audited. For an on-site install, customers will ask for the same answers in a security questionnaire.</p>
+<div class="wrap"><table><thead><tr><th>SOC 2 area</th><th>What the product provides</th><th>What our company process provides</th><th>Today</th></tr></thead><tbody>
+<tr><td>Security: logical access</td><td>Sign-in, roles, tenant scoping, session rules</td><td>Access reviews, joiner and leaver steps</td><td><span class="pill p-none">not built</span></td></tr>
+<tr><td>Security: change management</td><td>Versioned migrations, recognizer and model versions stamped on records</td><td>Reviewed changes, automated tests and scans before release, release notes</td><td><span class="pill p-part">golden tests only</span></td></tr>
+<tr><td>Security: monitoring and incidents</td><td>Audit log, structured logs, health and alerts</td><td>Incident procedure, log review</td><td><span class="pill p-none">not built</span></td></tr>
+<tr><td>Security: risk and vendors</td><td>Bill of materials, licence gate, pinned and scanned dependencies</td><td>Risk register, supplier review</td><td><span class="pill p-part">licence rule, not enforced</span></td></tr>
+<tr><td>Availability</td><td>Jobs that retry, health checks, backup and restore tooling</td><td>Recovery targets, tested restores</td><td><span class="pill p-none">not built</span></td></tr>
+<tr><td>Processing integrity</td><td>Validation at every boundary, deterministic rules, provenance, coverage audit, golden gate</td><td>Test evidence kept per release</td><td><span class="pill p-part">strongest area today</span></td></tr>
+<tr><td>Confidentiality</td><td>Encryption, no outbound calls, markings on exports, retention and deletion</td><td>Data handling policy, staff agreements</td><td><span class="pill p-part">air-gap design only</span></td></tr>
+<tr><td>Privacy</td><td>Only names and work emails of users are held; export and deletion of a user's data</td><td>Privacy notice</td><td><span class="pill p-none">not built</span></td></tr>
+</tbody></table></div></section>
+
+<section id="standards"><h2>10 · Engineering rules</h2><div class="grid">
+<div class="box"><b>Typed and linted</b><span>Strict type checking on both sides. A failing check blocks the merge.</span></div>
+<div class="box"><b>Tests at three levels</b><span>Unit for rules, contract for adapters, golden and end-to-end for the whole path.</span></div>
+<div class="box"><b>Automated gates</b><span>On every change: tests, golden set, licence check, vulnerability and secret scan, build.</span></div>
+<div class="box"><b>Versioned API</b><span>Published schema, <code class="k">/api/v1</code>, no breaking change without a new version.</span></div>
+<div class="box"><b>Decisions written down</b><span>A short record for each architectural choice: context, decision, consequence.</span></div>
+<div class="box"><b>Configuration outside code</b><span>Typed settings from the environment; the same image runs everywhere.</span></div>
+<div class="box"><b>Errors with meaning</b><span>One error catalogue with codes; users see a clear message, logs get the detail.</span></div>
+<div class="box"><b>No stopgap without a label</b><span>A temporary choice is marked in code and in the decision record, with the proper version named.</span></div>
+</div></section>
+
+<section id="roadmap"><h2>11 · Getting from here to there</h2><p class="sub">The golden tests stay green through every phase. Times assume we build with Claude Code and you review each phase as it lands. They are estimates, not measurements: writing the code is fast, while your review, security testing and trying it on real customer drawings set the real pace.</p><div class="grid" style="margin-bottom:12px">
+<div class="box"><b>The demo build is frozen</b><span>Tag v0.3.0-recognizer-hardened is what you show. Nothing below touches it.</span></div>
+<div class="box"><b>The rebuild happens on its own branch</b><span>New modules are built beside the old code and take over one route at a time. The app runs at every step.</span></div>
+<div class="box"><b>A second copy for the demo</b><span>The tagged build can run from its own folder and database, so work in progress can never break a customer session.</span></div>
+</div>
+<div class="road">
+<div class="ph"><i>0</i><div><b>Foundations</b><span>Repository layout by module, automated checks, typed settings, migrations, versioned API with published schema, permissive PDF renderer in place of the current one.</span></div><span class="t">1 to 2 days</span></div>
+<div class="ph"><i>1</i><div><b>Security core</b><span>Sign-in and roles, tenant scoping, audit log, sandboxed parse worker, encrypted storage and connections, web hardening.</span></div><span class="t">3 to 4 days</span></div>
+<div class="ph"><i>2</i><div><b>Recognition as stages</b><span>Split the pipeline into stage contracts, move it onto the job queue, store the scene as regions and entities, provenance on every value, named settings.</span></div><span class="t">3 to 4 days</span></div>
+<div class="ph"><i>3</i><div><b>Correctness features</b><span>Tolerance source from the drawing, layout stage with views and scale per view, OCR reader for picture regions, small-model interpreter behind its interface.</span></div><span class="t">3 to 5 days</span></div>
+<div class="ph"><i>4</i><div><b>Frontend rebuild</b><span>Design system, typed API client, the rearranged workspace, review and measure flows, frontend tests.</span></div><span class="t">4 to 6 days</span></div>
+<div class="ph"><i>5</i><div><b>Operations and evidence</b><span>Backup and restore, monitoring, packaging for offline install, administrator guide, SOC 2 control evidence pack, export stamps and sign-off.</span></div><span class="t">2 to 3 days</span></div>
+</div></section>
+
+<section id="decisions" class="card"><h2>12 · Decisions I need from you</h2><div class="wrap"><table><thead><tr><th>Question</th><th>Why it matters</th><th>My default if you have no preference</th></tr></thead><tbody>
+<tr><td>On-site only, or also hosted by us?</td><td>A hosted service is what a SOC 2 audit would cover, and it needs stricter tenant separation</td><td>On-site first, built so hosting is possible</td></tr>
+<tr><td>One customer per install, or several?</td><td>Decides how deep tenant separation goes</td><td>Tenant on every record from day one</td></tr>
+<tr><td>Which sign-in do customers use?</td><td>Decides the first identity adapter</td><td>OpenID Connect plus local accounts</td></tr>
+<tr><td>Electronic signatures on approvals?</td><td>Some aerospace and medical customers need signed, attributable approvals</td><td>Design the approval record for it; build after sign-in exists</td></tr>
+<tr><td>Expected load</td><td>Sizes the worker and database design</td><td>Tens of users, hundreds of sheets a day per install</td></tr>
+<tr><td>How long are drawings and records kept?</td><td>Retention and deletion are confidentiality controls</td><td>Configurable per customer, never deleted silently</td></tr>
+<tr><td>Phase order</td><td>Security core before correctness features delays the tolerance fix</td><td>Phase 0, then the tolerance fix from phase 3, then phases 1 and 2</td></tr>
+</tbody></table></div></section>
+</main></body></html>
