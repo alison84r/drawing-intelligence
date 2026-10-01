@@ -27,6 +27,8 @@ def split_at_x(lines: list[Line]) -> list[Line]:
         cut = None
         for i in range(1, len(ln.tokens) - 1):
             if ln.tokens[i].text in ("X", "x") and DECIMAL.match(ln.tokens[i - 1].text) and DECIMAL.match(ln.tokens[i + 1].text):
+                if i + 2 < len(ln.tokens) and ln.tokens[i + 2].kind == "deg":
+                    continue  # "3.0 X 45.00°" is one chamfer, leg by angle
                 cut = i
                 break
         if cut is None:
@@ -181,7 +183,7 @@ def add_vector_symbols(lines: list[Line], page: Any, segs: list[tuple[tuple[floa
                     left = max(left, prev.x1 - 0.05 * s_)
                 if right - left < 0.35 * s_:
                     break
-                found = _classify_symbol((left, t.y0 - 0.3 * s_, right, t.y1 + 0.3 * s_), s_, circles, segs)
+                found = _classify_symbol((left, t.y0 - 0.1 * s_, right, min(t.y1, t.y0 + 0.85 * s_)), s_, circles, segs)  # the row below must stay out
                 if not found:
                     break
                 text, (bx0, by0, bx1, by1) = found
@@ -190,6 +192,98 @@ def add_vector_symbols(lines: list[Line], page: Any, segs: list[tuple[tuple[floa
                 first_synth = next((k for k, o in enumerate(ln.tokens[:idx]) if o.extra.get("synthetic") and o.x0 >= left - 2 * s_), idx)
                 ln.tokens.insert(min(first_synth, idx), tok)
                 right = bx0 - 0.02 * s_
+                if text == "↧":
+                    break  # a depth stands directly before its value; what lies further left is another feature
+
+
+def _closed_circles(page: Any) -> list[tuple[float, float, float, float]]:
+    out = []
+    for cv in page.curves:
+        w, h = float(cv["width"]), float(cv["height"])
+        pts = cv.get("pts") or []
+        if w > 2 and h > 2 and 0.8 <= w / h <= 1.25 and not cv.get("fill") and len(pts) >= 4:
+            first, last = pts[0], pts[-1]
+            if math.hypot(float(first[0]) - float(last[0]), float(first[1]) - float(last[1])) <= 0.12 * max(w, h):
+                out.append((float(cv["x0"]), float(cv["top"]), float(cv["x1"]), float(cv["bottom"])))
+    return out
+
+
+def _frame_symbol(cell: tuple[float, float, float, float], size: float, circles: list[tuple[float, float, float, float]],
+                  segs: list[tuple[tuple[float, float], tuple[float, float]]]) -> str | None:
+    """
+    The geometric characteristic drawn in the first cell of a feature control frame, told by its strokes:
+    ⟂ a bar with an upright on it · ∥ two slanted strokes · ⏥ a parallelogram · ⌖ a circle with a cross ·
+    ⏤ one bar · ∠ a bar and a slanted stroke · ⌯ three bars · ○ a circle · ◎ two circles · ⌭ a circle between two slanted strokes.
+    None when the cell is empty; "?" when something is drawn that is not one of these.
+    """
+    x0, y0, x1, y1 = cell
+    m = 0.04 * size
+    inner = [(a, b) for a, b in segs if all(x0 + m <= p[0] <= x1 - m and y0 + m <= p[1] <= y1 - m for p in (a, b)) and math.dist(a, b) >= 0.12 * size]
+    rings = [c for c in circles if x0 <= c[0] and c[2] <= x1 and y0 <= c[1] and c[3] <= y1]
+    hs = [s for s in inner if abs(s[0][1] - s[1][1]) < 0.15 * math.dist(*s)]
+    vs = [s for s in inner if abs(s[0][0] - s[1][0]) < 0.15 * math.dist(*s)]
+    ds = [s for s in inner if s not in hs and s not in vs]
+    if not inner and not rings:
+        return None
+    if rings:
+        if hs and vs:
+            return "⌖"
+        if len(ds) == 2 and not hs and not vs:
+            return "⌭"
+        if not inner:
+            return "◎" if len(rings) >= 2 else "○"
+        return "?"
+    shape = (len(hs), len(vs), len(ds))
+    if shape == (1, 1, 0):
+        return "⟂"
+    if shape == (0, 0, 2):
+        (a1, b1), (a2, b2) = ds
+        slope = lambda a, b: math.atan2(b[1] - a[1], b[0] - a[0]) % math.pi  # noqa: E731
+        return "∥" if abs(slope(a1, b1) - slope(a2, b2)) < 0.12 else "?"
+    if shape == (2, 0, 2):
+        return "⏥"
+    if shape == (1, 0, 0):
+        return "⏤"
+    if shape == (1, 0, 1):
+        return "∠"
+    if shape == (3, 0, 0):
+        return "⌯"
+    return "?"
+
+
+def add_frame_symbols(lines: list[Line], page: Any, segs: list[tuple[tuple[float, float], tuple[float, float]]]) -> None:
+    """
+    A feature control frame whose symbol is drawn, not typed, reads as a bare boxed value ("0.1 A").
+    The value's cell has a square cell on its left: what is drawn there is the symbol, put back as the first token.
+    """
+    circles = _closed_circles(page)
+    uprights = [(a[0], min(a[1], b[1]), max(a[1], b[1])) for a, b in segs if abs(a[0] - b[0]) < 0.5 and abs(a[1] - b[1]) >= 4]
+    for ln in lines:
+        t = ln.tokens[0]
+        if ln.rot != 0 or t.kind != "text" or not NUMBER.match(t.text) or t.text[0] in "+-" or t.extra.get("stack"):
+            continue
+        s_ = t.size
+        walls = [u for u in uprights if u[2] - u[1] >= 0.9 * s_ and u[1] <= t.cy <= u[2]]
+        divider = max((u for u in walls if t.x0 - 1.0 * s_ <= u[0] <= t.x0 + 0.05 * s_), key=lambda u: u[0], default=None)
+        if divider is None:
+            continue
+        left = max((u for u in walls if divider[0] - 2.4 * s_ <= u[0] <= divider[0] - 0.6 * s_), key=lambda u: u[0], default=None)
+        if left is None:
+            continue
+        cell = (left[0], max(left[1], divider[1]), divider[0], min(left[2], divider[2]))
+        tall, wide = cell[3] - cell[1], cell[2] - cell[0]
+        # A frame cell is about as tall as its text and nearly square, and both its walls have that same height:
+        # sheet borders and view outlines that happen to run past a value are neither.
+        if not (1.05 * s_ <= tall <= 2.6 * s_ and 0.6 * tall <= wide <= 1.8 * tall):
+            continue
+        if any(abs((u[2] - u[1]) - tall) > 0.25 * s_ for u in (left, divider)):
+            continue
+        symbol = _frame_symbol(cell, s_, circles, segs)
+        if symbol is None:
+            continue
+        tok = Token(content_id(t.page, symbol, cell[0], cell[1]), t.page, symbol, cell[0], cell[1], cell[2], cell[3], s_, "vector", 0, "gdt")
+        tok.extra["synthetic"] = True
+        ln.tokens.insert(0, tok)
 
 
 def oriented_box(tokens: list[Token], size: float) -> dict[str, float] | None:

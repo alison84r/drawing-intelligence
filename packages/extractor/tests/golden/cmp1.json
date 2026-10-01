@@ -88,23 +88,6 @@
    "page": 0
   },
   {
-   "specification": "⌴Ø12.24",
-   "descriptionType": "Diameter",
-   "toleranceType": "Bilateral",
-   "nominal": 12.24,
-   "tolHigh": null,
-   "tolLow": null,
-   "count": 1,
-   "designator": "",
-   "zone": "D6",
-   "gdt": null,
-   "at": [
-    360.8,
-    354.3
-   ],
-   "page": 0
-  },
-  {
    "specification": "2X Ø5.50 THRU",
    "descriptionType": "Diameter",
    "toleranceType": "Bilateral",
@@ -122,13 +105,30 @@
    "page": 0
   },
   {
+   "specification": "⌴Ø12.24",
+   "descriptionType": "Diameter",
+   "toleranceType": "Bilateral",
+   "nominal": 12.24,
+   "tolHigh": null,
+   "tolLow": null,
+   "count": 2,
+   "designator": "",
+   "zone": "D6",
+   "gdt": null,
+   "at": [
+    360.8,
+    354.3
+   ],
+   "page": 0
+  },
+  {
    "specification": "↧3.58",
    "descriptionType": "Linear",
    "toleranceType": "Bilateral",
    "nominal": 3.58,
    "tolHigh": null,
    "tolLow": null,
-   "count": 1,
+   "count": 2,
    "designator": "",
    "zone": "D6",
    "gdt": null,

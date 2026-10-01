@@ -22,6 +22,8 @@ PAREN = re.compile(r"^\((.+)\)$")
 LETTER = re.compile(r"^[A-Z]$")
 SECTION_LABEL = re.compile(r"^[A-Z]-[A-Z]$")
 FRACTION_INCH = re.compile(r"^\d+/\d+$")
+FIT = re.compile(r"^(?:[A-HJ-NP-Z]{1,2}|[a-hj-np-z]{1,2})\d{1,2}$")  # ISO 286 fit class: H7, g6, js6
+PAREN_COUNT = re.compile(r"^\((?:(\d+)[Xx]|[Xx](\d+))\)$")
 
 VIEW_WORDS = {"SECTION", "DETAIL", "VIEW", "SCALE", "ISOMETRIC", "ISO", "FRONT", "TOP", "SIDE", "REAR", "BOTTOM", "LEFT", "RIGHT"}
 MODIFIER_WORDS = {
@@ -69,6 +71,8 @@ class Line:
         for t in self.tokens:
             out.append(t)
             out.extend(t.extra.get("stack", []))
+            if t.extra.get("fit") is not None:
+                out.append(t.extra["fit"])
         return out
 
     @property
@@ -99,38 +103,56 @@ def dimension_font_size(tokens: list[Token]) -> float:
 
 def attach_stacks(tokens: list[Token], dim_size: float) -> None:
     """Small tokens right after a main token, one above and one below its centre line, are a deviation stack."""
-    mains = [t for t in tokens if t.cls != "ruled" and t.size >= 0.8 * dim_size and NUMBER.match(t.text) and not t.text.startswith(("+", "-"))]
-    smalls = [t for t in tokens if t.cls != "ruled" and 0.35 * dim_size <= t.size <= 1.05 * dim_size and t.text and (NUMBER.match(t.text) or t.kind == "pm")]
+    live = [t for t in tokens if t.cls != "ruled"]
+    mains = [t for t in live if t.size >= 0.8 * dim_size and NUMBER.match(t.text) and not t.text.startswith(("+", "-"))]
     used: set[str] = set()
     for m in mains:
+        if m.id in used:
+            continue
         a0, a1 = _along(m)
-        candidates = []
-        for s in smalls:
-            if s.id in used or s.rot != m.rot or s is m:
-                continue
-            s0, _ = _along(s)
-            if not (a1 - 2.5 <= s0 <= a1 + 1.0 * m.size):
-                continue
-            if abs(_across(s) - _across(m)) > 1.1 * m.size:
-                continue
-            candidates.append(s)
+        near = [o for o in live if o is not m and o.rot == m.rot and o.id not in used and abs(_across(o) - _across(m)) <= 1.1 * m.size]
+        # Between the value and its deviations there can be a fit class ("H7", sometimes raised to the upper row)
+        # and an opening bracket: "Ø6.0 H8 (+0.02 / -0.00)". The stack starts after them.
+        start = a1
+        fit = next((o for o in near if FIT.match(o.text) and o.kind == "text" and 0.7 * m.size <= o.size <= 1.1 * m.size
+                    and -2.5 <= _along(o)[0] - start <= 1.0 * m.size), None)
+        if fit is not None:
+            start = _along(fit)[1]
+        opening = next((o for o in live if o.rot == m.rot and o.text == "(" and abs(_across(o) - _across(m)) <= 1.1 * m.size
+                        and -2.5 <= _along(o)[0] - start <= 1.0 * m.size), None)
+        if opening is not None:
+            start = _along(opening)[0]
+        reach = 1.0 * m.size if fit is None and opening is None else 1.6 * m.size
+        candidates = [s for s in near if s is not fit and 0.35 * m.size <= s.size <= 1.05 * m.size
+                      and (NUMBER.match(s.text) or s.kind == "pm") and start - 2.5 <= _along(s)[0] <= start + reach]
         if not candidates:
             continue
         candidates.sort(key=_across)
         if len(candidates) > 2:
             candidates = candidates[:2]
         small = [s for s in candidates if s.size <= 0.75 * m.size]
-        if not small:
+        above = [s for s in candidates if _across(s) < _across(m) - 0.25 * m.size]
+        below = [s for s in candidates if _across(s) >= _across(m) - 0.25 * m.size]
+        if opening is not None:
+            # In brackets: the two rows are the stack, as deviations or as the two limits.
+            if not (above and below):
+                continue
+        elif not small:
             # Full-size deviations: need one above the centre line and one at or below it, with a sign somewhere.
             signed = any(s.text[0] in "+-" for s in candidates)
-            above = [s for s in candidates if _across(s) < _across(m) - 0.35 * m.size]
-            below = [s for s in candidates if _across(s) >= _across(m) - 0.35 * m.size]
             if not (signed and above and below):
                 continue
+        elif fit is not None and not (above and below):
+            continue
         for s in candidates:
             used.add(s.id)
             s.extra["stack_of"] = m.id
         m.extra["stack"] = candidates
+        if fit is not None and abs(_across(fit) - _across(m)) > 0.35 * m.size:
+            # A raised fit class would not join the value's line by itself: it travels with the stack.
+            used.add(fit.id)
+            fit.extra["stack_of"] = m.id
+            m.extra["fit"] = fit
 
 
 def build_lines(tokens: list[Token], dim_size: float) -> list[Line]:
@@ -217,15 +239,19 @@ class Group:
     tokens: list[Token] = field(default_factory=list)
 
 
-def _tolerance_from_stack(stack: list[Token]) -> tuple[float | None, float | None, str] | None:
+def _tolerance_from_stack(stack: list[Token], nominal: float | None = None) -> tuple[float | None, float | None, str] | None:
     vals = [_num(s.text) for s in stack]
     if len(vals) == 2 and all(v is not None for v in vals):
         hi, lo = vals[0], vals[1]
         assert hi is not None and lo is not None
         if lo > hi:
             hi, lo = lo, hi
+        unsigned = all(s.text[0] not in "+-" for s in stack)
+        if nominal and unsigned and lo > 0 and abs(hi - nominal) <= 0.2 * abs(nominal) and abs(lo - nominal) <= 0.2 * abs(nominal):
+            # Two limits printed in full ("12.03 / 12.00"), not deviations.
+            hi, lo = round(hi - nominal, 6), round(lo - nominal, 6)
         tol_type = "Unilateral" if (hi == 0 or lo == 0) else "Bilateral"
-        return hi, lo, tol_type
+        return hi + 0.0, lo + 0.0, tol_type  # "-0.00" is zero, not minus zero
     if len(vals) == 1 and vals[0] is not None:
         v = vals[0]
         return (v, -v, "Bilateral") if v > 0 else (0.0, v, "Unilateral")
@@ -276,8 +302,8 @@ def parse_fcf(line: Line) -> Group | None:
         "measurementType": "Variable",
         "units": "mm",
     }
-    conf = 1.0 if tolerance else 0.5
-    reason = f"{name or 'geometric'} frame" + ("" if tolerance else ", tolerance not read")
+    conf = 1.0 if tolerance and name else 0.5
+    reason = f"{name or 'geometric'} frame" + ("" if tolerance else ", tolerance not read") + ("" if name else ", symbol not read")
     return Group(line, "fcf", record, conf, reason, list(line.all_tokens))
 
 
@@ -301,6 +327,14 @@ def parse_dimension(line: Line, units: str) -> Group | None:
         t = toks[i]
         txt = t.text
         nxt = toks[i + 1] if i + 1 < len(toks) else None
+        if t.kind == "sym" and txt == "=":
+            i += 1
+            continue
+        m_pc = PAREN_COUNT.match(txt)
+        if m_pc:
+            count = int(m_pc.group(1) or m_pc.group(2))
+            i += 1
+            continue
         m_count = COUNT.match(txt)
         if m_count and nominal is None:
             count = int(m_count.group(1))
@@ -327,6 +361,19 @@ def parse_dimension(line: Line, units: str) -> Group | None:
                 i += 1
                 continue
         if t.kind == "feat":
+            if nominal is not None:
+                # After the value, a symbol opens a second feature of the same hole: "Ø5 ↧15", "Ø6.6 ⌴Ø11 ↧6.5".
+                j = i + 1
+                part = txt
+                if j < len(toks) and toks[j].kind == "dia":
+                    part += "Ø"
+                    j += 1
+                if j < len(toks) and _num(toks[j].text) is not None:
+                    part += toks[j].text
+                    j += 1
+                notes.append(part)
+                i = j
+                continue
             feats.append(txt)
             i += 1
             continue
@@ -394,10 +441,12 @@ def parse_dimension(line: Line, units: str) -> Group | None:
                 nominal_text = txt
                 stack = t.extra.get("stack")
                 if stack:
-                    parsed = _tolerance_from_stack(stack)
+                    parsed = _tolerance_from_stack(stack, n)
                     if parsed:
                         tol_high, tol_low, tol_type = parsed
                         explicit = True
+                if t.extra.get("fit") is not None:
+                    notes.append(t.extra["fit"].text)
             else:
                 # Two numbers in a row: "12.5 12.4" limits, or a second value we cannot place.
                 notes.append(txt)

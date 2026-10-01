@@ -1,0 +1,130 @@
+{
+ "drawing": "M.088C.100.07.004.pdf",
+ "checkedByEye": "2026-10-01",
+ "note": "Dimensions, callouts and feature control frames on the views. Notes and hole-table rows are not in this key.",
+ "sheets": {
+  "0": [
+   {
+    "text": "Ø3.00 / +0.01 H7 / 0.00",
+    "bbox": [
+     255.7,
+     41.0,
+     312.3,
+     56.0
+    ],
+    "gdt": false,
+    "rows": 1
+   },
+   {
+    "text": "10.0",
+    "bbox": [
+     210.0,
+     85.0,
+     216.3,
+     99.3
+    ],
+    "gdt": false,
+    "rows": 1
+   },
+   {
+    "text": "210.0 ±0.1",
+    "bbox": [
+     857.0,
+     389.3,
+     865.2,
+     425.3
+    ],
+    "gdt": false,
+    "rows": 1
+   },
+   {
+    "text": "4.0",
+    "bbox": [
+     831.7,
+     542.7,
+     837.3,
+     553.3
+    ],
+    "gdt": false,
+    "rows": 1
+   },
+   {
+    "text": "10.6",
+    "bbox": [
+     747.7,
+     544.3,
+     762.3,
+     550.7
+    ],
+    "gdt": false,
+    "rows": 1
+   },
+   {
+    "text": "41.0",
+    "bbox": [
+     626.3,
+     582.3,
+     632.0,
+     597.3
+    ],
+    "gdt": false,
+    "rows": 1
+   },
+   {
+    "text": "6.00 / +0.01 H7 / 0.00",
+    "bbox": [
+     738.0,
+     605.0,
+     752.0,
+     655.0
+    ],
+    "gdt": false,
+    "rows": 1
+   },
+   {
+    "text": "25.0 / 45.00° TYP",
+    "bbox": [
+     174.3,
+     645.0,
+     222.8,
+     653.3
+    ],
+    "gdt": false,
+    "rows": 1
+   },
+   {
+    "text": "14.00 ±0.05",
+    "bbox": [
+     844.0,
+     656.7,
+     885.3,
+     665.3
+    ],
+    "gdt": false,
+    "rows": 1
+   },
+   {
+    "text": "66.0",
+    "bbox": [
+     313.7,
+     700.0,
+     329.0,
+     706.0
+    ],
+    "gdt": false,
+    "rows": 1
+   },
+   {
+    "text": "162.0 ±0.1",
+    "bbox": [
+     398.3,
+     720.3,
+     433.7,
+     728.9
+    ],
+    "gdt": false,
+    "rows": 1
+   }
+  ]
+ }
+}

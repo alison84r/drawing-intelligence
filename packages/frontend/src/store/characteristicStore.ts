@@ -54,6 +54,11 @@ export interface Characteristic {
   id: string
   balloonNumber: number
   subNumber: number | null
+  /**
+   * Only on records fresh from the recognizer: the id of the first row of the same callout
+   * ("6X Ø5 ↧15 / M6-6H ↧12" is one balloon with sub-rows). Turned into balloonNumber.subNumber on arrival.
+   */
+  subOf?: string | null
   page: number
   /** Where the leader ends, in page points. Without a leader this is the balloon centre. */
   anchor: Point
@@ -275,8 +280,17 @@ export const useCharacteristicStore = create<CharacteristicState>()((set, get) =
     const s = get()
     const next = [...s.items]
     const added: Characteristic[] = []
-    for (const r of records) {
-      const c: Characteristic = { ...r, id: r.id || uid(), balloonNumber: nextMainNumber(next), subNumber: null }
+    for (const { subOf, ...r } of records) {
+      // One callout, one balloon: a sub-row takes its first row's number (7 → 7.1, 7.2 …).
+      const head = subOf ? next.find((c) => c.id === subOf) : undefined
+      const c: Characteristic = head
+        ? {
+            ...r,
+            id: r.id || uid(),
+            balloonNumber: head.balloonNumber,
+            subNumber: next.filter((o) => o.balloonNumber === head.balloonNumber && o.subNumber !== null).length + 1,
+          }
+        : { ...r, id: r.id || uid(), balloonNumber: nextMainNumber(next), subNumber: null }
       next.push(c)
       added.push(c)
     }

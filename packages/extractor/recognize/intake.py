@@ -16,7 +16,7 @@ from .scene import build_scene
 from .tokens import SYMBOL_MAP, build_tokens
 from .zones import detect_zones
 
-RECOGNIZER_VERSION = "2026.10.7"
+RECOGNIZER_VERSION = "2026.10.8"
 
 
 def _row(key: str, label: str, level: str, value: str) -> dict[str, str]:

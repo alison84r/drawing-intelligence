@@ -1,0 +1,130 @@
+{
+ "drawing": "smaple 3_HT.PDF",
+ "checkedByEye": "2026-10-01",
+ "note": "Dimensions, callouts and feature control frames on the views. Notes and hole-table rows are not in this key.",
+ "sheets": {
+  "0": [
+   {
+    "text": "50",
+    "bbox": [
+     596.3,
+     139.0,
+     610.0,
+     149.0
+    ],
+    "gdt": false,
+    "rows": 1
+   },
+   {
+    "text": "=150=",
+    "bbox": [
+     725.3,
+     139.0,
+     762.0,
+     149.0
+    ],
+    "gdt": false,
+    "rows": 1
+   },
+   {
+    "text": "50",
+    "bbox": [
+     880.7,
+     139.3,
+     894.3,
+     149.3
+    ],
+    "gdt": false,
+    "rows": 1
+   },
+   {
+    "text": "20",
+    "bbox": [
+     538.3,
+     147.3,
+     552.3,
+     157.3
+    ],
+    "gdt": false,
+    "rows": 1
+   },
+   {
+    "text": "20",
+    "bbox": [
+     941.0,
+     156.3,
+     954.7,
+     166.3
+    ],
+    "gdt": false,
+    "rows": 1
+   },
+   {
+    "text": "2 x 45° TYP",
+    "bbox": [
+     1057.3,
+     164.0,
+     1123.7,
+     174.0
+    ],
+    "gdt": false,
+    "rows": 1
+   },
+   {
+    "text": "8 X R3",
+    "bbox": [
+     758.0,
+     164.3,
+     793.3,
+     174.3
+    ],
+    "gdt": false,
+    "rows": 1
+   },
+   {
+    "text": "117",
+    "bbox": [
+     327.0,
+     268.3,
+     336.7,
+     288.0
+    ],
+    "gdt": false,
+    "rows": 1
+   },
+   {
+    "text": "510",
+    "bbox": [
+     707.0,
+     395.7,
+     728.0,
+     405.7
+    ],
+    "gdt": false,
+    "rows": 1
+   },
+   {
+    "text": "16",
+    "bbox": [
+     344.0,
+     484.7,
+     354.0,
+     497.0
+    ],
+    "gdt": false,
+    "rows": 1
+   },
+   {
+    "text": "0.1 A",
+    "bbox": [
+     389.3,
+     536.0,
+     448.7,
+     552.0
+    ],
+    "gdt": true,
+    "rows": 1
+   }
+  ]
+ }
+}

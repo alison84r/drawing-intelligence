@@ -60,6 +60,11 @@ def find_hole_tables(tokens: list[Token], width: float, height: float) -> list[B
         if stop is not None:
             right_limit = min(right_limit, stop - 0.5 * size)
         inside = [t for t in upright if top - 0.5 * size <= (t.y0 + t.y1) / 2 <= bottom + 0.5 * size and head.x0 - size <= t.x0 and t.x1 <= right_limit]
-        right = max(t.x1 for t in inside)
+        # Table text runs on from the headings without a wide gap; text of a view beside the table is a gap away.
+        right = heading_end
+        for t in sorted(inside, key=lambda t: t.x0):
+            if t.x0 - right > 2.5 * size:
+                break
+            right = max(right, t.x1)
         out.append((max(0.0, head.x0 - 1.2 * size), max(0.0, top - 0.8 * size), min(width, right + 1.2 * size), min(height, bottom + 0.8 * size)))
     return out

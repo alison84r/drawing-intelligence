@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import hashlib
 import math
+import re
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -144,9 +145,26 @@ def _is_symbol_font(font: str) -> bool:
     return any(k in f for k in ("symbol", "gdt", "aigdt", "swgdt"))
 
 
+# The GDT fonts (Autodesk AIGDT, Y14.5 GDT) draw symbols on plain letter codes: the file says "n", the sheet shows Ø.
+GDT_FONT_MAP: dict[str, tuple[str, str]] = {
+    "a": ("∠", "gdt"), "b": ("⟂", "gdt"), "c": ("⏥", "gdt"), "d": ("⌓", "gdt"), "e": ("○", "gdt"), "f": ("∥", "gdt"),
+    "g": ("⌭", "gdt"), "h": ("↗", "gdt"), "i": ("⌯", "gdt"), "j": ("⌖", "gdt"), "k": ("⌒", "gdt"), "r": ("◎", "gdt"),
+    "t": ("⌰", "gdt"), "u": ("⏤", "gdt"),
+    "l": ("L", "mod"), "m": ("M", "mod"), "p": ("P", "mod"), "s": ("S", "mod"),
+    "n": ("Ø", "dia"), "o": ("□", "square"), "v": ("⌴", "feat"), "w": ("⌵", "feat"), "x": ("↧", "feat"),
+    "`": ("±", "pm"), "~": ("°", "deg"),
+}
+
+
+def _is_gdt_font(font: str) -> bool:
+    return "gdt" in font.lower()
+
+
 def _canon(ch: str, font: str) -> tuple[str, str]:
     if ch in SYMBOL_MAP:
         return SYMBOL_MAP[ch]
+    if _is_gdt_font(font) and ch in GDT_FONT_MAP:
+        return GDT_FONT_MAP[ch]
     if _is_symbol_font(font) and not ch.isalnum():
         return ch, "sym"
     return ch, "text"
@@ -245,4 +263,41 @@ def build_tokens(chars: list[dict[str, Any]], page: int) -> list[Token]:
         dup = any(o.text == t.text and o.rot == t.rot and abs(o.x0 - t.x0) < 0.8 and abs(o.y0 - t.y0) < 0.8 for o in seen[-12:])
         if not dup:
             seen.append(t)
-    return seen
+    return [piece for t in seen for piece in _unglue(t)]
+
+
+# Some exporters write a callout with no spaces: "15.0TYP", "40.5(2X)", "2.0X30", "=150=". Each part is its own token.
+_GLUED = re.compile(
+    r"^(?P<lead>=)?(?P<body>(?:S?R|M)?\d+(?:[.,]\d+)?|THRU)"
+    r"(?:(?P<by>[Xx])(?P<second>\d+(?:[.,]\d+)?))?(?P<word>TYP\.?)?(?P<count>\(\d+[Xx]\)|\([Xx]\d+\))?(?P<trail>=)?$"
+)
+
+
+def _unglue(t: Token) -> list[Token]:
+    if t.kind != "text" or t.rot % 90 != 0 or len(t.text) < 3:
+        return [t]
+    m = _GLUED.match(t.text)
+    if not m:
+        return [t]
+    parts = [(name, m.group(name)) for name in ("lead", "body", "by", "second", "word", "count", "trail") if m.group(name)]
+    if len(parts) < 2:
+        return [t]
+    if m.group("by") and not (m.group("word") or "." in m.group("body") or "," in m.group("body")):
+        return [t]  # "2X30" stays whole: a count glued to its value is read by the parser
+    out: list[Token] = []
+    total = len(t.text)
+    lo, hi = t.along()
+    ux, uy = t.u
+    at = 0
+    for name, text in parts:
+        a, b = lo + (hi - lo) * at / total, lo + (hi - lo) * (at + len(text)) / total
+        at += len(text)
+        if abs(ux) > 0.5:  # along x
+            xa, xb = (a, b) if ux > 0 else (-b, -a)
+            box = (xa, t.y0, xb, t.y1)
+        else:  # along y: the reading axis runs up or down the sheet
+            ya, yb = (a, b) if uy > 0 else (-b, -a)
+            box = (t.x0, ya, t.x1, yb)
+        kind = "sym" if name in ("lead", "trail") else "text"
+        out.append(Token(content_id(t.page, text, box[0], box[1]), t.page, text, box[0], box[1], box[2], box[3], t.size, t.font, t.rot, kind))
+    return out

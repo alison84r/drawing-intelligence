@@ -11,10 +11,11 @@ from typing import Any
 
 import pdfplumber
 
+from .callouts import attach_counts, head_of, mark_row_pieces, stack_rows
 from .inkfit import fit_box, has_ink, render_gray
 from .grouper import MODIFIER_WORDS, attach_stacks, build_lines, dimension_font_size, parse_line, rule_out
 from .tokens import Token, build_tokens
-from .refine import (SYMBOL_NOTE, add_vector_symbols, attach_modifier_lines, attach_orphan_degrees, enclosure_of, enclosures, is_basic,
+from .refine import (SYMBOL_NOTE, add_frame_symbols, add_vector_symbols, attach_modifier_lines, attach_orphan_degrees, enclosure_of, enclosures, is_basic,
                      mark_datum_boxes, merge_counts, oriented_box, place_balloons, split_at_x)
 from .scene import associate, build_scene, unexplained
 from .views import detect_views, recheck_with_view_scale
@@ -97,15 +98,10 @@ def recognize(
             synthetic = grid is None
             if grid is None:
                 grid = synthetic_grid(width, height)
-            dim_size = dimension_font_size([t for t in tokens if t.cls != "ruled"])
+            page_tokens = tokens
             if region is not None:
                 tokens = [t for t in tokens if _intersects(t, region)]
-            mark_datum_boxes([t for t in tokens if t.size >= 0.6 * dim_size or t.kind == "gdt"], ink)
-            attach_stacks(tokens, dim_size)
-            lines = build_lines(tokens, dim_size)
-            lines = attach_modifier_lines(attach_orphan_degrees(merge_counts(split_at_x(lines))))
             scene = build_scene(page)
-            add_vector_symbols(lines, page, scene.segments)
             heads = scene.arrows
             tables: list[tuple[float, float, float, float]] = []
             all_tables: list[tuple[float, float, float, float]] = []  # every ruled table, filled or not: none of them is a view
@@ -116,6 +112,8 @@ def recognize(
                         continue
                     if not (0 <= (bx0 + bx1) / 2 <= width and 0 <= (by0 + by1) / 2 <= height):
                         continue  # left over outside the sheet
+                    if sum(1 for a in heads if bx0 <= a.tip[0] <= bx1 and by0 <= a.tip[1] <= by1) >= 2:
+                        continue  # dimension arrows inside: a view drawn with straight rules, not a table
                     all_tables.append((float(bx0), float(by0), float(bx1), float(by1)))
                     cells = [c for row in tb.extract() for c in row]
                     filled = sum(1 for c in cells if c and str(c).strip())
@@ -128,6 +126,17 @@ def recognize(
             printed = [t for t in tokens if t.id not in hidden_ids]  # text that is really on the sheet
             shielded = protected_regions(page, tables, printed, width, height, [a.tip for a in heads], all_tables)
             withheld = {"title_block": 0, "picture": 0, "table": 0}
+            # The dimension text size is taken from the views: a long hole table must not outvote the dimensions.
+            on_views = [t for t in page_tokens if t.cls != "ruled" and t.id not in hidden_ids and region_at((t.x0 + t.x1) / 2, (t.y0 + t.y1) / 2, shielded) is None]
+            dim_size = dimension_font_size(on_views if len(on_views) >= 8 else [t for t in page_tokens if t.cls != "ruled"])
+            mark_datum_boxes([t for t in tokens if t.size >= 0.6 * dim_size or t.kind == "gdt"], ink)
+            attach_stacks(tokens, dim_size)
+            lines = build_lines(tokens, dim_size)
+            lines = attach_counts(attach_modifier_lines(merge_counts(split_at_x(attach_orphan_degrees(lines)))))
+            mark_row_pieces(lines, scene.segments)
+            add_vector_symbols(lines, page, scene.segments)
+            add_frame_symbols(lines, page, scene.segments)
+            stack_rows(lines)
             # Tables are read cell by cell; a general tolerance table is then understood from its cells.
             grids: list[dict[str, Any]] = []
             tolerance_table = None
@@ -243,6 +252,7 @@ def recognize(
                     "id": str(uuid.uuid4()),
                     "balloonNumber": 0,
                     "subNumber": None,
+                    "subOf": None,
                     "page": index,
                     "anchor": {"x": round((x0 + x1) / 2, 2), "y": round((y0 + y1) / 2, 2)},
                     "balloonPos": {"x": round(x1 + 1.3 * size, 2), "y": round(y0 - 1.2 * size, 2)},
@@ -323,7 +333,19 @@ def recognize(
             linear = [c for c in callouts if c["linear"]]
             geometry_readable = bool(scales) or (len(linear) >= 5 and sum(1 for c in linear if c.get("geometry")) >= 0.6 * len(linear))
             audit_none, audit_mismatch = [], []
-            for (line, group, record, already), c in zip(pending, callouts):
+            # One callout, one balloon: a sub-row has no leader of its own. It stands or falls with its first row.
+            row_of = {id(p[0]): p for p in pending}
+            placed_rows: dict[int, bool] = {}
+            order = sorted(range(len(pending)), key=lambda k: head_of(pending[k][0]) is not pending[k][0])
+            for k in order:
+                (line, group, record, already), c = pending[k], callouts[k]
+                head = row_of.get(id(head_of(line))) if getattr(line, "sub_of", None) is not None else None
+                if head is not None:
+                    # It shares the first row's leader; a line that happens to pass near it is not its own.
+                    c["geometry"] = {**head[2]["geometry"], "ratioOk": None, "measured": None} if head[2].get("geometry") else None
+                    record["subOf"] = head[2]["id"]
+                    if record["count"] == 1 and head[2]["count"] > 1:
+                        record["count"] = head[2]["count"]  # "6X" is said once, for every feature of the callout
                 g = c.get("geometry")
                 record["geometry"] = g
                 record["view"] = views[c["view"]].to_json(c["view"])["name"] if views and c.get("view") is not None else ""
@@ -341,11 +363,17 @@ def recognize(
                     if geometry_readable and not relaxed and record["toleranceType"] not in ("Basic",) and group.confidence < 1.0:
                         group.confidence, group.reason = 0.5, "no dimension line or leader found"
                 if already:
+                    placed_rows[id(line)] = True
                     for t in group.tokens:
                         t.cls, t.reason = "char", "already ballooned"
                     continue
                 record["confidence"] = group.confidence
                 confident = (relaxed or group.confidence >= 0.8) and record["id"] not in offered
+                if head is not None:
+                    confident = confident and placed_rows.get(id(head[0]), False)
+                    if not confident and not placed_rows.get(id(head[0]), False):
+                        group.reason = head[1].reason
+                placed_rows[id(line)] = confident
                 if record["id"] in offered:
                     group.reason = "inside a table: click to add it if it is inspected"
                 if confident:
@@ -373,7 +401,11 @@ def recognize(
                 if ob:
                     t.extra["obox"] = ob
             # Balloons go where they cover neither text nor each other.
-            place_balloons(characteristics, tokens, width, height, dim_size)
+            heads_by_id = {c["id"]: c for c in characteristics}
+            for c in characteristics:
+                if c["subOf"] and c["subOf"] not in heads_by_id:
+                    c["subOf"] = None  # its first row is on the sheet already (ballooned earlier): it stands alone
+            place_balloons([c for c in characteristics if not c["subOf"]], tokens, width, height, dim_size)
             # Token boxes follow the ink too, so every overlay sits on the glyphs.
             if ink is not None:
                 for t in tokens:
@@ -403,7 +435,18 @@ def recognize(
 
             # Number by zone band, then left to right, like the manual renumber.
             band = max(1.0, height / 8)
-            characteristics.sort(key=lambda c: (int(c["anchor"]["y"] // band), c["anchor"]["x"]))
+            def reading_order(c: dict[str, Any]) -> tuple[int, float, int, float, float]:
+                first = heads_by_id.get(c["subOf"], c) if c["subOf"] else c
+                own = (round((c["anchor"]["y"] - first["anchor"]["y"]) / dim_size), c["anchor"]["x"]) if c["subOf"] else (0, 0.0)  # row, then along it
+                return int(first["anchor"]["y"] // band), first["anchor"]["x"], 1 if c["subOf"] else 0, own[0], own[1]
+
+            characteristics.sort(key=reading_order)
+            following: dict[str, int] = {}
+            for c in characteristics:
+                if c["subOf"]:
+                    n = following[c["subOf"]] = following.get(c["subOf"], 0) + 1
+                    at = heads_by_id[c["subOf"]]["balloonPos"]
+                    c["balloonPos"] = {"x": round(float(at["x"]) + 22.0 * n, 2), "y": at["y"]}  # beside its balloon, like a sub-balloon added by hand
             out_pages.append({
                 "page": index,
                 "width": width,
