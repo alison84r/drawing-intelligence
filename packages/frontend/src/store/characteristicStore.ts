@@ -19,6 +19,18 @@ export interface OrientedBox {
   angle: number
 }
 
+/** The drawing geometry a callout is tied to: its dimension line (two arrowheads) or its leader. */
+export interface CalloutGeometry {
+  kind: 'dimension' | 'leader' | 'angular' | 'attached' | 'unverified'
+  /** Line segments in page points: [x0, y0, x1, y1]. */
+  segments: number[][]
+  tips: number[][]
+  span?: number
+  /** True when the measured length agrees with the value at the sheet scale; false when it does not. */
+  ratioOk?: boolean | null
+  oneArrow?: boolean
+}
+
 export type GdtZone = '' | 'Ø' | 'SØ'
 export type GdtModifier = '' | 'M' | 'L' | 'P' | 'F'
 
@@ -49,6 +61,7 @@ export interface Characteristic {
   bbox: { x: number; y: number; w: number; h: number } | null
   /** Box along the reading direction for diagonal text (centre, size, angle in degrees counter-clockwise). */
   obox?: OrientedBox | null
+  geometry?: CalloutGeometry | null
   zone: string
   descriptionType: DescriptionType
   specification: string

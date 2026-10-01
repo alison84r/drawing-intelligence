@@ -100,7 +100,7 @@
    "gdt": null,
    "at": [
     379.7,
-    355.8
+    356.5
    ],
    "page": 0
   },
@@ -117,12 +117,12 @@
    "gdt": null,
    "at": [
     389.5,
-    337.5
+    338.2
    ],
    "page": 0
   },
   {
-   "specification": "4.38",
+   "specification": "↧4.38",
    "descriptionType": "Linear",
    "toleranceType": "Bilateral",
    "nominal": 4.38,
@@ -133,8 +133,8 @@
    "zone": "D6",
    "gdt": null,
    "at": [
-    446.8,
-    356.5
+    437.8,
+    356.7
    ],
    "page": 0
   },

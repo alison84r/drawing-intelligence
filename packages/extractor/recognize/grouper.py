@@ -292,6 +292,7 @@ def parse_dimension(line: Line, units: str) -> Group | None:
     notes: list[str] = []
     prefix = ""
     reference = False
+    feats: list[str] = []
     dim_units = units
     i = 0
     while i < len(toks):
@@ -323,6 +324,10 @@ def parse_dimension(line: Line, units: str) -> Group | None:
                 nominal_text = ""
                 i += 1
                 continue
+        if t.kind == "feat":
+            feats.append(txt)
+            i += 1
+            continue
         if t.kind == "dia":
             desc = "Diameter"
             prefix = "Ø"
@@ -438,7 +443,7 @@ def parse_dimension(line: Line, units: str) -> Group | None:
     spec_parts = []
     if count > 1:
         spec_parts.append(f"{count}X")
-    spec_parts.append(f"{prefix}{nominal_text}{'°' if dim_units == 'deg' else ''}")
+    spec_parts.append(f"{''.join(feats)}{prefix}{nominal_text}{'°' if dim_units == 'deg' else ''}")
     if explicit and tol_high is not None and tol_low is not None:
         if tol_type == "Bilateral" and abs(tol_high) == abs(tol_low):
             spec_parts.append(f"±{abs(tol_high):g}")
@@ -457,6 +462,7 @@ def parse_dimension(line: Line, units: str) -> Group | None:
         "count": count,
         "measurementType": "Variable",
         "units": dim_units,
+        "_feats": feats,
     }
     return Group(line, "dimension", record, conf, reason, list(line.all_tokens))
 

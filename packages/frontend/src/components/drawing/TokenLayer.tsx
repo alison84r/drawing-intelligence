@@ -104,6 +104,35 @@ export function TokenLayer({ map, page }: Props) {
         )
       })}
 
+      {/* Whole callout: the dimension line or leader of the active callout lights up with its text. */}
+      <svg className="absolute inset-0 h-full w-full overflow-visible" style={{ pointerEvents: 'none' }}>
+        {onPage
+          .filter((c) => (c.id === selectedId || c.id === hoveredId) && c.geometry && c.geometry.segments.length > 0)
+          .map((c) => (
+            <g key={c.id} data-geometry={c.geometry?.kind}>
+              {c.geometry?.segments.map((s, i) => {
+                const a = pageToScreen({ x: s[0], y: s[1] }, map)
+                const b = pageToScreen({ x: s[2], y: s[3] }, map)
+                return <line key={i} x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke={INK.select} strokeWidth={2.25} strokeLinecap="round" strokeOpacity={0.85} />
+              })}
+              {c.geometry?.tips.map((t, i) => {
+                const p = pageToScreen({ x: t[0], y: t[1] }, map)
+                return <circle key={i} cx={p.x} cy={p.y} r={3.5} fill={INK.select} />
+              })}
+            </g>
+          ))}
+        {tokenView !== 'off' &&
+          rec?.audit?.unexplained.map((u, k) => (
+            <g key={k} data-unexplained>
+              {u.segments?.map((s, i) => {
+                const a = pageToScreen({ x: s[0], y: s[1] }, map)
+                const b = pageToScreen({ x: s[2], y: s[3] }, map)
+                return <line key={i} x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke="#d97706" strokeWidth={2.5} strokeDasharray="6 4" strokeLinecap="round" />
+              })}
+            </g>
+          ))}
+      </svg>
+
       {bandRect && (
         <div
           className="absolute border-[1.5px] border-dashed border-primary bg-primary/10"

@@ -82,6 +82,16 @@ function CommitInput({
   )
 }
 
+function evidenceText(c: Characteristic): string {
+  const g = c.geometry
+  if (!g) return 'No dimension line or leader found for this text.'
+  if (g.kind === 'unverified') return 'Drawn length does not match this value. Check for an overridden or not-to-scale dimension.'
+  if (g.kind === 'dimension') return g.ratioOk ? 'Verified: the dimension line length agrees with the value at sheet scale.' : 'On a dimension line.'
+  if (g.kind === 'leader') return 'Tied to a leader.'
+  if (g.kind === 'angular') return 'Tied to angular arrowheads.'
+  return 'Shares the geometry of the callout next to it.'
+}
+
 const numText = (n: number | null, places: number) => (n === null ? '' : fmt(n, places))
 
 export function RightPanel() {
@@ -172,6 +182,17 @@ export function RightPanel() {
               <Check className="size-3" /> Accept
             </Button>
           )}
+        </div>
+      )}
+      {c.source === 'auto' && (
+        <div
+          className={cn(
+            'border-b px-4 py-1.5 text-[11px]',
+            c.geometry?.kind === 'unverified' ? 'bg-status-fail/10 text-status-fail' : c.geometry ? 'text-muted-foreground' : 'bg-status-draft/10 text-status-draft',
+          )}
+          data-testid="evidence"
+        >
+          {evidenceText(c)}
         </div>
       )}
 

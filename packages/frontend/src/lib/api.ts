@@ -68,6 +68,27 @@ export interface RecognizeToken {
   obox?: { cx: number; cy: number; w: number; h: number; angle: number } | null
 }
 
+export interface AuditItem {
+  id?: string
+  specification?: string
+  at: { x: number; y: number }
+  measured?: number | null
+  segments?: number[][]
+  span?: number
+}
+
+export interface CoverageAudit {
+  callouts: number
+  scales: number[]
+  verified: number
+  onDimensionLine: number
+  onLeader: number
+  attached: number
+  mismatch: AuditItem[]
+  noGeometry: AuditItem[]
+  unexplained: AuditItem[]
+}
+
 export interface RecognizePage {
   page: number
   width: number
@@ -76,6 +97,7 @@ export interface RecognizePage {
   zones: { cols: [number, string][]; rows: [number, string][]; synthetic: boolean }
   tables: number[][]
   arrowheads: number
+  audit: CoverageAudit
   tokens: RecognizeToken[]
   characteristics: Characteristic[]
   stats: { tokens: number; char: number; open: number; ruled: number; characteristics: number; needsYou: number }

@@ -4,6 +4,7 @@ import { useCharacteristicStore, type Characteristic } from './characteristicSto
 import { useSessionStore } from './sessionStore'
 import { useSettingsStore } from './settingsStore'
 import { useUiStore } from './uiStore'
+import { useViewportStore } from './viewportStore'
 
 export type TokenView = 'off' | 'review' | 'all'
 export type RecognizeStatus = 'idle' | 'running' | 'done' | 'error'
@@ -57,6 +58,15 @@ export function openGroups(page: RecognizePage | undefined): OpenGroup[] {
     by.set(t.guess.id, g)
   }
   return [...by.values()].sort((a, b) => a.guess.anchor.y - b.guess.anchor.y || a.guess.anchor.x - b.guess.anchor.x)
+}
+
+/** Centre the view on a page point, zoomed in enough to read the dimension text. */
+export function focusAt(x: number, y: number, textSize = 12): void {
+  const vp = useViewportStore.getState()
+  const scale = Math.max(vp.scale, Math.min(3, 16 / textSize))
+  if (scale !== vp.scale) vp.setScale(scale)
+  const v = useViewportStore.getState()
+  useViewportStore.setState({ offsetX: v.containerW / 2 - x * v.scale, offsetY: v.containerH / 2 - y * v.scale })
 }
 
 export const useRecognizeStore = create<RecognizeState>()((set, get) => ({

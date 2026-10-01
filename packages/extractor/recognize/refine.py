@@ -87,35 +87,109 @@ def attach_orphan_degrees(lines: list[Line]) -> list[Line]:
     return lines
 
 
-def add_vector_diameter(lines: list[Line], page: Any) -> None:
-    """Some exporters draw the diameter sign as a small circle with a stroke. Put it back before the number."""
+SYMBOL_NOTE = {"⌴": "Counterbore", "↧": "Depth", "⌵": "Countersink"}
+
+
+def _classify_symbol(region: tuple[float, float, float, float], size: float, circles: list[tuple[float, float, float, float]],
+                     segs: list[tuple[tuple[float, float], tuple[float, float]]]) -> tuple[str, tuple[float, float, float, float]] | None:
+    """Which drafting symbol is drawn in this gap? Decided by shape, not by proximity."""
+    rx0, ry0, rx1, ry1 = region
+    pad = 0.15 * size
+    inside = [(a, b) for a, b in segs if all(rx0 - pad <= p[0] <= rx1 + pad and ry0 - pad <= p[1] <= ry1 + pad for p in (a, b))]
+    hs, vs, ds = [], [], []
+    for a, b in inside:
+        dx, dy = abs(a[0] - b[0]), abs(a[1] - b[1])
+        n = math.hypot(dx, dy)
+        if n < 0.15 * size:
+            continue
+        (hs if dy < 0.15 * n else vs if dx < 0.15 * n else ds).append((a, b, n))
+
+    def box_of(items: list) -> tuple[float, float, float, float]:
+        xs = [p[0] for a, b, _ in items for p in (a, b)]
+        ys = [p[1] for a, b, _ in items for p in (a, b)]
+        return min(xs), min(ys), max(xs), max(ys)
+
+    # Diameter: a circle with a stroke through it.
+    for cx0, cy0, cx1, cy1 in circles:
+        side = max(cx1 - cx0, cy1 - cy0)
+        if not (0.4 * size <= side <= 1.05 * size) or cx0 < rx0 - pad or cx1 > rx1 + pad or cy0 < ry0 - pad or cy1 > ry1 + pad:
+            continue
+        ccx, ccy = (cx0 + cx1) / 2, (cy0 + cy1) / 2
+        if not (ry0 + 0.2 * size <= ccy <= ry1 - 0.2 * size):
+            continue
+        for a, b, n in ds:
+            if not (0.9 * side <= n <= 1.9 * side):
+                continue
+            # distance from the circle centre to the stroke, and the centre must lie between its ends
+            vx, vy = b[0] - a[0], b[1] - a[1]
+            tpar = ((ccx - a[0]) * vx + (ccy - a[1]) * vy) / (n * n)
+            off = abs((ccx - a[0]) * vy - (ccy - a[1]) * vx) / n
+            if 0.3 <= tpar <= 0.7 and off <= 0.15 * side:
+                return "Ø", (min(cx0, a[0], b[0]), min(cy0, a[1], b[1]), max(cx1, a[0], b[0]), max(cy1, a[1], b[1]))
+    tall = [v for v in vs if v[2] >= 0.35 * size]
+    # Counterbore: two uprights joined by a bottom bar.
+    if len(tall) == 2 and len(hs) == 1 and not ds and abs(tall[0][2] - tall[1][2]) <= 0.2 * max(tall[0][2], tall[1][2]):
+        bottom = max(max(a[1], b[1]) for a, b, _ in tall)
+        if any(abs(a[1] - bottom) <= 0.2 * size and n >= 0.3 * size for a, b, n in hs):
+            return "⌴", box_of(tall + hs)
+    def vee(items: list) -> bool:
+        for i_, (a1, b1, n1) in enumerate(items):
+            for a2, b2, n2 in items[i_ + 1:]:
+                lo1, lo2 = max((a1, b1), key=lambda q: q[1]), max((a2, b2), key=lambda q: q[1])
+                hi1, hi2 = min((a1, b1), key=lambda q: q[1]), min((a2, b2), key=lambda q: q[1])
+                if math.hypot(lo1[0] - lo2[0], lo1[1] - lo2[1]) <= 0.12 * size and abs(hi1[1] - hi2[1]) <= 0.15 * size and (hi1[0] - lo1[0]) * (hi2[0] - lo2[0]) < 0 and abs(n1 - n2) <= 0.25 * max(n1, n2):
+                    return True
+        return False
+
+    # Depth: a bar on top, a stem, and an arrowhead at the bottom.
+    if len(tall) == 1 and len(ds) == 2 and len(hs) == 1 and vee(ds):
+        top = min(min(a[1], b[1]) for a, b, _ in tall)
+        if any(abs(a[1] - top) <= 0.25 * size for a, b, _ in hs):
+            return "↧", box_of(tall + hs + ds)
+    # Countersink: a V.
+    if len(ds) == 2 and not tall and not hs and not vs and vee(ds) and all(0.4 * size <= n <= 1.3 * size for _, _, n in ds):
+        return "⌵", box_of(ds)
+    return None
+
+
+def add_vector_symbols(lines: list[Line], page: Any, segs: list[tuple[tuple[float, float], tuple[float, float]]]) -> None:
+    """Symbols some exporters draw as shapes instead of font glyphs are put back as tokens, left of the value."""
     circles = []
     for cv in page.curves:
         w, h = float(cv["width"]), float(cv["height"])
-        if w > 2 and h > 2 and 0.75 <= w / h <= 1.33:
-            circles.append((float(cv["x0"]), float(cv["top"]), float(cv["x1"]), float(cv["bottom"])))
-    if not circles:
-        return
+        pts = cv.get("pts") or []
+        if w > 2 and h > 2 and 0.8 <= w / h <= 1.25 and not cv.get("fill") and len(pts) >= 4:
+            first, last = pts[0], pts[-1]
+            if math.hypot(float(first[0]) - float(last[0]), float(first[1]) - float(last[1])) <= 0.12 * max(w, h):
+                circles.append((float(cv["x0"]), float(cv["top"]), float(cv["x1"]), float(cv["bottom"])))
     for ln in lines:
         if ln.rot != 0:
             continue
-        for i, t in enumerate(list(ln.tokens)):
-            if not NUMBER.match(t.text) or t.text[0] in "+-":
+        for t in list(ln.tokens):
+            if not NUMBER.match(t.text) or t.text[0] in "+-" or t.extra.get("stack_of"):
                 continue
-            prev = ln.tokens[i - 1] if i > 0 else None
-            if prev is not None and prev.kind == "dia":
-                continue
-            s = t.size
-            left_limit = prev.x1 if prev is not None and not COUNT.match(prev.text) else t.x0 - 1.6 * s
-            for cx0, cy0, cx1, cy1 in circles:
-                side = max(cx1 - cx0, cy1 - cy0)
-                if not (0.4 * s <= side <= 1.0 * s):
-                    continue
-                if cx1 <= t.x0 + 0.1 * s and cx0 >= max(left_limit - 0.2 * s, t.x0 - 1.6 * s) and cy0 >= t.y0 - 0.5 * s and cy1 <= t.y1 + 0.5 * s:
-                    dia = Token(content_id(t.page, "Ø", cx0, cy0), t.page, "Ø", cx0, cy0, cx1, cy1, s, "vector", 0, "dia")
-                    dia.extra["synthetic"] = True
-                    ln.tokens.insert(ln.tokens.index(t), dia)
+            s_ = t.size
+            right = t.x0 - 0.02 * s_
+            for _ in range(2):  # a value can carry two symbols: counterbore then diameter
+                idx = ln.tokens.index(t)
+                before = [o for o in ln.tokens[:idx] if not o.extra.get("synthetic")]
+                prev = before[-1] if before else None
+                if prev is not None and prev.kind in ("dia", "gdt", "pm"):
                     break
+                left = right - 1.7 * s_
+                if prev is not None:
+                    left = max(left, prev.x1 - 0.05 * s_)
+                if right - left < 0.35 * s_:
+                    break
+                found = _classify_symbol((left, t.y0 - 0.3 * s_, right, t.y1 + 0.3 * s_), s_, circles, segs)
+                if not found:
+                    break
+                text, (bx0, by0, bx1, by1) = found
+                tok = Token(content_id(t.page, text, bx0, by0), t.page, text, bx0, by0, bx1, by1, s_, "vector", 0, "dia" if text == "Ø" else "feat")
+                tok.extra["synthetic"] = True
+                first_synth = next((k for k, o in enumerate(ln.tokens[:idx]) if o.extra.get("synthetic") and o.x0 >= left - 2 * s_), idx)
+                ln.tokens.insert(min(first_synth, idx), tok)
+                right = bx0 - 0.02 * s_
 
 
 def oriented_box(tokens: list[Token], size: float) -> dict[str, float] | None:

@@ -10,12 +10,12 @@ from typing import Any
 
 import pdfplumber
 
-from .geometry import detect_arrowheads
 from .inkfit import fit_box, render_gray
-from .grouper import attach_stacks, build_lines, dimension_font_size, parse_line, rule_out, score_with_geometry
+from .grouper import attach_stacks, build_lines, dimension_font_size, parse_line, rule_out
 from .tokens import Token, build_tokens
-from .refine import (add_vector_diameter, attach_modifier_lines, attach_orphan_degrees, enclosure_of, enclosures, is_basic,
+from .refine import (SYMBOL_NOTE, add_vector_symbols, attach_modifier_lines, attach_orphan_degrees, enclosure_of, enclosures, is_basic,
                      mark_datum_boxes, merge_counts, oriented_box, place_balloons, split_at_x)
+from .scene import associate, build_scene, unexplained
 from .zones import detect_zones, synthetic_grid
 
 Region = dict[str, float]  # x, y, w, h in page points
@@ -66,9 +66,9 @@ def recognize(
             lines = build_lines(tokens, dim_size)
             lines = attach_modifier_lines(attach_orphan_degrees(merge_counts(split_at_x(lines))))
             shapes = enclosures(page)
-            if not any(t.kind == "dia" for t in tokens):
-                add_vector_diameter(lines, page)
-            heads = detect_arrowheads(page)
+            scene = build_scene(page)
+            add_vector_symbols(lines, page, scene.segments)
+            heads = scene.arrows
             tables: list[tuple[float, float, float, float]] = []
             try:
                 for tb in page.find_tables():
@@ -84,6 +84,7 @@ def recognize(
 
             characteristics: list[dict[str, Any]] = []
             open_groups = 0
+            pending: list[tuple[Any, Any, dict[str, Any]]] = []
             for line in lines:
                 why = rule_out(line, dim_size, width, height, relaxed, tables)
                 if why:
@@ -96,7 +97,6 @@ def recognize(
                     for t in line.all_tokens:
                         t.cls, t.reason = ("ruled", "general tolerance note") if general else ("open", "could not read a value")
                     continue
-                score_with_geometry(group, heads)
                 x0, y0, x1, y1 = line.bbox
                 if ink is not None and line.rot % 90 == 0:
                     # Fit each token to its ink and take the union: stacked deviations and frames keep every part.
@@ -143,12 +143,49 @@ def recognize(
                 }
                 if obox:
                     record["anchor"] = {"x": obox["cx"], "y": obox["cy"]}
+                feats = group.record.get("_feats") or []
+                if feats and not record["comments"]:
+                    record["comments"] = ", ".join(SYMBOL_NOTE[f] for f in feats if f in SYMBOL_NOTE)
                 already = any(e.get("page") == index and e.get("bbox") and _overlaps(e["bbox"], bbox) for e in existing)
-                confident = relaxed or group.confidence >= 0.8
                 if already:
                     for t in group.tokens:
                         t.cls, t.reason = "char", "already ballooned"
                     continue
+                pending.append((line, group, record))
+
+            # ── Geometry decides: tie every callout to a dimension line, a leader, or nothing.
+            callouts = []
+            for line, group, record in pending:
+                b = record["bbox"]
+                callouts.append({
+                    "box": (b["x"], b["y"], b["x"] + b["w"], b["y"] + b["h"]),
+                    "size": line.size,
+                    "nominal": record.get("nominal"),
+                    "angular": record["descriptionType"] == "Angular",
+                    "linear": group.kind == "dimension" and record["descriptionType"] in ("Linear", "Diameter", "Thread", "Chamfer"),
+                })
+            info = associate(callouts, scene)
+            scales = info["scales"]
+            audit_none, audit_mismatch = [], []
+            for (line, group, record), c in zip(pending, callouts):
+                g = c.get("geometry")
+                record["geometry"] = g
+                at = {"x": record["anchor"]["x"], "y": record["anchor"]["y"]}
+                kind = g["kind"] if g else "none"
+                if kind == "dimension" and g.get("ratioOk") and group.confidence == 0.5 and group.reason.startswith("single digit"):
+                    group.confidence, group.reason = 0.8, "single digit on a dimension line"
+                if kind == "unverified":
+                    measured = g["span"] / scales[0] if scales else None
+                    audit_mismatch.append({"id": record["id"], "specification": record["specification"], "at": at, "measured": round(measured, 2) if measured else None})
+                    if not record["comments"]:
+                        record["comments"] = "Drawn length does not match the value (overridden or not to scale?)"
+                if kind == "none" and c["linear"]:
+                    audit_none.append({"id": record["id"], "specification": record["specification"], "at": at})
+                    # On a sheet where geometry is readable, a value with no dimension line or leader is not trusted.
+                    if scales and not relaxed and record["toleranceType"] not in ("Basic",) and group.confidence < 1.0:
+                        group.confidence, group.reason = 0.5, "no dimension line or leader found"
+                record["confidence"] = group.confidence
+                confident = relaxed or group.confidence >= 0.8
                 if confident:
                     characteristics.append(record)
                     for t in list(group.tokens) + list(getattr(line, "extra_tokens", [])):
@@ -157,6 +194,18 @@ def recognize(
                     open_groups += 1
                     for t in group.tokens:
                         t.cls, t.reason, t.guess = "open", group.reason, record
+            kinds = [(c.get("geometry") or {}).get("kind", "none") for c in callouts]
+            audit = {
+                "callouts": len(callouts),
+                "scales": scales,
+                "verified": sum(1 for c in callouts if (c.get("geometry") or {}).get("ratioOk") is True),
+                "onDimensionLine": kinds.count("dimension"),
+                "onLeader": kinds.count("leader") + kinds.count("angular"),
+                "attached": kinds.count("attached"),
+                "mismatch": audit_mismatch,
+                "noGeometry": audit_none,
+                "unexplained": unexplained(scene) if region is None else [],
+            }
             for t in tokens:
                 ob = oriented_box([t], t.size)
                 if ob:
@@ -184,6 +233,7 @@ def recognize(
                 "zones": {"cols": grid.cols, "rows": grid.rows, "synthetic": synthetic},
                 "tables": [list(t) for t in tables],
                 "arrowheads": len(heads),
+                "audit": audit,
                 "tokens": [t.to_json() for t in tokens],
                 "characteristics": characteristics,
                 "stats": {

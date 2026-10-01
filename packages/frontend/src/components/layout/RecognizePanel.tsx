@@ -1,15 +1,25 @@
 import { useEffect } from 'react'
-import { AlertTriangle, CheckCheck, CircleAlert, CircleCheck, CircleX, Loader2, RotateCcw, ScanSearch, Sparkles, SquareDashedMousePointer } from 'lucide-react'
+import { AlertTriangle, CheckCheck, CircleAlert, CircleCheck, CircleX, Loader2, RotateCcw, Ruler, ScanSearch, Sparkles, SquareDashedMousePointer } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
-import { openGroups, useRecognizeStore, type TokenView } from '@/store/recognizeStore'
+import { focusAt, openGroups, useRecognizeStore, type TokenView } from '@/store/recognizeStore'
 import { useCharacteristicStore } from '@/store/characteristicStore'
 import { useDocumentStore } from '@/store/documentStore'
 import { useSessionStore } from '@/store/sessionStore'
 import { useUiStore } from '@/store/uiStore'
 import { cn } from '@/lib/utils'
+
+function AuditRow({ tone, text, hint, onClick }: { tone: 'fail' | 'warn'; text: string; hint: string; onClick: () => void }) {
+  return (
+    <button type="button" onClick={onClick} className="flex w-full items-center gap-2 rounded px-1 py-0.5 text-left transition-colors hover:bg-accent">
+      <span className={cn('size-1.5 shrink-0 rounded-full', tone === 'fail' ? 'bg-status-fail' : 'bg-status-draft')} />
+      <span className="truncate font-medium">{text}</span>
+      <span className="ml-auto shrink-0 text-[10px] text-muted-foreground">{hint}</span>
+    </button>
+  )
+}
 
 function Chip({ color, count, label }: { color: string; count: number; label: string }) {
   return (
@@ -48,6 +58,12 @@ export function RecognizePanel() {
   }, [revisionId, ready, loadIntake])
   const intakePage = intake?.pages.find((p) => p.page === pageIndex) ?? intake?.pages[0]
   const unreadable = intake?.level === 'bad'
+
+  const pct = (n: number, total: number) => (total ? (100 * n) / total : 0)
+  const jump = (at: { x: number; y: number }, id?: string) => {
+    focusAt(at.x, at.y, page?.dimensionFontSize ?? 12)
+    if (id) select(useCharacteristicStore.getState().items.some((c) => c.id === id) ? id : null)
+  }
 
   const running = status === 'running'
   const needs = openGroups(page)
@@ -164,6 +180,41 @@ export function RecognizePanel() {
               </ul>
             )}
           </div>
+
+          {page.audit && (
+            <div className="rounded-md border bg-background" data-testid="coverage">
+              <div className="flex items-center gap-1.5 border-b px-2.5 py-1.5 text-[11px] font-medium">
+                <Ruler className="size-3.5 text-primary" /> Geometry check
+                <span className="ml-auto tabular-nums text-muted-foreground">
+                  {page.audit.onDimensionLine + page.audit.onLeader + page.audit.attached} / {page.audit.callouts}
+                </span>
+              </div>
+              <div className="space-y-1.5 px-2.5 py-2 text-[11px] leading-snug">
+                <div className="flex h-1.5 overflow-hidden rounded-full bg-muted">
+                  <span className="bg-status-pass" style={{ width: `${pct(page.audit.verified, page.audit.callouts)}%` }} />
+                  <span className="bg-primary/60" style={{ width: `${pct(page.audit.onLeader + page.audit.attached, page.audit.callouts)}%` }} />
+                  <span className="bg-status-fail" style={{ width: `${pct(page.audit.mismatch.length, page.audit.callouts)}%` }} />
+                </div>
+                <p className="text-muted-foreground">
+                  <span className="font-medium text-foreground">{page.audit.verified}</span> values agree with their dimension line
+                  {page.audit.scales.length > 0 ? ` at ${page.audit.scales.length === 1 ? 'one sheet scale' : `${page.audit.scales.length} scales`}` : ''} ·{' '}
+                  <span className="font-medium text-foreground">{page.audit.onLeader + page.audit.attached}</span> on leaders or frames
+                </p>
+                {page.audit.mismatch.map((m) => (
+                  <AuditRow key={m.id} tone="fail" text={`${m.specification}: drawn as ${m.measured ?? '?'}`} hint="length differs" onClick={() => jump(m.at, m.id)} />
+                ))}
+                {page.audit.noGeometry.map((m) => (
+                  <AuditRow key={m.id} tone="warn" text={m.specification ?? ''} hint="no line or leader" onClick={() => jump(m.at, m.id)} />
+                ))}
+                {page.audit.unexplained.map((u, i) => (
+                  <AuditRow key={i} tone="warn" text="Dimension line without a value" hint="look here" onClick={() => jump(u.at)} />
+                ))}
+                {page.audit.mismatch.length + page.audit.noGeometry.length + page.audit.unexplained.length === 0 && (
+                  <p className="text-status-pass">Every dimension line on this sheet has a value, and every value has geometry.</p>
+                )}
+              </div>
+            </div>
+          )}
 
           <Button
             size="sm"
