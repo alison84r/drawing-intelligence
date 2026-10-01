@@ -27,8 +27,9 @@ function VSeparator() {
   return (
     <Separator
       className={cn(
-        'relative w-px bg-border transition-colors hover:bg-primary data-[resize-handle-active]:bg-primary',
-        'after:absolute after:inset-y-0 after:-left-1 after:-right-1 after:content-[""]',
+        // The gap between two cards; a line shows only while it is hovered or dragged.
+        'relative w-1.5 bg-transparent',
+        'after:absolute after:inset-y-2 after:left-1/2 after:w-0.5 after:-translate-x-1/2 after:rounded-full after:bg-transparent after:transition-colors after:content-[""] hover:after:bg-primary data-[resize-handle-active]:after:bg-primary',
       )}
     />
   )
@@ -38,8 +39,8 @@ function HSeparator() {
   return (
     <Separator
       className={cn(
-        'relative h-px bg-border transition-colors hover:bg-primary data-[resize-handle-active]:bg-primary',
-        'after:absolute after:inset-x-0 after:-top-1 after:-bottom-1 after:content-[""]',
+        'relative h-1.5 bg-transparent',
+        'after:absolute after:inset-x-2 after:top-1/2 after:h-0.5 after:-translate-y-1/2 after:rounded-full after:bg-transparent after:transition-colors after:content-[""] hover:after:bg-primary data-[resize-handle-active]:after:bg-primary',
       )}
     />
   )
@@ -171,30 +172,31 @@ export function AppShell() {
             <RailButton hint={focus ? 'Bring the panels back' : 'Focus on the drawing'} active={focus} onClick={toggleFocus}><Maximize2 /></RailButton>
             <RailButton hint="Inspection settings" active={settingsOpen} onClick={() => setSettingsOpen(true)} className="mt-auto"><Settings2 /></RailButton>
           </nav>
-          <Group orientation="horizontal" className="min-h-0 min-w-0 flex-1" {...outer}>
+          {/* Paper on a desk: the drawing lies on a tinted ground; queue, table and detail are cards on it. */}
+          <Group orientation="horizontal" className="min-h-0 min-w-0 flex-1 bg-desk p-1.5" {...outer}>
             <Panel className="h-full" id="left" panelRef={leftRef} defaultSize={272} minSize={232} maxSize={400} collapsible collapsedSize={0}
               onResize={(size) => !focus && setLeftCollapsed(size.inPixels === 0)}>
-              <SidePanel />
+              <div className="h-full overflow-hidden rounded-lg border bg-background shadow-[0_1px_2px_rgba(15,23,42,.06),0_4px_12px_rgba(15,23,42,.06)]"><SidePanel /></div>
             </Panel>
             <VSeparator />
             <Panel className="h-full" id="center" minSize={360}>
               <Group orientation="vertical" className="h-full" {...center}>
                 <Panel className="h-full" id="drawing" defaultSize="70" minSize={160}>
-                  <div className="relative h-full w-full">
+                  <div className="relative h-full w-full overflow-hidden rounded-lg">
                     <DrawingSurface />
                     <CanvasTools />
                   </div>
                 </Panel>
                 <HSeparator />
                 <Panel className="h-full" id="bottom" panelRef={bottomRef} defaultSize="30" minSize={110} collapsible collapsedSize={0}>
-                  <BottomPane />
+                  <div className="h-full overflow-hidden rounded-lg border bg-background shadow-[0_1px_2px_rgba(15,23,42,.06),0_4px_12px_rgba(15,23,42,.06)]"><BottomPane /></div>
                 </Panel>
               </Group>
             </Panel>
             <VSeparator />
             <Panel className="h-full" id="right" panelRef={rightRef} defaultSize={312} minSize={272} maxSize={460} collapsible collapsedSize={0}
               onResize={(size) => !focus && setRightCollapsed(size.inPixels === 0)}>
-              <Inspector />
+              <div className="h-full overflow-hidden rounded-lg border bg-background shadow-[0_1px_2px_rgba(15,23,42,.06),0_4px_12px_rgba(15,23,42,.06)]"><Inspector /></div>
             </Panel>
           </Group>
           {(rightCollapsed || focus) && <DetailStrip onOpen={() => { setRightCollapsed(false); if (focus) toggleFocus() }} />}

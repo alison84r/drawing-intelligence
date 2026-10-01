@@ -208,7 +208,7 @@ export function Inspector() {
   }
 
   return (
-    <aside className="flex h-full flex-col bg-background" data-testid="inspector">
+    <aside className="flex h-full flex-col border-t-[3px] border-t-primary bg-background" data-testid="inspector">
       <header className="flex items-center gap-2 border-b px-3 py-2">
         <span className="inline-flex h-7 min-w-7 items-center justify-center rounded-full border-2 px-1 text-xs font-bold tabular-nums" style={{ borderColor: color, color }}>
           {(c.style?.prefix ?? globalStyle.prefix) + balloonLabel(c)}

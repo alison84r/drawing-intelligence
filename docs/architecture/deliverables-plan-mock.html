@@ -1,0 +1,88 @@
+<title>Deliverables Plan</title>
+<style>
+:root{--bg:#f5f7fa;--card:#fff;--fg:#14213a;--mut:#64708a;--line:#dfe4ec;--soft:#eef2f7;--navy:#12406b;--navy-s:#e4edf6;--ok:#1f8a5b;--ok-s:#e0f4ea;--amber:#b7791f;--amber-s:#fdf3dc;--red:#c0392b;--red-s:#fbe6e3;--paper:#fff}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1622;--card:#172131;--fg:#e7ecf4;--mut:#93a0b8;--line:#2a3649;--soft:#1e2a3c;--navy:#7fb2e6;--navy-s:#1d3147;--ok:#5fd0a0;--ok-s:#173328;--amber:#e3b25a;--amber-s:#3a2f17;--red:#f08777;--red-s:#3d201c;--paper:#101a2a;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0f1622;--card:#172131;--fg:#e7ecf4;--mut:#93a0b8;--line:#2a3649;--soft:#1e2a3c;--navy:#7fb2e6;--navy-s:#1d3147;--ok:#5fd0a0;--ok-s:#173328;--amber:#e3b25a;--amber-s:#3a2f17;--red:#f08777;--red-s:#3d201c;--paper:#101a2a;color-scheme:dark}
+body{background:var(--bg);color:var(--fg);font:14px/1.5 system-ui,sans-serif;padding-inline:16px;padding-block:26px 56px}
+.wrap{max-width:1000px;margin:0 auto;display:flex;flex-direction:column;gap:22px}
+h1{font-size:24px;margin:0;text-wrap:balance}h2{font-size:17px;margin:0}h3{font-size:11.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--mut);margin:0;font-weight:600}
+p{margin:0;color:var(--mut);max-width:68ch}
+.sec{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;display:flex;flex-direction:column;gap:12px}
+.doc{display:grid;grid-template-columns:minmax(150px,1fr) 96px minmax(0,2.4fr);gap:12px;align-items:start;padding:12px 0;border-top:1px solid var(--line)}
+.doc:first-of-type{border-top:0}
+@media(max-width:640px){.doc{grid-template-columns:1fr}}
+.doc b{font-size:15px}.doc small{display:block;color:var(--mut)}
+.pill{justify-self:start;font-size:11px;font-weight:700;padding:3px 9px;border-radius:11px;white-space:nowrap}
+.have{background:var(--ok-s);color:var(--ok)}.part{background:var(--amber-s);color:var(--amber)}.miss{background:var(--red-s);color:var(--red)}
+ul{margin:0;padding-left:18px;color:var(--mut)}li{margin:2px 0}li b{font-size:14px;color:var(--fg)}
+.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;align-items:center}
+svg{width:100%;height:auto;background:var(--paper);border:1px solid var(--line);border-radius:8px}
+.t{font:500 15px system-ui;fill:var(--fg)}.s{font:600 9px system-ui;fill:var(--mut)}
+.b{fill:var(--paper);stroke:var(--navy);stroke-width:1.8}.n{font:700 10px system-ui;fill:var(--navy);text-anchor:middle;dominant-baseline:central}
+.cb{fill:var(--red-s);stroke:var(--red);stroke-width:2}.cn{font:700 10px system-ui;fill:var(--red);text-anchor:middle;dominant-baseline:central}
+.l{stroke:var(--navy);stroke-width:1.2}.cl{stroke:var(--red);stroke-width:1.2}
+.steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px}
+.step{border:1px solid var(--line);border-radius:10px;padding:12px;background:var(--bg)}
+.step h3{margin-bottom:4px;color:var(--navy)}
+</style>
+<div class="wrap">
+<header><h3>Drawing Intelligence · plan from the supplier's deliverables table</h3><h1>Five documents a supplier hands over: what we produce today and what to add</h1></header>
+
+<section class="sec">
+  <div class="doc"><div><b>Ballooned Drawing</b><small>All dimensions and CTQ tolerances identified</small></div><span class="pill part">Mostly there</span>
+    <ul><li><b>Have:</b> numbered balloons, stamp, legend, exported PDF.</li><li><b>Gap:</b> CTQ (critical-to-quality) balloons do not stand out. The "Designator" column (Key / Critical / Major / Minor) exists but is hidden and never shown on the drawing.</li></ul></div>
+  <div class="doc"><div><b>CMM Dimensional Report</b><small>Measured results for geometric and position tolerances</small></div><span class="pill part">Manual only</span>
+    <ul><li><b>Have:</b> results typed by hand, pass / fail against limits.</li><li><b>Gap:</b> no import of a CMM result file, no "method / gauge" per balloon.</li></ul></div>
+  <div class="doc"><div><b>Material Cert &amp; CoC</b><small>Material grade, batch identity, conformity</small></div><span class="pill miss">Missing</span>
+    <ul><li><b>Have:</b> a "Materials and processes" tab for AS9102 Form 2.</li><li><b>Gap:</b> no Certificate of Conformance page; material certificates cannot be attached.</li></ul></div>
+  <div class="doc"><div><b>FAI / PPAP Records</b><small>First-article and approval documentation</small></div><span class="pill have">Have</span>
+    <ul><li><b>Have:</b> AS9102 Forms 1, 2, 3 and the PPAP dimensional results sheet.</li><li><b>Later:</b> fill the customer's own template.</li></ul></div>
+  <div class="doc"><div><b>Traceability Records</b><small>Lot-specific raw material and process tracking</small></div><span class="pill part">Thin</span>
+    <ul><li><b>Have:</b> part number, revision, drawing checksum, who and when.</li><li><b>Gap:</b> lot / heat number, sample serial, and accept · hold · rework disposition.</li></ul></div>
+</section>
+
+<section class="sec">
+  <h2>The new point in your screenshot: CTQ balloons</h2>
+  <div class="two">
+    <svg viewBox="0 0 320 130"><text class="t" x="24" y="62">Ø6.00 H7</text><text class="t" x="150" y="62">140</text><text class="t" x="214" y="62">⌖ 0.02 A B C</text>
+      <line class="cl" x1="50" y1="34" x2="56" y2="48"/><circle class="cb" cx="46" cy="24" r="12"/><text class="cn" x="46" y="24">7</text><text class="s" x="62" y="18" style="fill:var(--red)">CTQ</text>
+      <line class="l" x1="160" y1="34" x2="162" y2="48"/><circle class="b" cx="158" cy="24" r="12"/><text class="n" x="158" y="24">8</text>
+      <line class="cl" x1="250" y1="34" x2="254" y2="48"/><circle class="cb" cx="246" cy="24" r="12"/><text class="cn" x="246" y="24">9</text><text class="s" x="262" y="18" style="fill:var(--red)">CTQ</text>
+      <text class="s" x="24" y="104">LEGEND</text><circle class="cb" cx="32" cy="116" r="5"/><text class="s" x="42" y="119">Critical to quality · 2</text><circle class="b" cx="160" cy="116" r="5"/><text class="s" x="170" y="119">Standard · 1</text></svg>
+    <ul>
+      <li><b>Suggested automatically:</b> fits (H7, g6), geometric tolerances, tolerances tighter than the general table, and anything the drawing marks with a flag or key symbol.</li>
+      <li><b>You confirm:</b> one click sets or clears CTQ; nothing is CTQ without your say.</li>
+      <li><b>Shown everywhere:</b> a distinct balloon on the drawing, a CTQ chip in the table and work list, a filter "CTQ only", and a CTQ count in the stamp and legend.</li>
+      <li><b>Report:</b> CTQ rows marked in Form 3 (designator column) and a one-page CTQ list.</li>
+    </ul>
+  </div>
+  <p>The picture uses red only so the idea is easy to see. In the app, red stays reserved for "fail"; CTQ would get its own shape (for example a diamond or a double ring) in navy.</p>
+</section>
+
+<section class="sec">
+  <h2>From the brake-disc case study: control plan and CTQ validation record</h2>
+  <p>The case study and the PPAP paragraph you sent name two more records. Both grow out of the CTQ flag: once a balloon is CTQ, it needs a "why", a "how it is checked" and a result.</p>
+  <div style="overflow-x:auto;border:1px solid var(--line);border-radius:10px">
+  <table style="border-collapse:collapse;width:100%;min-width:640px;font-size:12.5px">
+    <tr style="background:var(--soft);color:var(--mut);text-align:left"><th style="padding:7px 10px">#</th><th style="padding:7px 10px">CTQ feature</th><th style="padding:7px 10px">Why it matters</th><th style="padding:7px 10px">Method</th><th style="padding:7px 10px">How often</th><th style="padding:7px 10px">If it fails</th><th style="padding:7px 10px">Result</th></tr>
+    <tr style="border-top:1px solid var(--line)"><td style="padding:7px 10px">7</td><td style="padding:7px 10px">Ø6.00 H7</td><td style="padding:7px 10px">Dowel fit</td><td style="padding:7px 10px">Pin gauge</td><td style="padding:7px 10px">Every part</td><td style="padding:7px 10px">Hold lot</td><td style="padding:7px 10px">6.008 · Pass</td></tr>
+    <tr style="border-top:1px solid var(--line)"><td style="padding:7px 10px">9</td><td style="padding:7px 10px">⌖ 0.02 A B C</td><td style="padding:7px 10px">Hole pattern to hub</td><td style="padding:7px 10px">CMM</td><td style="padding:7px 10px">First article + 1 in 10</td><td style="padding:7px 10px">Stop, re-zero fixture</td><td style="padding:7px 10px">0.012 · Pass</td></tr>
+  </table></div>
+  <ul>
+    <li><b>Control plan</b> = the first six columns, for every CTQ balloon. Method is suggested from the feature type; "why", frequency and reaction are typed once and reused on the next revision.</li>
+    <li><b>CTQ validation record</b> = the same rows with the measured result, method and sign-off. It is the CTQ slice of Form 3.</li>
+    <li>These are the PPAP elements the supplier lists: control plan, traceability, CTQ validation.</li>
+  </ul>
+</section>
+
+<section class="sec">
+  <h2>Order I would build it in</h2>
+  <div class="steps">
+    <div class="step"><h3>1 · CTQ on the ballooned drawing</h3>Suggest, confirm, show, export. Completes document 1.</div>
+    <div class="step"><h3>2 · Certificate of Conformance + traceability</h3>Lot, heat, sample serial, disposition; one CoC page; attach material certs. Completes documents 3 and 5.</div>
+    <div class="step"><h3>3 · Control plan + CMM report</h3>"Method", frequency and reaction per CTQ; balloon list out as CSV, measured values back in; CTQ validation record. Completes document 2 and the PPAP elements.</div>
+    <div class="step"><h3>4 · Release package</h3>All five documents in one ZIP with a checksum manifest.</div>
+  </div>
+  <p>All four are after the demo. For tomorrow, the honest line is: ballooned drawing and FAI / PPAP records are done; the other three are planned and shown here.</p>
+</section>
+</div>

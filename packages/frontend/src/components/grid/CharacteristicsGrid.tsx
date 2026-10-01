@@ -45,7 +45,7 @@ const gridTheme = themeQuartz
       wrapperBorderRadius: 0,
       backgroundColor: '#ffffff',
       foregroundColor: '#0f172a',
-      headerBackgroundColor: '#f8fafc',
+      headerBackgroundColor: '#eef2f7',
       borderColor: '#e2e8f0',
       oddRowBackgroundColor: '#fcfcfd',
       selectedRowBackgroundColor: 'rgba(0,74,119,.10)',

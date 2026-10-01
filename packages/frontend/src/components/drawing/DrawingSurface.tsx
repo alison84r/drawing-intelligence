@@ -236,7 +236,7 @@ export function DrawingSurface() {
   return (
     <div
       ref={containerRef}
-      className={cn('relative h-full w-full select-none overflow-hidden bg-muted/60', cursor)}
+      className={cn('relative h-full w-full select-none overflow-hidden bg-desk', cursor)}
       onDragOver={(e) => {
         e.preventDefault()
         setDragOver(true)
