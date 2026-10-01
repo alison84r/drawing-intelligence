@@ -13,7 +13,8 @@ export interface ToleranceScheme {
   cls?: string
   linear: number[][]
   radius?: number[][]
-  source: 'drawing' | 'library' | 'profile'
+  /** assist = read from a picture by a model and confirmed by a person. */
+  source: 'drawing' | 'library' | 'profile' | 'assist'
   verifiedAgainstSheet?: boolean | null
   evidence: string[]
 }

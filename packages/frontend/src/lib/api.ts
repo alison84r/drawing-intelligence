@@ -147,6 +147,48 @@ export interface IntakeReport {
   pages: { page: number; level: 'ok' | 'warn' | 'bad'; rows: IntakeRow[] }[]
 }
 
+export type AssistTask = 'tolerance_table' | 'title_block'
+
+export interface AssistStatus {
+  enabled: boolean
+  provider: string
+  model: string
+  /** Why it is off, in plain words. */
+  reason: string
+  leavesMachine: boolean
+}
+
+export interface AssistCandidate {
+  id: string
+  kind: 'picture' | 'table'
+  bbox: { x: number; y: number; w: number; h: number }
+}
+
+export interface AssistResult {
+  task: AssistTask
+  fields: {
+    found: boolean
+    standard?: string
+    class?: string
+    linear?: number[][]
+    decimals?: Record<string, number>
+    angular?: number | null
+    notes?: string
+    partNumber?: string
+    partName?: string
+    drawingNumber?: string
+    revision?: string
+    material?: string
+    scale?: string
+    units?: string
+    generalTolerance?: string
+  }
+  provider: string
+  model: string
+  cropSha256: string
+  sentBytes: number
+}
+
 export interface ToleranceStandards {
   linear: Record<string, number[][]>
   radius: Record<string, number[][]>
@@ -224,6 +266,13 @@ export const api = {
 
   scene: (revisionId: string) =>
     request<{ pages: RecognizePage[]; recognizerVersion: string | null; current: string }>(`/api/revisions/${revisionId}/scene`),
+  assistStatus: () => request<AssistStatus>('/api/assist/status'),
+  assistCandidates: (revisionId: string, page: number) => request<AssistCandidate[]>(`/api/revisions/${revisionId}/assist/candidates?page=${page}`),
+  /** The exact picture a read would send. Served locally. */
+  assistCropUrl: (revisionId: string, page: number, b: { x: number; y: number; w: number; h: number }) =>
+    `/api/revisions/${revisionId}/assist/crop?page=${page}&x=${b.x}&y=${b.y}&w=${b.w}&h=${b.h}`,
+  assistRead: (revisionId: string, body: { page: number; region: { x: number; y: number; w: number; h: number }; task: AssistTask; consent: boolean }) =>
+    request<AssistResult>(`/api/revisions/${revisionId}/assist/read`, json(body)),
   toleranceStandards: () => request<ToleranceStandards>('/api/tolerance/standards'),
   intake: (revisionId: string) => request<IntakeReport>(`/api/revisions/${revisionId}/intake`),
   recognize: (revisionId: string, body: RecognizeRequest) => request<{ pages: RecognizePage[] }>(`/api/revisions/${revisionId}/recognize`, json(body)),

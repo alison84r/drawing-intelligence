@@ -1,5 +1,5 @@
-import { useEffect } from 'react'
-import { CheckCheck, CircleAlert, CircleCheck, CircleX, LayoutGrid, Loader2, Ruler, ScanSearch, Settings2 } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { CheckCheck, CircleAlert, CircleCheck, CircleX, LayoutGrid, Loader2, Ruler, ScanSearch, Settings2, Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { focusAt, openGroups, useRecognizeStore } from '@/store/recognizeStore'
@@ -11,6 +11,8 @@ import { useUiStore, type MeasureFilter } from '@/store/uiStore'
 import { deriveLimits, displayStatus, fmt } from '@/lib/tolerance'
 import { progressOf } from '@/lib/progress'
 import { cn } from '@/lib/utils'
+import { api, type AssistStatus } from '@/lib/api'
+import { AssistDialog } from '@/components/assist/AssistDialog'
 
 function Heading({ children }: { children: React.ReactNode }) {
   return <h3 className="text-xs font-semibold text-muted-foreground">{children}</h3>
@@ -62,6 +64,12 @@ export function SidePanel() {
   useEffect(() => {
     if (revisionId && ready) void loadIntake(revisionId)
   }, [revisionId, ready, loadIntake])
+
+  const [assist, setAssist] = useState<AssistStatus | null>(null)
+  const [assistOpen, setAssistOpen] = useState(false)
+  useEffect(() => {
+    api.assistStatus().then(setAssist).catch(() => setAssist(null))
+  }, [])
 
   const p = progressOf(items, defaults)
   const running = status === 'running'
@@ -206,6 +214,15 @@ export function SidePanel() {
               </span>
             </li>
           )}
+          {assist && ready && (
+            <li className="flex items-start gap-2" data-testid="assist-row">
+              <Sparkles className={cn('mt-px size-3.5 shrink-0', assist.enabled ? 'text-primary' : 'text-muted-foreground')} />
+              <span>
+                {assist.enabled ? 'AI reading is available for pictures and odd tables.' : `AI reading is off. ${assist.reason}.`}{' '}
+                <button type="button" className="text-primary underline-offset-2 hover:underline" onClick={() => setAssistOpen(true)}>{assist.enabled ? 'Read a region' : 'See what it would do'}</button>
+              </span>
+            </li>
+          )}
           {stale && <li className="text-status-draft">Read by an older recognizer version. Recognize again to refresh.</li>}
         </ul>
       </section>
@@ -220,6 +237,7 @@ export function SidePanel() {
           <Settings2 /> Inspection settings
         </Button>
       </div>
+      <AssistDialog open={assistOpen} status={assist} onClose={() => setAssistOpen(false)} />
     </aside>
   )
 }

@@ -93,6 +93,22 @@ class RevisionScene(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
 
 
+class AssistLog(Base):
+    """One row each time a crop of a drawing is sent to a model: what, when, where to. The crop itself is not kept."""
+    __tablename__ = "assist_log"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    revision_id: Mapped[str] = mapped_column(String(36), index=True)  # kept after the revision is deleted
+    page: Mapped[int] = mapped_column(Integer)
+    region: Mapped[dict[str, Any]] = mapped_column(JSONB)
+    task: Mapped[str] = mapped_column(String(40))
+    provider: Mapped[str] = mapped_column(String(40))
+    model: Mapped[str] = mapped_column(String(120))
+    crop_sha256: Mapped[str] = mapped_column(String(64))
+    crop_bytes: Mapped[int] = mapped_column(Integer)
+    outcome: Mapped[str] = mapped_column(String(20))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+
+
 def init_db() -> None:
     Base.metadata.create_all(engine)
     # Columns added after the first demo install. Alembic replaces this in the production build.

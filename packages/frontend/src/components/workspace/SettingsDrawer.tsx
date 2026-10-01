@@ -85,7 +85,7 @@ export function SettingsDrawer() {
                   <Ruler className="size-3.5 text-primary" />
                   <span className="font-medium">{scheme.label}</span>
                   <span className="ml-auto text-[11px] text-muted-foreground">
-                    {scheme.source === 'drawing' ? 'read from the drawing' : scheme.source === 'profile' ? 'customer profile' : 'standard table'}
+                    {scheme.source === 'drawing' ? 'read from the drawing' : scheme.source === 'profile' ? 'customer profile' : scheme.source === 'assist' ? 'read by AI, confirmed by you' : 'standard table'}
                   </span>
                 </div>
                 <table className="w-full text-xs tabular-nums">
