@@ -29,6 +29,8 @@ interface RecognizeState {
   tokenView: TokenView
   lastRun: number | null
   lastAdded: number
+  /** Why a window read placed fewer balloons than the text under it, in plain words. */
+  notice: string | null
   /** Live rubber band for the window tool, in page points. */
   band: Region | null
   /** Readability verdict for the open drawing, fetched when it opens. */
@@ -80,6 +82,7 @@ export const useRecognizeStore = create<RecognizeState>()((set, get) => ({
   tokenView: 'review',
   lastRun: null,
   lastAdded: 0,
+  notice: null,
   band: null,
   intake: null,
   intakeFor: null,
@@ -121,7 +124,7 @@ export const useRecognizeStore = create<RecognizeState>()((set, get) => ({
       set({ status: 'error', error: 'Open an inspection from the library first.' })
       return
     }
-    set({ status: 'running', error: null })
+    set({ status: 'running', error: null, notice: null })
     try {
       const chars = useCharacteristicStore.getState()
       const existing = chars.items.filter((c) => c.bbox).map((c) => ({ page: c.page, bbox: c.bbox }))
@@ -139,7 +142,8 @@ export const useRecognizeStore = create<RecognizeState>()((set, get) => ({
         if (opts.region && pages[p.page]) {
           // Window re-extract: replace only the tokens inside the window, keep the rest.
           const keep = pages[p.page].tokens.filter((t) => !intersects(t.bbox, opts.region as Region))
-          pages[p.page] = { ...p, tokens: [...keep, ...p.tokens] }
+          // The sheet's audit, views and tolerance come from the whole-sheet read; a window must not overwrite them.
+          pages[p.page] = { ...pages[p.page], tokens: [...keep, ...p.tokens] }
         } else {
           pages[p.page] = p
         }
@@ -177,7 +181,13 @@ export const useRecognizeStore = create<RecognizeState>()((set, get) => ({
           if (found.angular !== null) settings.setDefault('angular', found.angular)
         }
       }
-      set({ stale: false, status: 'done', pages, lastRun: Date.now(), lastAdded: added, tokenView: get().tokenView === 'off' ? 'review' : get().tokenView })
+      const held = res.pages.reduce((n, p) => ({ block: n.block + (p.withheld?.title_block ?? 0) + (p.withheld?.picture ?? 0), table: n.table + (p.withheld?.table ?? 0) }), { block: 0, table: 0 })
+      const notice = !opts.region ? null
+        : held.block > 0 && added === 0 && held.table === 0 ? 'That window is over the title block. Nothing there is a characteristic, so no balloons were placed. To read it, use Read a region.'
+        : held.table > 0 ? `${held.table} ${held.table === 1 ? 'value is' : 'values are'} inside a table. They are marked in amber: click the ones that are inspected.`
+        : held.block > 0 ? 'Text in the title block was left out.'
+        : null
+      set({ notice, stale: false, status: 'done', pages, lastRun: Date.now(), lastAdded: added, tokenView: get().tokenView === 'off' ? 'review' : get().tokenView })
       if (added > 0) useUiStore.getState().setTool('select')
     } catch (e) {
       set({ status: 'error', error: e instanceof Error ? e.message : 'Recognize failed' })

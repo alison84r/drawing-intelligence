@@ -133,6 +133,18 @@ export function TokenLayer({ map, page }: Props) {
           ))}
       </svg>
 
+      {/* Audit view: regions that never get balloons. */}
+      {tokenView === 'all' && rec?.protected?.map((p, i) => {
+        const r = toRect(p.bbox, map)
+        return (
+          <div key={`p${i}`} className="absolute border border-dashed border-muted-foreground/60 bg-muted-foreground/5" style={{ left: r.x, top: r.y, width: r.w, height: r.h }} data-testid="protected-region">
+            <span className="absolute -top-[18px] right-0 whitespace-nowrap rounded bg-muted-foreground px-1.5 text-[10px] font-medium leading-4 text-background">
+              {p.kind === 'title_block' ? 'Title block · no balloons' : p.kind === 'picture' ? 'Picture · no balloons' : 'Table'}
+            </span>
+          </div>
+        )
+      })}
+
       {/* Audit view: the views found on the sheet, each with its name and scale. */}
       {tokenView === 'all' && rec?.views?.map((v) => {
         const r = toRect(v.bbox, map)

@@ -5,18 +5,20 @@ Deterministic: same PDF, same result. No model in the loop.
 from __future__ import annotations
 
 import io
+import re
 import uuid
 from typing import Any
 
 import pdfplumber
 
-from .inkfit import fit_box, render_gray
+from .inkfit import fit_box, has_ink, render_gray
 from .grouper import attach_stacks, build_lines, dimension_font_size, parse_line, rule_out
 from .tokens import Token, build_tokens
 from .refine import (SYMBOL_NOTE, add_vector_symbols, attach_modifier_lines, attach_orphan_degrees, enclosure_of, enclosures, is_basic,
                      mark_datum_boxes, merge_counts, oriented_box, place_balloons, split_at_x)
 from .scene import associate, build_scene, unexplained
 from .views import detect_views, recheck_with_view_scale
+from .protected import outside_frame, protected_regions, region_at
 from tolerance.detect import detect_scheme
 from .zones import detect_zones, synthetic_grid
 
@@ -87,12 +89,39 @@ def recognize(
             except Exception:  # noqa: BLE001 - table finding is best effort
                 tables = []
 
+            # Title block, pictures and tables: no balloons there, whatever tool asked.
+            printed = [t for t in tokens if ink is None or has_ink(ink, (t.x0, t.y0, t.x1, t.y1))]  # text that is really on the sheet
+            shielded = protected_regions(page, tables, printed, width, height, [a.tip for a in heads], all_tables)
+            withheld = {"title_block": 0, "picture": 0, "table": 0}
+            offered: set[str] = set()  # records inside a table under a window: offered for picking, not placed
+
             characteristics: list[dict[str, Any]] = []
             open_groups = 0
             pending: list[tuple[Any, Any, dict[str, Any]]] = []
             notes: list[tuple[dict[str, Any], Any]] = []
             text_lines: list[Any] = []
             for line in lines:
+                lx0, ly0, lx1, ly1 = line.bbox
+                zone_kind = region_at((lx0 + lx1) / 2, (ly0 + ly1) / 2, shielded)
+                if outside_frame((lx0 + lx1) / 2, (ly0 + ly1) / 2, width, height):
+                    for t in line.all_tokens:
+                        t.cls, t.reason = "ruled", "outside the drawing border"
+                    continue
+                if ink is not None and not has_ink(ink, line.bbox):
+                    for t in line.all_tokens:
+                        t.cls, t.reason = "ruled", "in the file but not visible on the drawing"
+                    continue
+                if zone_kind == "title_text":
+                    # A title block known only by its field names has a loose outline: inside it, text that is
+                    # smaller than the dimensions or carries words is title-block text; a plain value at
+                    # dimension size is left to the normal rules.
+                    wordy = any(re.search(r"[A-Za-z]{2,}", t.text) for t in line.tokens)
+                    zone_kind = "title_block" if wordy or line.size < 0.85 * dim_size else None
+                if zone_kind in ("title_block", "picture"):
+                    withheld[zone_kind] += 1
+                    for t in line.all_tokens:
+                        t.cls, t.reason = "ruled", "title block" if zone_kind == "title_block" else "under a picture, not visible on the drawing"
+                    continue
                 why = rule_out(line, dim_size, width, height, relaxed, tables)
                 if why == "note":
                     nx0, ny0, nx1, ny1 = line.bbox
@@ -180,6 +209,9 @@ def recognize(
                 if feats and not record["comments"]:
                     record["comments"] = ", ".join(SYMBOL_NOTE[f] for f in feats if f in SYMBOL_NOTE)
                 already = any(e.get("page") == index and e.get("bbox") and _overlaps(e["bbox"], bbox) for e in existing)
+                if zone_kind == "table" and relaxed and not already:
+                    offered.add(record["id"])
+                    withheld["table"] += 1
                 # A callout that is already ballooned still takes part in the geometry pass, so the audit stays whole on a re-run.
                 pending.append((line, group, record, already))
 
@@ -251,7 +283,9 @@ def recognize(
                         t.cls, t.reason = "char", "already ballooned"
                     continue
                 record["confidence"] = group.confidence
-                confident = relaxed or group.confidence >= 0.8
+                confident = (relaxed or group.confidence >= 0.8) and record["id"] not in offered
+                if record["id"] in offered:
+                    group.reason = "inside a table: click to add it if it is inspected"
                 if confident:
                     characteristics.append(record)
                     for t in list(group.tokens) + list(getattr(line, "extra_tokens", [])):
@@ -301,6 +335,8 @@ def recognize(
                 "arrowheads": len(heads),
                 "audit": audit,
                 "views": [v.to_json(i) for i, v in enumerate(views)],
+                "protected": [{"kind": "title_block" if r["kind"] == "title_text" else r["kind"], "bbox": r["bbox"]} for r in shielded],
+                "withheld": withheld if region is not None else None,
                 "tolerance": tolerance,
                 "tokens": [t.to_json() for t in tokens],
                 "characteristics": characteristics,

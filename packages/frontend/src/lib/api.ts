@@ -123,6 +123,10 @@ export interface RecognizePage {
   arrowheads: number
   audit: CoverageAudit
   views?: SheetView[]
+  /** Regions that never get balloons: the title block, pictures, tables. */
+  protected?: { kind: 'title_block' | 'picture' | 'table'; bbox: { x: number; y: number; w: number; h: number } }[]
+  /** After a window read: how many values were held back, by kind of region. */
+  withheld?: { title_block: number; picture: number; table: number } | null
   tolerance?: {
     scheme: (ToleranceScheme | { kind: 'decimal_places'; label: string; places: Record<string, number>; angular: number | null; source: string; evidence: string[] }) | null
     findings: { level: 'ok' | 'warn'; text: string }[]

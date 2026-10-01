@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight, Circle, CircleDot, Eye, EyeOff, GitBranch, Hand, Loader2, Maximize, Minus, MousePointer2, Plus, RotateCw, ScanSearch, Spline, SquareDashedMousePointer } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Circle, CircleDot, Eye, EyeOff, GitBranch, Hand, Info, Loader2, Maximize, Minus, MousePointer2, Plus, RotateCw, ScanSearch, Spline, SquareDashedMousePointer, X } from 'lucide-react'
 import { Switch } from '@/components/ui/switch'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { useCharacteristicStore } from '@/store/characteristicStore'
@@ -81,6 +81,7 @@ export function CanvasTools() {
   const setTokenView = useRecognizeStore((s) => s.setTokenView)
   const unreadable = useRecognizeStore((s) => s.intake?.level === 'bad')
   const revisionId = useSessionStore((s) => s.revisionId)
+  const notice = useRecognizeStore((s) => s.notice)
 
   if (!ready) return null
   const leaderChecked = selected && tool === 'select' ? selected.leader : leaderDefault
@@ -103,6 +104,16 @@ export function CanvasTools() {
           {tokenView === 'off' ? <EyeOff /> : <Eye />} {VIEW_LABEL[tokenView]}
         </Tool>
       </Bar>
+
+      {notice && (
+        <div role="status" className="absolute left-1/2 top-14 z-10 flex max-w-[min(520px,80%)] -translate-x-1/2 items-start gap-2 rounded-xl border bg-background/95 px-3 py-2 text-xs shadow-lg backdrop-blur" data-testid="recognize-notice">
+          <Info className="mt-px size-4 shrink-0 text-primary" />
+          <span>{notice}</span>
+          <button type="button" aria-label="Dismiss" className="ml-1 rounded p-0.5 text-muted-foreground hover:bg-accent hover:text-foreground" onClick={() => useRecognizeStore.setState({ notice: null })}>
+            <X className="size-3.5" />
+          </button>
+        </div>
+      )}
 
       <Bar label="Drawing tools" className="bottom-3 left-1/2 -translate-x-1/2">
         {TOOLS.map((t) => (

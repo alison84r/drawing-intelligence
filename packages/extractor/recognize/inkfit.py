@@ -28,6 +28,16 @@ def render_gray(pdf_bytes: bytes, page_index: int) -> np.ndarray:
         doc.close()
 
 
+def has_ink(img: np.ndarray, box: Box) -> bool:
+    """
+    Is anything actually printed where the PDF says this text is? Text can sit in the file and still be
+    invisible: covered by a white patch or a pasted picture, or drawn in white. Such text is not on the drawing.
+    """
+    x0, y0, x1, y1 = (int(round(v * SCALE)) for v in box)
+    part = img[max(0, y0) : max(0, y1), max(0, x0) : max(0, x1)]
+    return part.size == 0 or int((part < DARK).sum()) >= 6
+
+
 def _best_run(counts: np.ndarray, extent: int) -> tuple[int, int] | None:
     """Longest run of lines that hold some ink; ruled lines (ink across most of the box) break runs."""
     ruled = counts >= 0.8 * extent
