@@ -18,13 +18,17 @@ PROMPTS = {
     "title_block": (
         "This image is cropped from the title block of an engineering drawing. Read the fields exactly as printed. "
         "Leave a field empty when it is not there. Do not guess.\n"
+        "A cell usually has a small heading and the content under or beside it: return the content, never the heading alone.\n"
+        "For generalTolerance, find the cell headed like 'TOLERANCE UNLESS SPECIFIED' or 'GENERAL TOLERANCE' and return every "
+        "line of text printed in that cell under the heading, joined with spaces (values, a standard such as ISO 2768-m, or a "
+        "sentence that refers to a company standard). If the cell has only the heading, return an empty string.\n"
         "Answer with JSON only:\n"
         '{"found": true|false, "partNumber": "", "partName": "", "drawingNumber": "", "revision": "", "material": "", '
-        '"scale": "", "units": "mm|in or empty", "generalTolerance": "the general tolerance note if printed, else empty"}'
+        '"materialStandard": "", "scale": "", "units": "mm|in or empty", "generalTolerance": ""}'
     ),
 }
 
-TEXT_FIELDS = ("partNumber", "partName", "drawingNumber", "revision", "material", "scale", "units", "generalTolerance", "standard", "class", "notes")
+TEXT_FIELDS = ("partNumber", "partName", "drawingNumber", "revision", "material", "materialStandard", "scale", "units", "generalTolerance", "standard", "class", "notes")
 
 
 def _number(v: Any) -> float | None:

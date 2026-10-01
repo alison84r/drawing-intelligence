@@ -179,6 +179,7 @@ export interface AssistResult {
     drawingNumber?: string
     revision?: string
     material?: string
+    materialStandard?: string
     scale?: string
     units?: string
     generalTolerance?: string

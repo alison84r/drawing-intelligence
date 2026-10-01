@@ -15,6 +15,7 @@ const TITLE_FIELDS: { key: string; label: string }[] = [
   { key: 'drawingNumber', label: 'Drawing number' },
   { key: 'revision', label: 'Revision' },
   { key: 'material', label: 'Material' },
+  { key: 'materialStandard', label: 'Material standard' },
   { key: 'scale', label: 'Scale' },
   { key: 'units', label: 'Units' },
   { key: 'generalTolerance', label: 'General tolerance' },
