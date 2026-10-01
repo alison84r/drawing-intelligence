@@ -28,7 +28,7 @@ export function FilterBar() {
   ]
 
   return (
-    <div className="flex shrink-0 flex-wrap items-center gap-1.5 border-b bg-muted/40 px-3 py-1.5" role="group" aria-label="Which balloons to show" data-testid="filter-bar">
+    <div className="flex shrink-0 flex-wrap items-center gap-1.5 border-b border-divider bg-sidebar px-3 py-1.5" role="group" aria-label="Which balloons to show" data-testid="filter-bar">
       <span className="mr-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Show</span>
       {chips.map((c) => (
         <Tooltip key={c.value}>

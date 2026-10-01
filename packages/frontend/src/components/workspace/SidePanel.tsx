@@ -151,7 +151,7 @@ export function SidePanel() {
   }
 
   return (
-    <aside className="flex h-full flex-col gap-3 overflow-y-auto bg-background p-3" data-testid="side-panel">
+    <aside className="flex h-full flex-col gap-3 overflow-y-auto bg-sidebar p-3" data-testid="side-panel">
       <section className="flex items-center gap-3 px-1 pt-1" data-testid="queue-progress">
         <Ring value={percent} />
         <div className="min-w-0 flex-1">

@@ -27,9 +27,9 @@ function VSeparator() {
   return (
     <Separator
       className={cn(
-        // The gap between two cards; a line shows only while it is hovered or dragged.
-        'relative w-1.5 bg-transparent',
-        'after:absolute after:inset-y-2 after:left-1/2 after:w-0.5 after:-translate-x-1/2 after:rounded-full after:bg-transparent after:transition-colors after:content-[""] hover:after:bg-primary data-[resize-handle-active]:after:bg-primary',
+        // One connected surface: panels meet at a single line, a shade stronger than the lines inside them.
+        'relative w-px bg-divider transition-colors hover:bg-primary data-[resize-handle-active]:bg-primary',
+        'after:absolute after:inset-y-0 after:-left-1 after:-right-1 after:content-[""]',
       )}
     />
   )
@@ -39,8 +39,8 @@ function HSeparator() {
   return (
     <Separator
       className={cn(
-        'relative h-1.5 bg-transparent',
-        'after:absolute after:inset-x-2 after:top-1/2 after:h-0.5 after:-translate-y-1/2 after:rounded-full after:bg-transparent after:transition-colors after:content-[""] hover:after:bg-primary data-[resize-handle-active]:after:bg-primary',
+        'relative h-px bg-divider transition-colors hover:bg-primary data-[resize-handle-active]:bg-primary',
+        'after:absolute after:inset-x-0 after:-top-1 after:-bottom-1 after:content-[""]',
       )}
     />
   )
@@ -163,7 +163,7 @@ export function AppShell() {
         <WorkspaceTopBar />
         <FilterBar />
         <div className="flex min-h-0 flex-1">
-          <nav aria-label="Workspace" className="flex w-12 shrink-0 flex-col items-center gap-1 border-r bg-background py-2">
+          <nav aria-label="Workspace" className="flex w-12 shrink-0 flex-col items-center gap-1 border-r border-divider bg-sidebar py-2">
             <RailButton hint={leftCollapsed ? 'Show the work queue' : 'Hide the work queue'} active={!leftCollapsed && !focus} onClick={toggleLeft} badge={leftCollapsed || focus ? progress.drafts : undefined}><ListChecks /></RailButton>
             {(leftCollapsed || focus) && progress.flagged + progress.fails > 0 && (
               <RailButton hint={`${progress.flagged + progress.fails} need a decision. Click to list them`} onClick={() => { setShow(progress.flagged > 0 ? 'flagged' : 'fail'); setLeftCollapsed(false); if (focus) toggleFocus() }} badge={progress.flagged + progress.fails} badgeTone="bad"><Flag /></RailButton>
@@ -172,31 +172,32 @@ export function AppShell() {
             <RailButton hint={focus ? 'Bring the panels back' : 'Focus on the drawing'} active={focus} onClick={toggleFocus}><Maximize2 /></RailButton>
             <RailButton hint="Inspection settings" active={settingsOpen} onClick={() => setSettingsOpen(true)} className="mt-auto"><Settings2 /></RailButton>
           </nav>
-          {/* Paper on a desk: the drawing lies on a tinted ground; queue, table and detail are cards on it. */}
-          <Group orientation="horizontal" className="min-h-0 min-w-0 flex-1 bg-desk p-1.5" {...outer}>
+          {/* One connected surface. The panels differ by tone, not by gaps: sidebar tone on the left,
+              the desk under the drawing, white for the table and the detail panel. */}
+          <Group orientation="horizontal" className="min-h-0 min-w-0 flex-1" {...outer}>
             <Panel className="h-full" id="left" panelRef={leftRef} defaultSize={272} minSize={232} maxSize={400} collapsible collapsedSize={0}
               onResize={(size) => !focus && setLeftCollapsed(size.inPixels === 0)}>
-              <div className="h-full overflow-hidden rounded-lg border bg-background shadow-[0_1px_2px_rgba(15,23,42,.06),0_4px_12px_rgba(15,23,42,.06)]"><SidePanel /></div>
+              <SidePanel />
             </Panel>
             <VSeparator />
             <Panel className="h-full" id="center" minSize={360}>
               <Group orientation="vertical" className="h-full" {...center}>
                 <Panel className="h-full" id="drawing" defaultSize="70" minSize={160}>
-                  <div className="relative h-full w-full overflow-hidden rounded-lg">
+                  <div className="relative h-full w-full">
                     <DrawingSurface />
                     <CanvasTools />
                   </div>
                 </Panel>
                 <HSeparator />
                 <Panel className="h-full" id="bottom" panelRef={bottomRef} defaultSize="30" minSize={110} collapsible collapsedSize={0}>
-                  <div className="h-full overflow-hidden rounded-lg border bg-background shadow-[0_1px_2px_rgba(15,23,42,.06),0_4px_12px_rgba(15,23,42,.06)]"><BottomPane /></div>
+                  <BottomPane />
                 </Panel>
               </Group>
             </Panel>
             <VSeparator />
             <Panel className="h-full" id="right" panelRef={rightRef} defaultSize={312} minSize={272} maxSize={460} collapsible collapsedSize={0}
               onResize={(size) => !focus && setRightCollapsed(size.inPixels === 0)}>
-              <div className="h-full overflow-hidden rounded-lg border bg-background shadow-[0_1px_2px_rgba(15,23,42,.06),0_4px_12px_rgba(15,23,42,.06)]"><Inspector /></div>
+              <Inspector />
             </Panel>
           </Group>
           {(rightCollapsed || focus) && <DetailStrip onOpen={() => { setRightCollapsed(false); if (focus) toggleFocus() }} />}

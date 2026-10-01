@@ -27,6 +27,9 @@
     --balloon: 224 76% 48%;
     /* The desk the drawing lies on: a step darker than the panels, so the sheet and each panel have an edge. */
     --desk: 214 26% 90%;
+    /* Where two panels meet, and the tone of the side rail and work queue. */
+    --divider: 214 24% 82%;
+    --sidebar: 210 33% 97%;
     --status-draft: 38 92% 50%;
     --status-pass: 160 84% 39%;
     --status-fail: 0 74% 42%;
@@ -54,6 +57,8 @@
     --ring: 200 69% 54%;
     --balloon: 218 100% 74%;
     --desk: 222 50% 6%;
+    --divider: 217 30% 24%;
+    --sidebar: 222 44% 9%;
   }
 
   * {
