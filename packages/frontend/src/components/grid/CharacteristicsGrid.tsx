@@ -280,9 +280,31 @@ export function CharacteristicsGrid({ quickFilter, onShown }: { quickFilter: str
     applyColumnSet(e.api, ui.allColumns)
   }, [applyColumnSet])
 
+  // The working columns always fit the panel: no sideways scrollbar lying over the last row.
+  // "All columns" is wider than any panel and scrolls sideways, as a full table should.
+  const fitColumns = useCallback(() => {
+    if (useUiStore.getState().allColumns) return
+    // Never squeeze a column past the point where its content can be read: below that, scroll sideways instead.
+    apiRef.current?.sizeColumnsToFit({
+      columnLimits: [
+        { key: 'balloon', minWidth: 60, maxWidth: 84 },
+        { key: 'specification', minWidth: 150 },
+        { key: 'gdt', minWidth: 110 },
+        { key: 'view', minWidth: 84 },
+        { key: 'min', minWidth: 68 },
+        { key: 'max', minWidth: 68 },
+        { key: 'result', minWidth: 80 },
+        { key: 'status', minWidth: 116 },
+        { key: 'evidence', minWidth: 150 },
+      ],
+    })
+  }, [])
+
   useEffect(() => {
-    if (apiRef.current) applyColumnSet(apiRef.current, allColumns)
-  }, [allColumns, applyColumnSet])
+    if (!apiRef.current) return
+    applyColumnSet(apiRef.current, allColumns)
+    fitColumns()
+  }, [allColumns, applyColumnSet, fitColumns])
 
   // The chips above the workspace choose which rows are listed.
   const filterRef = useRef({ show, defaults })
@@ -367,6 +389,8 @@ export function CharacteristicsGrid({ quickFilter, onShown }: { quickFilter: str
         tooltipShowDelay={400}
         onGridReady={onGridReady}
         onModelUpdated={reportShown}
+        onGridSizeChanged={fitColumns}
+        onFirstDataRendered={fitColumns}
         onCellValueChanged={onCellValueChanged}
         onRowClicked={onRowClicked}
         isExternalFilterPresent={isExternalFilterPresent}

@@ -34,7 +34,7 @@ function Ring({ value }: { value: number }) {
 function Group({ id, icon, title, count, tone, defaultOpen, children }: { id: string; icon: React.ReactNode; title: string; count: React.ReactNode; tone: 'bad' | 'warn' | 'ok' | 'plain'; defaultOpen?: boolean; children: React.ReactNode }) {
   const [open, setOpen] = useState(defaultOpen ?? false)
   return (
-    <section className="overflow-hidden rounded-lg border bg-background" data-testid={`group-${id}`} data-open={open}>
+    <section className="shrink-0 overflow-hidden rounded-lg border bg-background" data-testid={`group-${id}`} data-open={open}>
       <button type="button" onClick={() => setOpen((v) => !v)} aria-expanded={open}
         className="flex w-full items-center gap-2 bg-muted/50 px-2.5 py-2 text-left text-xs font-semibold transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-ring [&_svg]:size-3.5 [&_svg]:shrink-0">
         <ChevronRight className={cn('text-muted-foreground transition-transform', open && 'rotate-90')} />
@@ -152,7 +152,7 @@ export function SidePanel() {
 
   return (
     <aside className="flex h-full flex-col gap-3 overflow-y-auto bg-sidebar p-3" data-testid="side-panel">
-      <section className="flex items-center gap-3 px-1 pt-1" data-testid="queue-progress">
+      <section className="flex shrink-0 items-center gap-3 px-1 pt-1" data-testid="queue-progress">
         <Ring value={percent} />
         <div className="min-w-0 flex-1">
           <p className="text-base font-bold tabular-nums leading-tight">
@@ -173,7 +173,7 @@ export function SidePanel() {
       </section>
 
       {!page && items.length === 0 && (
-        <section className="rounded-lg border border-dashed p-3 text-center">
+        <section className="shrink-0 rounded-lg border border-dashed p-3 text-center">
           <p className="text-xs text-muted-foreground">{unreadable ? 'This sheet has no readable text. Balloon it by hand, or ask for a vector PDF export from CAD.' : 'Read the drawing to place balloons automatically.'}</p>
           <Button size="sm" className="mt-2.5 w-full gap-1.5" onClick={() => void run()} disabled={!ready || !revisionId || running || unreadable} data-testid="recognize-run">
             {running ? <Loader2 className="animate-spin" /> : <ScanSearch />} {running ? 'Reading…' : 'Recognize this sheet'}

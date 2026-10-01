@@ -185,14 +185,14 @@ export function AppShell() {
             <VSeparator />
             <Panel className="h-full" id="center" minSize={360}>
               <Group orientation="vertical" className="h-full" {...center}>
-                <Panel className="h-full" id="drawing" defaultSize="62" minSize={160}>
+                <Panel className="h-full" id="drawing" defaultSize="62" minSize={140}>
                   <div className="relative h-full w-full">
                     <DrawingSurface />
                     <CanvasTools />
                   </div>
                 </Panel>
                 <HSeparator />
-                <Panel className="h-full" id="bottom" panelRef={bottomRef} defaultSize="38" minSize={150} collapsible collapsedSize={0}>
+                <Panel className="h-full" id="bottom" panelRef={bottomRef} defaultSize="38" minSize={190} collapsible collapsedSize={0}>
                   <BottomPane />
                 </Panel>
               </Group>
