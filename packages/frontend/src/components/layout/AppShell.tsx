@@ -140,6 +140,14 @@ export function AppShell() {
     if (!want && p.isCollapsed()) p.expand()
   }, [rightCollapsed, focus, rightRef])
 
+  // "Full height" lifts the table over most of the drawing; the same button brings the drawing back.
+  const gridTall = useUiStore((s) => s.gridTall)
+  useEffect(() => {
+    const p = bottomRef.current
+    if (!p || p.isCollapsed()) return
+    p.resize(gridTall ? '82%' : '30%')
+  }, [gridTall, bottomRef])
+
   // Focus mode folds the grid away too.
   useEffect(() => {
     const p = bottomRef.current

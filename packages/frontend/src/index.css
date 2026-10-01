@@ -88,4 +88,6 @@
 .ag-cell.cell-state-draft { border-left: 4px dashed #1d4ed8 !important; }
 .ag-cell.cell-state-accepted { border-left: 4px solid #16a34a !important; }
 .ag-cell.cell-state-pass { border-left: 4px solid #16a34a !important; color: #15803d; }
+/* A sub-row of a callout (24.1 under 24) steps in, so the callout reads as one block. */
+.ag-cell.cell-sub-row { padding-left: 22px !important; color: hsl(var(--muted-foreground)); }
 .ag-cell.cell-state-fail { border-left: 4px solid #dc2626 !important; color: #b91c1c; }

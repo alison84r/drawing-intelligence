@@ -501,17 +501,19 @@ def parse_dimension(line: Line, units: str) -> Group | None:
         else:
             spec_parts.append(f"{tol_high:+g}/{tol_low:g}" if tol_low == 0 else f"{tol_high:+g}/{tol_low:+g}")
     spec_parts.extend(notes)
+    # A thread is checked with a gauge (go / no-go), not measured against limits around its nominal size.
+    gauged = desc == "Thread" and not explicit and not reference
     record = {
         "descriptionType": desc,
         "specification": " ".join(spec_parts),
         "nominal": nominal,
         "tolHigh": tol_high,
         "tolLow": tol_low,
-        "toleranceType": tol_type,
+        "toleranceType": "Attribute" if gauged else tol_type,
         "gdt": None,
         "places": places,
         "count": count,
-        "measurementType": "Variable",
+        "measurementType": "Attribute" if gauged else "Variable",
         "units": dim_units,
         "_feats": feats,
     }

@@ -108,14 +108,20 @@ function buildColumns(defaults: DefaultTolerances): ColDef<Row>[] {
     {
       headerName: '#',
       colId: 'balloon',
-      width: 62,
       pinned: 'left',
       editable: false,
       valueGetter: (p) => (p.data ? balloonLabel(p.data) : ''),
-      comparator: (a: string, b: string) => parseFloat(a) - parseFloat(b) || a.localeCompare(b),
-      cellStyle: { fontWeight: 600 },
-      tooltipValueGetter: () => 'Double-click to zoom to this balloon',
+      width: 72,
+      // "24.10" comes after "24.9": compare the balloon, then the sub-row, as numbers.
+      comparator: (a: string, b: string) => {
+        const [am, as = '0'] = a.split('.')
+        const [bm, bs = '0'] = b.split('.')
+        return Number(am) - Number(bm) || Number(as) - Number(bs)
+      },
+      tooltipValueGetter: (p) => (p.data?.subNumber != null ? `Part of callout ${p.data.balloonNumber}. Double-click to zoom to it` : 'Double-click to zoom to this balloon'),
       cellClassRules: {
+        'cell-sub-row': (p) => p.data?.subNumber != null,
+        'font-semibold': (p) => p.data?.subNumber == null,
         'cell-state-draft': (p) => !!p.data && displayStatus(p.data, limitsOf(p.data)) === 'Draft',
         'cell-state-accepted': (p) => !!p.data && displayStatus(p.data, limitsOf(p.data)) === 'Accepted',
         'cell-state-pass': (p) => !!p.data && displayStatus(p.data, limitsOf(p.data)) === 'Pass',
@@ -227,7 +233,7 @@ function buildColumns(defaults: DefaultTolerances): ColDef<Row>[] {
 /** The working set: what a balloon requires, where it is, its limits, the result, where it stands. "All columns" brings back the rest. */
 const WORKING_COLUMNS = ['balloon', 'specification', 'gdt', 'view', 'min', 'max', 'result', 'status', 'evidence']
 
-export function CharacteristicsGrid({ quickFilter }: { quickFilter: string }) {
+export function CharacteristicsGrid({ quickFilter, onShown }: { quickFilter: string; onShown?: (rows: number) => void }) {
   const { theme } = useTheme()
   const items = useCharacteristicStore((s) => s.items)
   const selectedId = useCharacteristicStore((s) => s.selectedId)
@@ -243,6 +249,16 @@ export function CharacteristicsGrid({ quickFilter }: { quickFilter: string }) {
 
   const show = useUiStore((s) => s.show)
   const allColumns = useUiStore((s) => s.allColumns)
+  const gridFilters = useUiStore((s) => s.gridFilters)
+  // Headers stay quiet: click sorts, one Filter button opens a single filter row for every column.
+  const defaultColDef = useMemo<ColDef<Row>>(
+    () => ({ sortable: true, filter: true, floatingFilter: gridFilters, suppressHeaderMenuButton: true, suppressHeaderFilterButton: true, suppressFloatingFilterButton: true, resizable: true, editable: true, minWidth: 56 }),
+    [gridFilters],
+  )
+  // Closing the filter row clears it: a filter nobody can see must not keep hiding rows.
+  useEffect(() => {
+    if (!gridFilters) apiRef.current?.setFilterModel(null)
+  }, [gridFilters])
 
   const applyColumnSet = useCallback((api: GridApi<Row>, all: boolean) => {
     const ids = (api.getColumns() ?? []).map((col) => col.getColId())
@@ -330,6 +346,8 @@ export function CharacteristicsGrid({ quickFilter }: { quickFilter: string }) {
     apiRef.current?.setGridOption('quickFilterText', quickFilter)
   }, [quickFilter])
 
+  const reportShown = useCallback(() => onShown?.(apiRef.current?.getDisplayedRowCount() ?? 0), [onShown])
+
   return (
     <div className="h-full w-full" data-ag-theme-mode={theme} data-testid="boc-grid">
       <AgGridReact<Row>
@@ -337,7 +355,7 @@ export function CharacteristicsGrid({ quickFilter }: { quickFilter: string }) {
         rowData={rowData}
         columnDefs={columnDefs}
         getRowId={(p) => p.data.id}
-        defaultColDef={{ sortable: true, filter: true, resizable: true, editable: true, minWidth: 56 }}
+        defaultColDef={defaultColDef}
         rowSelection={{ mode: 'singleRow', checkboxes: false, enableClickSelection: true }}
         singleClickEdit={false}
         stopEditingWhenCellsLoseFocus
@@ -345,6 +363,7 @@ export function CharacteristicsGrid({ quickFilter }: { quickFilter: string }) {
         suppressMovableColumns={false}
         tooltipShowDelay={400}
         onGridReady={onGridReady}
+        onModelUpdated={reportShown}
         onCellValueChanged={onCellValueChanged}
         onRowClicked={onRowClicked}
         isExternalFilterPresent={isExternalFilterPresent}

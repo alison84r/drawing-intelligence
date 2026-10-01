@@ -91,6 +91,18 @@ export function useKeyboardShortcuts() {
         case 'W':
           setTool('window')
           break
+        case '/':
+        case 'g':
+        case 'G': {
+          // Seek in the table: "/" finds text, "G" goes to a balloon number.
+          const box = document.getElementById(e.key === '/' ? 'grid-find' : 'grid-goto') as HTMLInputElement | null
+          if (box) {
+            e.preventDefault()
+            box.focus()
+            box.select()
+          }
+          break
+        }
         case 'l':
         case 'L': {
           const sel = chars.items.find((c) => c.id === chars.selectedId)

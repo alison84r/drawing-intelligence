@@ -20,6 +20,12 @@ interface UiState {
   /** Every grid column shown, not just the working set. */
   allColumns: boolean
   toggleAllColumns: () => void
+  /** The filter row under the table headers. Off by default: the headers stay quiet. */
+  gridFilters: boolean
+  toggleGridFilters: () => void
+  /** The table lifted over most of the drawing, for entering results. */
+  gridTall: boolean
+  toggleGridTall: () => void
   /** Characteristic under the pointer: its balloon or its callout text. */
   hoveredId: string | null
   setHovered: (id: string | null) => void
@@ -51,6 +57,10 @@ export const useUiStore = create<UiState>()((set) => ({
   toggleFocus: () => set((s) => ({ focus: !s.focus })),
   allColumns: false,
   toggleAllColumns: () => set((s) => ({ allColumns: !s.allColumns })),
+  gridFilters: false,
+  toggleGridFilters: () => set((s) => ({ gridFilters: !s.gridFilters })),
+  gridTall: false,
+  toggleGridTall: () => set((s) => ({ gridTall: !s.gridTall })),
   hoveredId: null,
   setHovered: (hoveredId) => set({ hoveredId }),
   contextMenu: null,

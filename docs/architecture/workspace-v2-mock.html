@@ -1,0 +1,167 @@
+<title>Workspace Panels v2</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+<style>
+:root{--bg:#f5f7fa;--card:#fff;--fg:#14213a;--mut:#64708a;--line:#dfe4ec;--soft:#eef2f7;--navy:#12406b;--navy-s:#e4edf6;--amber:#b7791f;--amber-s:#fdf3dc;--red:#c0392b;--red-s:#fbe6e3;--green:#1f8a5b;--green-s:#e0f4ea;--blue:#2456c9;--blue-s:#e6edfc}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1622;--card:#172131;--fg:#e7ecf4;--mut:#93a0b8;--line:#2a3649;--soft:#1e2a3c;--navy:#7fb2e6;--navy-s:#1d3147;--amber:#e3b25a;--amber-s:#3a2f17;--red:#f08777;--red-s:#3d201c;--green:#5fd0a0;--green-s:#173328;--blue:#8fb0ff;--blue-s:#1c2a4a;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0f1622;--card:#172131;--fg:#e7ecf4;--mut:#93a0b8;--line:#2a3649;--soft:#1e2a3c;--navy:#7fb2e6;--navy-s:#1d3147;--amber:#e3b25a;--amber-s:#3a2f17;--red:#f08777;--red-s:#3d201c;--green:#5fd0a0;--green-s:#173328;--blue:#8fb0ff;--blue-s:#1c2a4a;color-scheme:dark}
+body{background:var(--bg);color:var(--fg);font:14px/1.5 Inter,system-ui,sans-serif;padding-inline:16px;padding-block:28px 60px}
+.wrap{max-width:1080px;margin:0 auto;display:flex;flex-direction:column;gap:28px}
+h1{font-size:26px;margin:0;text-wrap:balance}h2{font-size:18px;margin:0 0 4px}h3{font-size:12px;letter-spacing:.07em;text-transform:uppercase;color:var(--mut);margin:0 0 8px;font-weight:600}
+p{margin:0;color:var(--mut);max-width:68ch}
+.sec{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px;display:flex;flex-direction:column;gap:16px}
+.two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.25fr);gap:18px}
+@media(max-width:760px){.two{grid-template-columns:1fr}}
+.col{min-width:0;display:flex;flex-direction:column;gap:8px}
+.score{display:inline-flex;align-items:baseline;gap:6px;font-weight:700;font-size:22px;font-variant-numeric:tabular-nums}
+.score small{font-size:12px;color:var(--mut);font-weight:500}
+.bar{height:6px;border-radius:4px;background:var(--soft);overflow:hidden}.bar i{display:block;height:100%;background:var(--navy)}
+ul{margin:0;padding-left:18px;color:var(--mut)}li{margin:2px 0}li b{color:var(--fg);font-weight:600}
+.panel{border:1px solid var(--line);border-radius:10px;background:var(--bg);padding:10px;display:flex;flex-direction:column;gap:8px;font-size:12.5px;min-width:0}
+.row{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:8px;background:var(--card);border:1px solid var(--line);min-width:0}
+.row.sel{border-color:var(--navy);box-shadow:0 0 0 2px var(--navy-s)}
+.row.sub{margin-left:22px;background:transparent;border-style:dashed}
+.num{flex:none;min-width:24px;height:24px;padding:0 5px;border-radius:12px;border:1.6px solid var(--navy);color:var(--navy);font-weight:700;font-size:10.5px;display:grid;place-items:center;font-variant-numeric:tabular-nums}
+.num.r{border-color:var(--red);color:var(--red)}.num.g{border-color:var(--green);color:var(--green)}
+.txt{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
+.txt small{display:block;font-weight:400;color:var(--mut);overflow:hidden;text-overflow:ellipsis}
+.chip{flex:none;font-size:10.5px;font-weight:600;padding:2px 7px;border-radius:10px;background:var(--soft);color:var(--mut);white-space:nowrap}
+.chip.a{background:var(--amber-s);color:var(--amber)}.chip.r{background:var(--red-s);color:var(--red)}.chip.g{background:var(--green-s);color:var(--green)}.chip.b{background:var(--blue-s);color:var(--blue)}.chip.n{background:var(--navy-s);color:var(--navy)}
+.grp{display:flex;align-items:center;gap:6px;font-weight:600;font-size:11px;color:var(--mut);letter-spacing:.04em;text-transform:uppercase;padding:4px 2px 0}
+.grp span{margin-left:auto}
+.search{display:flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:8px;padding:6px 8px;background:var(--card);color:var(--mut)}
+.tabs{display:flex;gap:4px;flex-wrap:wrap}.tabs .chip{cursor:default}
+svg.i{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.ghost{border:1px dashed var(--line);border-radius:8px;padding:14px;text-align:center;color:var(--mut)}
+.crop{height:54px;border-radius:8px;background:var(--card);border:1px solid var(--line);display:grid;place-items:center;font:600 17px/1 Inter;color:var(--navy);letter-spacing:.02em}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:3px 12px;font-size:12px}.kv span{color:var(--mut)}.kv b{font-weight:600;font-variant-numeric:tabular-nums}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:8px;border:1px solid var(--line);background:var(--card);font-weight:600;font-size:12px}
+.btn.p{background:var(--navy);color:var(--card);border-color:var(--navy)}
+.tw{overflow-x:auto;border:1px solid var(--line);border-radius:10px}
+table{border-collapse:collapse;width:100%;font-size:12.5px;font-variant-numeric:tabular-nums;min-width:560px}
+th,td{padding:7px 10px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap}
+th{background:var(--soft);font-weight:600;color:var(--mut);font-size:11.5px}
+th .m{opacity:.9;margin-left:6px;vertical-align:-2px}
+tr.s td{background:var(--navy-s)}tr.c td:first-child{padding-left:26px;color:var(--mut)}
+td.n,th.n{text-align:right}
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.foot{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--mut);padding:2px 4px}
+.q{border-left:3px solid var(--navy);padding:8px 12px;background:var(--navy-s);border-radius:0 8px 8px 0}
+.q b{display:block}.q span{color:var(--mut)}
+.note{font-size:12px;color:var(--mut)}
+</style>
+<div class="wrap">
+<header class="col">
+  <h3>Drawing Intelligence · brainstorm, no code yet</h3>
+  <h1>Side panels and the table: where they stand, and a better version of each</h1>
+  <p>Left of each pair is today, with an honest score. Right is the proposal. Three decisions at the end.</p>
+</header>
+
+<section class="sec">
+  <div><h2>1 · Left panel</h2><p>Today it only shows problems. When nothing is flagged, 75 balloons are waiting and the panel is almost empty.</p></div>
+  <div class="two">
+    <div class="col">
+      <h3>Today</h3>
+      <div class="score">6 <small>/ 10</small></div><div class="bar"><i style="width:60%"></i></div>
+      <div class="panel">
+        <div class="row"><span class="txt">0 of 76 confirmed<small>1 flagged · 75 waiting</small></span></div>
+        <div class="grp">Needs a decision <span class="chip r">1</span></div>
+        <div class="row"><span class="num r">43</span><span class="txt">4X Ø2.5 THRU<small>Its line measures 44.08</small></span></div>
+        <div class="grp">Suggested to add <span class="chip">0</span></div>
+        <div class="grp">About this sheet <span class="chip a">Check</span></div>
+        <div class="ghost">empty space</div>
+      </div>
+      <ul><li><b>Good:</b> problems first, with the reason in words.</li><li><b>Weak:</b> the 75 waiting balloons are not listed, so you cannot work down the sheet from here.</li><li><b>Weak:</b> no search, no jump to a number, no grouping by view.</li><li><b>Weak:</b> sub-rows (24.1, 24.2) are invisible.</li></ul>
+    </div>
+    <div class="col">
+      <h3>Proposed · a work list</h3>
+      <div class="score">9 <small>/ 10 target</small></div><div class="bar"><i style="width:90%"></i></div>
+      <div class="panel">
+        <div class="search"><svg class="i" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>Find a number or a value …  <span class="chip" style="margin-left:auto">/</span></div>
+        <div class="tabs"><span class="chip n">All 76</span><span class="chip r">Flagged 1</span><span class="chip b">To check 75</span><span class="chip a">To measure 0</span><span class="chip g">Done 0</span></div>
+        <div class="grp"><svg class="i" viewBox="0 0 24 24"><path d="M4 22V4h13l-2 4 2 4H4"/></svg>Needs a decision <span class="chip r">1</span></div>
+        <div class="row"><span class="num r">43</span><span class="txt">4X Ø2.5 THRU<small>Its line measures 44.08</small></span><span class="chip r">Flagged</span></div>
+        <div class="grp"><svg class="i" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18"/></svg>Sheet 2 · View A <span class="chip">18</span></div>
+        <div class="row sel"><span class="num">24</span><span class="txt">6X Ø5<small>Hole callout · 4 features</small></span><span class="chip b">To check</span></div>
+        <div class="row sub"><span class="num">24.1</span><span class="txt">↧15</span></div>
+        <div class="row sub"><span class="num">24.2</span><span class="txt">M6 - 6H</span></div>
+        <div class="row sub"><span class="num">24.3</span><span class="txt">↧12</span></div>
+        <div class="row"><span class="num">25</span><span class="txt">140</span><span class="chip b">To check</span></div>
+        <div class="row"><span class="num g">26</span><span class="txt">20 ±0.10</span><span class="chip g">Confirmed</span></div>
+        <div class="grp">Sheet 2 · Section B-B <span class="chip">9</span></div>
+      </div>
+      <ul><li><b>Every balloon is listed,</b> problems on top, then grouped by sheet and view.</li><li><b>One search box</b> finds "24" or "M6".</li><li><b>A callout opens</b> to show its sub-rows.</li><li>The filter chips move from the top strip into this panel: one place to filter.</li></ul>
+    </div>
+  </div>
+</section>
+
+<section class="sec">
+  <div><h2>2 · Right panel</h2><p>Good when a balloon is selected. With nothing selected it shows one sentence in a quarter of the screen.</p></div>
+  <div class="two">
+    <div class="col">
+      <h3>Today</h3>
+      <div class="score">7 <small>/ 10</small></div><div class="bar"><i style="width:70%"></i></div>
+      <div class="panel"><div class="ghost">Select a balloon, a row, or a problem in the queue to see it here.</div></div>
+      <ul><li><b>Good:</b> printed crop, checks in plain words, Accept in one key.</li><li><b>Weak:</b> empty when nothing is selected.</li><li><b>Weak:</b> a callout's sub-rows are separate visits.</li><li><b>Weak:</b> no previous / next buttons in view; only keys J and K.</li></ul>
+    </div>
+    <div class="col">
+      <h3>Proposed · never empty</h3>
+      <div class="score">9 <small>/ 10 target</small></div><div class="bar"><i style="width:90%"></i></div>
+      <div class="panel">
+        <div class="toolbar"><span class="num">24</span><b>Hole callout</b><span class="chip b">To check</span><span style="margin-left:auto" class="btn">‹ Prev</span><span class="btn">Next ›</span></div>
+        <div class="crop">6 x Ø5 ↧15 &nbsp;/&nbsp; M6 - 6H ↧12</div>
+        <div class="tabs"><span class="chip n">24 · Ø5</span><span class="chip">24.1 · ↧15</span><span class="chip">24.2 · M6-6H</span><span class="chip">24.3 · ↧12</span></div>
+        <div class="kv"><span>Requirement</span><b>Ø5, 6 places</b><span>Limits</span><b>4.9 … 5.1 (ISO 2768-m)</b><span>Checks</span><b>Tied to a leader · count read</b></div>
+        <div class="toolbar"><span class="btn p">Accept all 4 · A</span><span class="btn">Zoom</span><span class="btn">⋯</span></div>
+      </div>
+      <div class="panel">
+        <div class="grp">Nothing selected → sheet summary</div>
+        <div class="kv"><span>Sheet 2 of 4</span><b>39 balloons · 1 flagged</b><span>General tolerance</span><b>ISO 2768-m (from the table)</b><span>Views</span><b>A · B-B · Detail C</b><span>Next step</span><b>Accept the 38 without flags</b></div>
+      </div>
+      <ul><li><b>Sub-rows as tabs</b> under one crop; accept the callout in one click.</li><li><b>Prev / Next</b> always visible.</li><li><b>With nothing selected</b> it shows the sheet summary (this replaces "About this sheet" on the left).</li></ul>
+    </div>
+  </div>
+</section>
+
+<section class="sec">
+  <div><h2>3 · Bottom table</h2><p>This is the weakest part. Every header carries a menu icon, the filter chips above repeat what the columns do, and only two rows fit.</p></div>
+  <div class="col">
+    <h3>Today</h3>
+    <div class="score">5 <small>/ 10</small></div><div class="bar"><i style="width:50%"></i></div>
+    <div class="tw"><table>
+      <tr><th># <svg class="i m" viewBox="0 0 24 24"><path d="M4 6h16M7 12h10M10 18h4"/></svg></th><th>GD&amp;T <svg class="i m" viewBox="0 0 24 24"><path d="M4 6h16M7 12h10M10 18h4"/></svg></th><th>Requirement <svg class="i m" viewBox="0 0 24 24"><path d="M4 6h16M7 12h10M10 18h4"/></svg></th><th class="n">Min <svg class="i m" viewBox="0 0 24 24"><path d="M4 6h16M7 12h10M10 18h4"/></svg></th><th class="n">Max <svg class="i m" viewBox="0 0 24 24"><path d="M4 6h16M7 12h10M10 18h4"/></svg></th><th>View <svg class="i m" viewBox="0 0 24 24"><path d="M4 6h16M7 12h10M10 18h4"/></svg></th><th>Result <svg class="i m" viewBox="0 0 24 24"><path d="M4 6h16M7 12h10M10 18h4"/></svg></th><th>Status <svg class="i m" viewBox="0 0 24 24"><path d="M4 6h16M7 12h10M10 18h4"/></svg></th></tr>
+      <tr><td>1</td><td></td><td>3 (±0.2)</td><td class="n">2.8</td><td class="n">3.2</td><td>View 2</td><td></td><td>To check</td></tr>
+      <tr><td>2</td><td></td><td>365 (±0.5)</td><td class="n">364.5</td><td class="n">365.5</td><td>View 2</td><td></td><td>To check</td></tr>
+    </table></div>
+    <ul><li><b>Weak:</b> eight filter icons for a job one box can do.</li><li><b>Weak:</b> two rows visible; finding row 43 means scrolling.</li><li><b>Weak:</b> sub-rows look like unrelated rows.</li><li><b>Weak:</b> no totals; you cannot see "how far am I" from the table.</li></ul>
+  </div>
+  <div class="col">
+    <h3>Proposed · quiet headers, one filter, rows you can seek</h3>
+    <div class="score">9 <small>/ 10 target</small></div><div class="bar"><i style="width:90%"></i></div>
+    <div class="toolbar">
+      <span class="search" style="flex:1;min-width:180px"><svg class="i" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>Find in table …</span>
+      <span class="btn"><svg class="i" viewBox="0 0 24 24"><path d="M3 5h18l-7 8v6l-4-2v-4z"/></svg>Filter</span>
+      <span class="btn">Group: View</span><span class="btn">Go to #</span><span class="btn">Columns</span><span class="btn"><svg class="i" viewBox="0 0 24 24"><path d="M4 9V4h5M20 15v5h-5M4 4l6 6M20 20l-6-6"/></svg>Full height</span>
+    </div>
+    <div class="tw"><table>
+      <tr><th>#</th><th>Requirement ↑</th><th class="n">Min</th><th class="n">Max</th><th>View</th><th class="n">Result</th><th>Status</th></tr>
+      <tr><td colspan="7" style="background:var(--soft);font-weight:600;color:var(--mut)">▾ View A · 18 rows · 1 flagged</td></tr>
+      <tr class="s"><td>▾ 24</td><td><b>6X Ø5</b></td><td class="n">4.9</td><td class="n">5.1</td><td>View A</td><td class="n">—</td><td><span class="chip b">To check</span></td></tr>
+      <tr class="c"><td>24.1</td><td>↧15</td><td class="n">14.8</td><td class="n">15.2</td><td>View A</td><td class="n">—</td><td><span class="chip b">To check</span></td></tr>
+      <tr class="c"><td>24.2</td><td>M6 - 6H</td><td class="n">—</td><td class="n">—</td><td>View A</td><td class="n">—</td><td><span class="chip b">To check</span></td></tr>
+      <tr class="c"><td>24.3</td><td>↧12</td><td class="n">11.8</td><td class="n">12.2</td><td>View A</td><td class="n">—</td><td><span class="chip b">To check</span></td></tr>
+      <tr><td>25</td><td>140</td><td class="n">139.5</td><td class="n">140.5</td><td>View A</td><td class="n">—</td><td><span class="chip b">To check</span></td></tr>
+      <tr><td>43</td><td>4X Ø2.5 THRU</td><td class="n">2.4</td><td class="n">2.6</td><td>View A</td><td class="n">—</td><td><span class="chip r">Flagged</span></td></tr>
+    </table></div>
+    <div class="foot"><span><b>76</b> rows</span><span><b>1</b> flagged</span><span><b>0</b> of 76 measured</span><span>J / K next · A accept · / find · G go to #</span></div>
+    <ul><li><b>Clean headers:</b> click to sort; the menu icon appears only when the pointer is on that header.</li><li><b>One Filter button</b> opens a single filter row; off by default.</li><li><b>Seek:</b> "Find in table", "Go to #", and the selected row always scrolls into view.</li><li><b>Sub-rows indent</b> under their callout and fold away.</li><li><b>Full height</b> lifts the table over the drawing when you are entering results.</li><li><b>Footer</b> with totals, so the table tells you how far you are.</li></ul>
+  </div>
+</section>
+
+<section class="sec">
+  <h2>Three decisions</h2>
+  <div class="q"><b>1 · Left panel: full work list, or keep today's queue and add an "All balloons" group under it?</b><span>My recommendation: full work list. One list, problems on top.</span></div>
+  <div class="q"><b>2 · Table headers: hide the icons until hover plus one Filter button, or remove column filters completely?</b><span>My recommendation: hide until hover. Power users keep the filters; nobody sees them by default.</span></div>
+  <div class="q"><b>3 · Filter chips: keep the strip across the top, or move it into the left panel?</b><span>My recommendation: move it. The strip costs a full row of height and the list is what it filters.</span></div>
+  <p class="note">Timing: the demo is tomorrow. The table clean-up (headers, one Filter button, footer, indent sub-rows) is the small, safe part. The work list and the never-empty right panel are larger and safer after the demo.</p>
+</section>
+</div>
