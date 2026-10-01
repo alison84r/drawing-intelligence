@@ -14,6 +14,7 @@ from .geometry import detect_arrowheads
 from .inkfit import fit_box, render_gray
 from .grouper import attach_stacks, build_lines, dimension_font_size, parse_line, rule_out, score_with_geometry
 from .tokens import Token, build_tokens
+from .refine import add_vector_diameter, attach_orphan_degrees, merge_counts, oriented_box, place_balloons, split_at_x
 from .zones import detect_zones, synthetic_grid
 
 Region = dict[str, float]  # x, y, w, h in page points
@@ -57,6 +58,9 @@ def recognize(
                 tokens = [t for t in tokens if _intersects(t, region)]
             attach_stacks(tokens, dim_size)
             lines = build_lines(tokens, dim_size)
+            lines = attach_orphan_degrees(merge_counts(split_at_x(lines)))
+            if not any(t.kind == "dia" for t in tokens):
+                add_vector_diameter(lines, page)
             heads = detect_arrowheads(page)
             try:
                 ink = render_gray(pdf_bytes, index)
@@ -66,7 +70,11 @@ def recognize(
             try:
                 for tb in page.find_tables():
                     bx0, by0, bx1, by1 = tb.bbox
-                    if (bx1 - bx0) * (by1 - by0) < 0.25 * width * height and len(tb.rows) >= 2:
+                    if (bx1 - bx0) * (by1 - by0) >= 0.25 * width * height or len(tb.rows) < 2:
+                        continue
+                    cells = [c for row in tb.extract() for c in row]
+                    filled = sum(1 for c in cells if c and str(c).strip())
+                    if len(cells) >= 6 and filled / len(cells) >= 0.5:
                         tables.append((float(bx0), float(by0), float(bx1), float(by1)))
             except Exception:  # noqa: BLE001 - table finding is best effort
                 tables = []
@@ -90,6 +98,7 @@ def recognize(
                     x0, y0, x1, y1 = fit_box(ink, (x0, y0, x1, y1), line.rot, line.size)
                 bbox = {"x": round(x0, 2), "y": round(y0, 2), "w": round(x1 - x0, 2), "h": round(y1 - y0, 2)}
                 zone = grid.zone((x0 + x1) / 2, (y0 + y1) / 2)
+                obox = oriented_box(line.tokens, line.size)
                 size = line.size
                 record = {
                     "id": str(uuid.uuid4()),
@@ -100,6 +109,7 @@ def recognize(
                     "balloonPos": {"x": round(x1 + 1.3 * size, 2), "y": round(y0 - 1.2 * size, 2)},
                     "leader": True,
                     "bbox": bbox,
+                    "obox": obox,
                     "zone": zone,
                     "designator": "",
                     "result": None,
@@ -110,6 +120,8 @@ def recognize(
                     "style": None,
                     **{k: v for k, v in group.record.items() if not k.startswith("_")},
                 }
+                if obox:
+                    record["anchor"] = {"x": obox["cx"], "y": obox["cy"]}
                 already = any(e.get("page") == index and e.get("bbox") and _overlaps(e["bbox"], bbox) for e in existing)
                 confident = relaxed or group.confidence >= 0.8
                 if already:
@@ -118,12 +130,18 @@ def recognize(
                     continue
                 if confident:
                     characteristics.append(record)
-                    for t in group.tokens:
+                    for t in list(group.tokens) + list(getattr(line, "extra_tokens", [])):
                         t.cls, t.reason, t.char_id = "char", group.reason, record["id"]
                 else:
                     open_groups += 1
                     for t in group.tokens:
                         t.cls, t.reason, t.guess = "open", group.reason, record
+            for t in tokens:
+                ob = oriented_box([t], t.size)
+                if ob:
+                    t.extra["obox"] = ob
+            # Balloons go where they cover neither text nor each other.
+            place_balloons(characteristics, tokens, width, height, dim_size)
             # Token boxes follow the ink too, so every overlay sits on the glyphs.
             if ink is not None:
                 for t in tokens:

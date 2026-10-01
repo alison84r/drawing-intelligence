@@ -15,6 +15,8 @@ interface Rect {
   y: number
   w: number
   h: number
+  /** Rotation of the box around its centre, CSS degrees. */
+  rotate?: number
 }
 
 const INK = { select: '#2563eb', pass: '#15803d', fail: '#dc2626' }
@@ -57,14 +59,14 @@ export function TokenLayer({ map, page }: Props) {
     <div className="pointer-events-none absolute inset-0" data-testid="token-layer">
       {/* Audit view: every token the pass read, as marker bands. */}
       {readable && tokenView === 'all' && rec?.tokens.map((t) => (
-        <Band key={t.id} r={toRect(t.bbox, map)} pad={pad} color={BAND[t.cls]} title={`${t.text} · ${t.reason || t.cls}`} />
+        <Band key={t.id} r={rectOf(t.bbox, t.obox, map)} pad={pad} color={BAND[t.cls]} title={`${t.text} · ${t.reason || t.cls}`} />
       ))}
 
       {/* Needs you: amber marker band, click to add with the best guess. */}
       {readable && tokenView !== 'off' && openGroups(rec).map((g) => (
         <Band
           key={g.guess.id}
-          r={toRect(g.guess.bbox ?? g.tokens[0].bbox, map)}
+          r={rectOf(g.guess.bbox ?? g.tokens[0].bbox, g.guess.obox, map)}
           pad={pad}
           color={BAND.open}
           title={`${g.guess.specification} · ${g.tokens[0]?.reason ?? 'needs you'} · click to add`}
@@ -73,12 +75,12 @@ export function TokenLayer({ map, page }: Props) {
         />
       ))}
       {readable && tokenView === 'review' && rec?.tokens.filter((t) => t.cls === 'open' && !t.guess).map((t) => (
-        <Band key={t.id} r={toRect(t.bbox, map)} pad={pad} color={BAND.open} title={`${t.text} · ${t.reason}`} />
+        <Band key={t.id} r={rectOf(t.bbox, t.obox, map)} pad={pad} color={BAND.open} title={`${t.text} · ${t.reason}`} />
       ))}
 
       {/* Placed callouts: ink colour by state, plus an invisible hit area. */}
       {onPage.map((c) => {
-        const r = toRect(c.bbox as Rect, map)
+        const r = rectOf(c.bbox as Rect, c.obox, map)
         const status = displayStatus(c, deriveLimits(c, defaults))
         const active = c.id === selectedId || c.id === hoveredId
         const color = status === 'Fail' ? INK.fail : status === 'Pass' ? INK.pass : active ? INK.select : null
@@ -88,7 +90,7 @@ export function TokenLayer({ map, page }: Props) {
             {interactive && (
               <div
                 className="absolute cursor-pointer"
-                style={{ left: r.x - pad, top: r.y - pad, width: r.w + 2 * pad, height: r.h + 2 * pad, pointerEvents: 'auto' }}
+                style={{ left: r.x - pad, top: r.y - pad, width: r.w + 2 * pad, height: r.h + 2 * pad, pointerEvents: 'auto', ...turn(r) }}
                 onPointerEnter={() => setHovered(c.id)}
                 onPointerLeave={() => setHovered(null)}
                 onPointerDown={(e) => {
@@ -114,7 +116,7 @@ export function TokenLayer({ map, page }: Props) {
 
 /** Ink recolour: the digits take the colour, the paper stays white. Two stacked layers, no pixel reads. */
 function Ink({ r, pad, color, strong }: { r: Rect; pad: number; color: string; strong: boolean }) {
-  const box = { left: r.x - pad, top: r.y - pad, width: r.w + 2 * pad, height: r.h + 2 * pad }
+  const box = { left: r.x - pad, top: r.y - pad, width: r.w + 2 * pad, height: r.h + 2 * pad, ...turn(r) }
   return (
     <>
       {/* 1. Push the anti-aliased grey strokes to solid black so thin CAD fonts take colour fully. */}
@@ -139,6 +141,7 @@ function Band({ r, pad, color, title, onClick, testId }: { r: Rect; pad: number;
         background: color,
         mixBlendMode: 'multiply',
         pointerEvents: onClick ? 'auto' : 'none',
+        ...turn(r),
       }}
       title={title}
       data-testid={testId}
@@ -153,6 +156,17 @@ function Band({ r, pad, color, title, onClick, testId }: { r: Rect; pad: number;
     />
   )
 }
+
+/** Screen rectangle for a callout: the oriented box when the text is diagonal, else the upright box. */
+function rectOf(bbox: Rect, obox: { cx: number; cy: number; w: number; h: number; angle: number } | null | undefined, map: ScreenMap): Rect {
+  if (!obox) return toRect(bbox, map)
+  const c = pageToScreen({ x: obox.cx, y: obox.cy }, map)
+  const w = obox.w * map.scale
+  const h = obox.h * map.scale
+  return { x: c.x - w / 2, y: c.y - h / 2, w, h, rotate: -obox.angle - map.rotation }
+}
+
+const turn = (r: Rect) => (r.rotate ? { transform: `rotate(${r.rotate}deg)` } : {})
 
 function toRect(b: Rect, map: ScreenMap): Rect {
   const corners: Point[] = [

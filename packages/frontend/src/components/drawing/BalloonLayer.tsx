@@ -126,7 +126,7 @@ export function BalloonLayer({ map, page, hover, leaderDefault }: Props) {
           const style: BalloonStyle = { ...globalStyle, ...(c.style ?? {}) }
           const r = radiusFor(style, map.scale) * (c.subNumber !== null ? 0.9 : 1)
           const b = pageToScreen(c.balloonPos, map)
-          const a = pageToScreen(c.leader ? clipToBox(c.balloonPos, c.anchor, c.bbox) : c.anchor, map)
+          const a = pageToScreen(c.leader ? clipToBox(c.balloonPos, c.anchor, c.obox ? { x: c.obox.cx - c.obox.h * 0.6, y: c.obox.cy - c.obox.h * 0.6, w: c.obox.h * 1.2, h: c.obox.h * 1.2 } : c.bbox) : c.anchor, map)
           const status = displayStatus(c, deriveLimits(c, defaults))
           const color = STATUS_COLOR[status] ?? style.color
           const selected = c.id === selectedId

@@ -105,6 +105,7 @@ class Token:
             "reason": self.reason,
             "charId": self.char_id,
             "guess": self.guess,
+            "obox": self.extra.get("obox"),
         }
 
 
@@ -179,6 +180,27 @@ def build_tokens(chars: list[dict[str, Any]], page: int) -> list[Token]:
             kind = cur[0].kind if len(cur) == 1 else "text"
             tokens.append(Token(content_id(page, text, x0, y0), page, text, x0, y0, x1, y1, size, cur[0].font, rot, kind))
             cur.clear()
+
+        if rot % 90 != 0:
+            # Diagonal text: glyph boxes are inflated, so chain each glyph to the word it continues.
+            words: list[list[Token]] = []
+            for t in sorted(group, key=lambda t: sum(t.along())):
+                target = None
+                for w in words:
+                    prev = w[-1]
+                    ref = max(t.size, prev.size, 1.0)
+                    step = (sum(t.along()) - sum(prev.along())) / 2
+                    if abs(t.across() - prev.across()) <= 0.5 * ref and 0 < step <= 1.05 * ref and t.kind == "text" and prev.kind == "text" and abs(t.size - prev.size) <= 0.3 * ref:
+                        target = w
+                        break
+                if target is None:
+                    words.append([t])
+                else:
+                    target.append(t)
+            for w in words:
+                cur.extend(w)
+                flush()
+            continue
 
         for t in group:
             if not cur:

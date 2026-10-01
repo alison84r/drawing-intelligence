@@ -84,8 +84,8 @@ export function RecognizePanel() {
       {page && (
         <>
           <div className="flex flex-wrap gap-x-3 gap-y-1 rounded-md border bg-background px-2.5 py-2">
-            <Chip color="#16a34a" count={page.stats.char} label="placed" />
-            <Chip color="#d97706" count={page.stats.open} label="needs you" />
+            <Chip color="#16a34a" count={autoCount} label="placed" />
+            <Chip color="#d97706" count={needs.length + unread} label="needs you" />
             <Chip color="#94a3b8" count={page.stats.ruled} label="ruled out" />
           </div>
           <p className="text-[11px] leading-snug text-muted-foreground">

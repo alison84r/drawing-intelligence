@@ -11,6 +11,14 @@ export type MeasurementType = 'Variable' | 'Attribute'
 export type CharStatus = 'Draft' | 'Accepted' | 'Pass' | 'Fail'
 export type Units = 'mm' | 'in' | 'deg'
 
+export interface OrientedBox {
+  cx: number
+  cy: number
+  w: number
+  h: number
+  angle: number
+}
+
 export type GdtZone = '' | 'Ø' | 'SØ'
 export type GdtModifier = '' | 'M' | 'L' | 'P' | 'F'
 
@@ -39,6 +47,8 @@ export interface Characteristic {
   balloonPos: Point
   leader: boolean
   bbox: { x: number; y: number; w: number; h: number } | null
+  /** Box along the reading direction for diagonal text (centre, size, angle in degrees counter-clockwise). */
+  obox?: OrientedBox | null
   zone: string
   descriptionType: DescriptionType
   specification: string

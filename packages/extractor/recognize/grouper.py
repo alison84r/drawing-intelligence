@@ -302,7 +302,7 @@ def parse_dimension(line: Line, units: str) -> Group | None:
                 i += 3
                 continue
             # "2 X 70.5": count written with a space.
-            if nominal is not None and float(nominal).is_integer() and not prefix:
+            if nominal is not None and float(nominal).is_integer() and not prefix and "." not in nominal_text:
                 count = int(nominal)
                 nominal = None
                 nominal_text = ""

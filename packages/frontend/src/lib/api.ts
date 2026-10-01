@@ -65,6 +65,7 @@ export interface RecognizeToken {
   reason: string
   charId: string | null
   guess: Characteristic | null
+  obox?: { cx: number; cy: number; w: number; h: number; angle: number } | null
 }
 
 export interface RecognizePage {
