@@ -71,10 +71,12 @@ def _num(s: str) -> float:
     return float(s.replace(",", "."))
 
 
-def detect_scheme(tokens: list[Any], marked_class: str | None = None) -> dict[str, Any]:
+def detect_scheme(tokens: list[Any], marked_class: str | None = None, table: dict[str, Any] | None = None) -> dict[str, Any]:
     """
     marked_class: the class letter (f, m, c, v) that the sheet singles out graphically, typically a circle
     drawn round it in the designation column of the printed table. Used only when no note names the class.
+    table: the general tolerance table read cell by cell (tolerance/grid.py): {'linear': {cls: rows}, 'angular': {cls: rows}}.
+        When present, the size ranges and values are the sheet's own, not assumed from the standard.
     """
     lines = text_lines(tokens)
     findings: list[dict[str, str]] = []
@@ -104,6 +106,10 @@ def detect_scheme(tokens: list[Any], marked_class: str | None = None) -> dict[st
             key = CLASS_NAMES[re.sub(r"\s+", " ", m.group(1).lower())]
             printed.setdefault(key, [_num(v) for v in re.findall(r"±\s*(\d+(?:[.,]\d+)?)", m.group(2))])
             printed_line.setdefault(key, ln.strip()[:140])
+
+    for key, cell_rows in ((table or {}).get("linear") or {}).items():
+        printed.setdefault(key, [r[2] for r in cell_rows])
+        printed_line.setdefault(key, f"{CLASS_LABEL[key].capitalize()} " + " ".join(f"±{r[2]:g}" for r in cell_rows))
 
     if cls is None and marked_class in printed:
         cls = marked_class
@@ -140,8 +146,24 @@ def detect_scheme(tokens: list[Any], marked_class: str | None = None) -> dict[st
             "verifiedAgainstSheet": verified,
             "evidence": evidence,
         }
+        # Cell by cell, the sheet's own ranges and values replace the assumed standard ones.
+        cells = ((table or {}).get("linear") or {}).get(cls)
+        if cells:
+            standard = {float(hi): (float(lo), float(tol)) for lo, hi, tol in reference}
+            verified = all(float(hi) in standard and standard[float(hi)][1] == float(tol) for _, hi, tol in cells)
+            # "UPTO 3" has no printed lower bound; the standard's (0.5) is used when the row is the standard's.
+            scheme["linear"] = [[standard[float(hi)][0] if lo == 0 and float(hi) in standard else lo, hi, tol] for lo, hi, tol in cells]
+            scheme["source"], scheme["verifiedAgainstSheet"] = "drawing", verified
+            evidence.append("Read cell by cell: " + ", ".join(f"{lo:g} to {hi:g} ±{tol:g}" for lo, hi, tol in scheme["linear"]))
+            if verified:
+                scheme["label"] = label = f"ISO 2768-{cls}{grade or ''}"
+            elif not any(f["text"].startswith("The printed table differs") for f in findings):
+                findings.append({"level": "warn", "text": f"The printed table differs from ISO 2768-1 {CLASS_LABEL[cls]}. The printed values and ranges are used."})
+        angles = ((table or {}).get("angular") or {}).get(cls)
+        if angles:
+            scheme["angular"] = angles
         findings.insert(0, {"level": "ok", "text": f"{label} ({CLASS_LABEL[cls]})" + (", printed table agrees with the standard" if verified else "")})
-        findings.append({"level": "warn", "text": "Angular general tolerance depends on the length of the shorter leg; the settings value is used for angles."})
+        findings.append({"level": "warn", "text": "Angular general tolerance depends on the length of the shorter leg" + (", read from the table" if angles else "") + "; the settings value is used for angles."})
         return {"scheme": scheme, "findings": findings}
 
     if printed:

@@ -18,6 +18,8 @@ from .refine import (SYMBOL_NOTE, add_vector_symbols, attach_modifier_lines, att
                      mark_datum_boxes, merge_counts, oriented_box, place_balloons, split_at_x)
 from .scene import associate, build_scene, unexplained
 from .views import detect_views, recheck_with_view_scale
+from .tables import read_grid
+from tolerance.grid import read_tolerance_grid
 from .protected import outside_frame, protected_regions, region_at
 from tolerance.detect import detect_scheme
 from .zones import detect_zones, synthetic_grid
@@ -67,7 +69,10 @@ def recognize(
                 cx, cy = (t.x0 + t.x1) / 2, (t.y0 + t.y1) / 2
                 if any(x0 <= cx <= x1 and y0 <= cy <= y1 for x0, y0, x1, y1 in pictures):
                     return False
-                return ink is None or has_ink(ink, (t.x0, t.y0, t.x1, t.y1))
+                # A symbol font can place its text box beside the glyph it draws (a degree sign sits above the box):
+                # one- and two-character tokens are given some room before being called invisible.
+                pad = 0.4 * t.size if len(t.text.strip()) <= 2 else 0.0
+                return ink is None or has_ink(ink, (t.x0 - pad, t.y0 - pad, t.x1 + pad, t.y1 + pad))
 
             hidden_ids = {t.id for t in tokens if not printed_token(t)}
             # The class a tolerance table singles out: the designation letter with a circle drawn round it.
@@ -83,7 +88,9 @@ def recognize(
                 return False
 
             circled = {t.text.lower() for t in tokens if t.id not in hidden_ids and t.text.lower() in ("f", "m", "c", "v") and ringed(t)}
-            tolerance = detect_scheme([t for t in tokens if t.id not in hidden_ids], circled.pop() if len(circled) == 1 else None)
+            marked_class = circled.pop() if len(circled) == 1 else None
+            sheet_text = [t for t in tokens if t.id not in hidden_ids]  # the whole sheet, before any window narrows it
+            hidden_boxes = [(t.x0, t.y0, t.x1, t.y1) for t in tokens if t.id in hidden_ids]
             grid = detect_zones(tokens, width, height)
             synthetic = grid is None
             if grid is None:
@@ -117,6 +124,21 @@ def recognize(
             printed = [t for t in tokens if t.id not in hidden_ids]  # text that is really on the sheet
             shielded = protected_regions(page, tables, printed, width, height, [a.tip for a in heads], all_tables)
             withheld = {"title_block": 0, "picture": 0, "table": 0}
+            # Tables are read cell by cell; a general tolerance table is then understood from its cells.
+            grids: list[dict[str, Any]] = []
+            tolerance_table = None
+            if region is None:
+                for r in shielded:
+                    if r["kind"] == "picture":
+                        continue
+                    cells = read_grid(page, r["_box"], hidden_boxes)
+                    if not cells or any(g["bbox"] == cells["bbox"] for g in grids):
+                        continue
+                    as_tolerance = read_tolerance_grid(cells["rows"])
+                    if as_tolerance and tolerance_table is None:
+                        tolerance_table = as_tolerance
+                    grids.append({**cells, "kind": "tolerance" if as_tolerance else r["kind"] if r["kind"] != "title_text" else "title_block"})
+            tolerance = detect_scheme(sheet_text, marked_class, tolerance_table)
             offered: set[str] = set()  # records inside a table under a window: offered for picking, not placed
 
             characteristics: list[dict[str, Any]] = []
@@ -383,6 +405,7 @@ def recognize(
                 "audit": audit,
                 "views": [v.to_json(i) for i, v in enumerate(views)],
                 "protected": [{"kind": "title_block" if r["kind"] == "title_text" else r["kind"], "bbox": r["bbox"]} for r in shielded],
+                "grids": grids,
                 "withheld": {**withheld, "offered": len(offered)} if region is not None else None,
                 "tolerance": tolerance,
                 "tokens": [t.to_json() for t in tokens],

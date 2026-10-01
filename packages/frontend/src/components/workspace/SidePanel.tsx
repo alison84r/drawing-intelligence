@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { CheckCheck, CircleAlert, CircleCheck, CircleX, LayoutGrid, Loader2, Ruler, ScanSearch, Settings2, Sparkles } from 'lucide-react'
+import { CheckCheck, CircleAlert, CircleCheck, CircleX, LayoutGrid, Loader2, Ruler, ScanSearch, Settings2, Sparkles, Table2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { focusAt, openGroups, useRecognizeStore } from '@/store/recognizeStore'
@@ -11,7 +11,8 @@ import { useUiStore, type MeasureFilter } from '@/store/uiStore'
 import { deriveLimits, displayStatus, fmt } from '@/lib/tolerance'
 import { progressOf } from '@/lib/progress'
 import { cn } from '@/lib/utils'
-import { api, type AssistStatus } from '@/lib/api'
+import { api, type AssistStatus, type SheetGrid } from '@/lib/api'
+import { TableDialog } from './TableDialog'
 import { AssistDialog } from '@/components/assist/AssistDialog'
 
 function Heading({ children }: { children: React.ReactNode }) {
@@ -67,6 +68,7 @@ export function SidePanel() {
 
   const [assist, setAssist] = useState<AssistStatus | null>(null)
   const [assistOpen, setAssistOpen] = useState(false)
+  const [shownGrid, setShownGrid] = useState<SheetGrid | null>(null)
   useEffect(() => {
     api.assistStatus().then(setAssist).catch(() => setAssist(null))
   }, [])
@@ -214,6 +216,22 @@ export function SidePanel() {
               </span>
             </li>
           )}
+          {page?.grids && page.grids.length > 0 && (
+            <li className="flex items-start gap-2" data-testid="sheet-grids">
+              <Table2 className="mt-px size-3.5 shrink-0 text-primary" />
+              <span>
+                {page.grids.length} {page.grids.length === 1 ? 'table' : 'tables'} read cell by cell
+                <span className="mt-1 flex flex-wrap gap-1">
+                  {page.grids.map((g, i) => (
+                    <button key={i} type="button" onClick={() => setShownGrid(g)} className="rounded border px-1.5 py-0.5 text-[11px] transition-colors hover:border-primary hover:bg-primary/5">
+                      {g.kind === 'tolerance' ? 'Tolerance table' : g.kind === 'title_block' ? 'Title block' : 'Table'}
+                      <span className="ml-1 tabular-nums text-muted-foreground">{g.rows.length} × {g.cols}</span>
+                    </button>
+                  ))}
+                </span>
+              </span>
+            </li>
+          )}
           {assist && ready && (
             <li className="flex items-start gap-2" data-testid="assist-row">
               <Sparkles className={cn('mt-px size-3.5 shrink-0', assist.enabled ? 'text-primary' : 'text-muted-foreground')} />
@@ -238,6 +256,7 @@ export function SidePanel() {
         </Button>
       </div>
       <AssistDialog open={assistOpen} status={assist} onClose={() => setAssistOpen(false)} />
+      <TableDialog grid={shownGrid} scheme={scheme} onClose={() => setShownGrid(null)} />
     </aside>
   )
 }

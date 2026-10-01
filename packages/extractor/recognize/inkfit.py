@@ -35,7 +35,7 @@ def has_ink(img: np.ndarray, box: Box) -> bool:
     """
     x0, y0, x1, y1 = (int(round(v * SCALE)) for v in box)
     part = img[max(0, y0) : max(0, y1), max(0, x0) : max(0, x1)]
-    return part.size == 0 or int((part < DARK).sum()) >= 6
+    return part.size == 0 or int((part < DARK).sum()) >= 2  # a degree sign in small print is only a few pixels
 
 
 def _best_run(counts: np.ndarray, extent: int) -> tuple[int, int] | None:

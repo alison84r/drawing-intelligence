@@ -98,6 +98,13 @@ export function SettingsDrawer() {
                     ))}
                   </tbody>
                 </table>
+                {scheme.angular && scheme.angular.length > 0 && (
+                  <div className="border-t px-3 py-2 text-[11px] leading-snug text-muted-foreground" data-testid="angular-rows">
+                    <span className="font-medium text-foreground">Angles, by length of the shorter leg: </span>
+                    {scheme.angular.map(([lo, hi, deg]) => `${hi > 1e8 ? `over ${lo}` : `${lo} to ${hi}`} ±${deg >= 1 || Number.isInteger(deg * 2) ? `${Math.round(deg * 100) / 100}°` : `${Math.round(deg * 60)}'`}`).join(' · ')}
+                    . Shown from the table; the angle value below is what is applied.
+                  </div>
+                )}
                 {scheme.evidence.length > 0 && (
                   <p className="border-t px-3 py-2 text-[11px] leading-snug text-muted-foreground">
                     {scheme.verifiedAgainstSheet ? 'The table printed on the sheet agrees with the standard. ' : ''}Based on: {scheme.evidence.map((e) => `"${e}"`).join(' · ')}

@@ -113,6 +113,14 @@ export interface SheetView {
   callouts: number
 }
 
+/** A table on the sheet read cell by cell. A merged cell holds its text once; the positions it covers are null. */
+export interface SheetGrid {
+  kind: 'tolerance' | 'title_block' | 'table'
+  bbox: { x: number; y: number; w: number; h: number }
+  rows: (string | null)[][]
+  cols: number
+}
+
 export interface RecognizePage {
   page: number
   width: number
@@ -123,6 +131,7 @@ export interface RecognizePage {
   arrowheads: number
   audit: CoverageAudit
   views?: SheetView[]
+  grids?: SheetGrid[]
   /** Regions that never get balloons: the title block, pictures, tables. */
   protected?: { kind: 'title_block' | 'picture' | 'table'; bbox: { x: number; y: number; w: number; h: number } }[]
   /** After a window read: how many values were held back, by kind of region. */
