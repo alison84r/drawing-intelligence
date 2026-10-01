@@ -8,3 +8,4 @@ psycopg[binary]==3.3.3
 pillow==11.2.1
 openpyxl==3.1.5
 httpx==0.28.1
+rapidocr-onnxruntime>=1.2.3

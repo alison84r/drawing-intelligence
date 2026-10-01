@@ -20,6 +20,7 @@ from assist.config import settings
 from assist.provider import AssistError, provider_for
 from assist.regions import candidates, crop_png
 from assist.tasks import PROMPTS, parse_answer
+from assist.verify import cad_text, ocr_available, ocr_text, verify
 from db import AssistLog, DrawingRevision, get_session
 
 router = APIRouter(prefix="/api", tags=["assist"])
@@ -51,7 +52,7 @@ def _pdf(revision_id: str) -> tuple[bytes, list[dict[str, float]]]:
 
 @router.get("/assist/status")
 def assist_status() -> dict[str, Any]:
-    return settings().public()
+    return {**settings().public(), "ocr": ocr_available()}
 
 
 @router.get("/revisions/{revision_id}/assist/candidates")
@@ -101,4 +102,10 @@ def assist_read(revision_id: str, body: ReadRequest) -> dict[str, Any]:
         s.commit()
     if outcome != "ok":
         raise HTTPException(502, raw_error)
-    return {"task": body.task, "fields": fields, "provider": cfg.provider, "model": cfg.model, "cropSha256": digest, "sentBytes": len(png)}
+    # Second readers, both local: the PDF's own text in the region, and OCR of the same crop.
+    readers = {"cad": cad_text(pdf_bytes, body.page, body.region.model_dump())}
+    seen = ocr_text(png)
+    if seen is not None:
+        readers["ocr"] = seen
+    return {"task": body.task, "fields": fields, "checks": verify(body.task, fields, readers), "readers": {"cad": bool(readers["cad"].strip()), "ocr": seen is not None},
+            "provider": cfg.provider, "model": cfg.model, "cropSha256": digest, "sentBytes": len(png)}

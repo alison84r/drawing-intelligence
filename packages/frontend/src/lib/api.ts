@@ -156,6 +156,17 @@ export interface AssistStatus {
   /** Why it is off, in plain words. */
   reason: string
   leavesMachine: boolean
+  /** The local OCR engine is installed and can act as a second reader. */
+  ocr: boolean
+}
+
+export interface AssistCheck {
+  /** agree = a second reader has the same characters; differs = it has something close; single = nobody else saw it. */
+  status: 'agree' | 'differs' | 'single'
+  reader: 'cad' | 'ocr' | null
+  /** What the second reader has, when it differs. */
+  seen: string
+  standardClass?: string
 }
 
 export interface AssistCandidate {
@@ -184,6 +195,8 @@ export interface AssistResult {
     units?: string
     generalTolerance?: string
   }
+  checks: Record<string, AssistCheck>
+  readers: { cad: boolean; ocr: boolean }
   provider: string
   model: string
   cropSha256: string

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Check, CloudUpload, Image as ImageIcon, Loader2, ShieldAlert, Sparkles, Table2, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
-import { api, type AssistCandidate, type AssistResult, type AssistStatus, type AssistTask } from '@/lib/api'
+import { api, type AssistCandidate, type AssistCheck, type AssistResult, type AssistStatus, type AssistTask } from '@/lib/api'
 import { useDocumentStore } from '@/store/documentStore'
 import { usePartInfoStore } from '@/store/partInfoStore'
 import { useSessionStore } from '@/store/sessionStore'
@@ -20,6 +20,23 @@ const TITLE_FIELDS: { key: string; label: string }[] = [
   { key: 'units', label: 'Units' },
   { key: 'generalTolerance', label: 'General tolerance' },
 ]
+
+/** Title-block values that have a home in Part Info, and where they go. */
+const APPLY_TO = { partNumber: 'partNumber', partName: 'partName', drawingNumber: 'drawingNumber', revision: 'drawingRevision' } as const
+type Applicable = keyof typeof APPLY_TO
+
+const READER = { cad: 'the PDF text', ocr: 'OCR' } as const
+
+/** How far a value can be trusted: a second reader has the same characters, something close, or nothing. */
+function Trust({ check }: { check?: AssistCheck }) {
+  if (!check) return null
+  const look = {
+    agree: { cls: 'bg-status-pass/15 text-status-pass', text: `Confirmed by ${check.reader ? READER[check.reader] : 'a second reader'}` },
+    differs: { cls: 'bg-status-fail/15 text-status-fail', text: 'Readers differ' },
+    single: { cls: 'bg-status-draft/15 text-status-draft', text: 'Model only' },
+  }[check.status]
+  return <span className={cn('whitespace-nowrap rounded px-1.5 py-0.5 text-[10px] font-semibold', look.cls)} data-trust={check.status}>{look.text}</span>
+}
 
 /**
  * Ask a vision model to read one region: pick it, look at exactly what would be sent, confirm, then
@@ -39,6 +56,9 @@ export function AssistDialog({ open, status, onClose }: { open: boolean; status:
   const [error, setError] = useState<string | null>(null)
   const [result, setResult] = useState<AssistResult | null>(null)
   const [applied, setApplied] = useState(false)
+  /** Which title-block values to apply. Confirmed ones start ticked; the rest wait for the person. */
+  const [use, setUse] = useState<Record<string, boolean>>({})
+  const [checkedByEye, setCheckedByEye] = useState(false)
 
   useEffect(() => {
     if (!open || !revisionId) return
@@ -70,7 +90,10 @@ export function AssistDialog({ open, status, onClose }: { open: boolean; status:
     setBusy(true)
     setError(null)
     try {
-      setResult(await api.assistRead(revisionId, { page: pageIndex, region: picked.bbox, task, consent }))
+      const res = await api.assistRead(revisionId, { page: pageIndex, region: picked.bbox, task, consent })
+      setUse(Object.fromEntries(Object.keys(APPLY_TO).map((k) => [k, res.checks[k]?.status === 'agree'])))
+      setCheckedByEye(false)
+      setResult(res)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'The read failed')
     } finally {
@@ -91,16 +114,21 @@ export function AssistDialog({ open, status, onClose }: { open: boolean; status:
       }
       if (typeof f.angular === 'number') setDefault('angular', f.angular)
     } else {
-      if (f.partNumber) setPartInfo('partNumber', f.partNumber)
-      if (f.partName) setPartInfo('partName', f.partName)
-      if (f.drawingNumber) setPartInfo('drawingNumber', f.drawingNumber)
-      if (f.revision) setPartInfo('drawingRevision', f.revision)
+      for (const key of Object.keys(APPLY_TO) as Applicable[]) {
+        const value = f[key]
+        if (value && use[key]) setPartInfo(APPLY_TO[key], value)
+      }
     }
     setApplied(true)
   }
 
   const f = result?.fields
-  const nothingToApply = !f?.found || (result?.task === 'tolerance_table' && !(f.linear?.length || Object.keys(f.decimals ?? {}).length || typeof f.angular === 'number'))
+  const checks = result?.checks ?? {}
+  const tableChecks = ['linear', 'decimals', 'angular'].map((k) => checks[k]).filter(Boolean)
+  const tableConfirmed = tableChecks.length > 0 && tableChecks.every((c) => c.status === 'agree')
+  const nothingToApply = !f?.found
+    || (result?.task === 'tolerance_table' && (!(f.linear?.length || Object.keys(f.decimals ?? {}).length || typeof f.angular === 'number') || (!tableConfirmed && !checkedByEye)))
+    || (result?.task === 'title_block' && !(Object.keys(APPLY_TO) as Applicable[]).some((k) => f[k] && use[k]))
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
@@ -158,14 +186,32 @@ export function AssistDialog({ open, status, onClose }: { open: boolean; status:
                       <span className="ml-auto text-muted-foreground">{result.model} · {Math.round(result.sentBytes / 1024)} KB sent</span>
                     </div>
                     {result.task === 'title_block' ? (
-                      <dl className="grid grid-cols-[130px_1fr] gap-x-3 gap-y-1 px-3 py-2">
-                        {TITLE_FIELDS.filter((t) => (f as Record<string, unknown>)[t.key]).map((t) => (
-                          <div key={t.key} className="contents"><dt className="text-muted-foreground">{t.label}</dt><dd className="font-medium">{String((f as Record<string, unknown>)[t.key])}</dd></div>
-                        ))}
-                      </dl>
+                      <ul className="divide-y">
+                        {TITLE_FIELDS.filter((t) => (f as Record<string, unknown>)[t.key]).map((t) => {
+                          const applicable = t.key in APPLY_TO
+                          const check = checks[t.key]
+                          return (
+                            <li key={t.key} className="grid grid-cols-[18px_120px_1fr_auto] items-start gap-x-2 px-3 py-1.5" data-field={t.key}>
+                              {applicable ? (
+                                <input type="checkbox" className="mt-0.5 accent-primary" checked={Boolean(use[t.key])} disabled={applied} onChange={(e) => setUse((u) => ({ ...u, [t.key]: e.target.checked }))} aria-label={`Apply ${t.label}`} />
+                              ) : <span />}
+                              <span className="text-muted-foreground">{t.label}</span>
+                              <span className="min-w-0">
+                                <span className="break-words font-medium">{String((f as Record<string, unknown>)[t.key])}</span>
+                                {check?.status === 'differs' && <span className="block text-status-fail">{check.reader ? READER[check.reader] : 'The second reader'} has: <span className="font-mono">{check.seen}</span></span>}
+                              </span>
+                              <Trust check={check} />
+                            </li>
+                          )
+                        })}
+                      </ul>
                     ) : (
                       <div className="px-3 py-2">
-                        {(f.standard || f.class) && <p className="mb-1 font-medium">{[f.standard, f.class && `class ${f.class}`].filter(Boolean).join(', ')}</p>}
+                        <div className="mb-1 flex flex-wrap items-center gap-2">
+                          {(f.standard || f.class) && <span className="font-medium">{[f.standard, f.class && `class ${f.class}`].filter(Boolean).join(', ')}</span>}
+                          <Trust check={checks.linear ?? checks.decimals ?? checks.angular} />
+                          {checks.linear?.standardClass && <span className="rounded bg-status-pass/15 px-1.5 py-0.5 text-[10px] font-semibold text-status-pass">Matches ISO 2768-1 class {checks.linear.standardClass}</span>}
+                        </div>
                         <table className="w-full tabular-nums">
                           <tbody>
                             {f.linear?.map(([lo, hi, tol]) => (<tr key={lo} className="border-b last:border-b-0"><td className="py-0.5 text-muted-foreground">{lo} to {hi}</td><td className="py-0.5 text-right font-medium">±{tol}</td></tr>))}
@@ -176,7 +222,17 @@ export function AssistDialog({ open, status, onClose }: { open: boolean; status:
                         {f.notes && <p className="mt-1 text-muted-foreground">{f.notes}</p>}
                       </div>
                     )}
-                    <p className="border-t px-3 py-2 text-muted-foreground">Check it against the picture above before applying. A model can misread a digit.</p>
+                    {result.task === 'tolerance_table' && !tableConfirmed && f.found && !applied && (
+                      <label className="flex cursor-pointer items-start gap-2 border-t px-3 py-2">
+                        <input type="checkbox" className="mt-0.5 accent-primary" checked={checkedByEye} onChange={(e) => setCheckedByEye(e.target.checked)} data-testid="assist-by-eye" />
+                        <span>No second reader confirmed these numbers. I have checked them against the picture above.</span>
+                      </label>
+                    )}
+                    <p className="border-t px-3 py-2 text-muted-foreground">
+                      {result.readers.ocr || result.readers.cad
+                        ? 'Confirmed values were read identically by a second, local reader. Tick the others only after checking them against the picture.'
+                        : 'No second reader was available, so nothing is confirmed. Check every value against the picture.'}
+                    </p>
                   </div>
                 )}
               </>

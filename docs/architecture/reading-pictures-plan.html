@@ -1,0 +1,111 @@
+<title>Three Readers Plan</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* layout: one idea per band — the rule, the flow picture, a worked example, the phases, the decisions */
+:root{--bg:#f3f6f9;--fg:#13212d;--muted:#5b6a78;--line:#d6dee6;--panel:#ffffff;--navy:#004a77;--navyfg:#ffffff;--chip:#e9eff5;--ok:#15803d;--okbg:#dcfce7;--warn:#b45309;--warnbg:#fef3c7;--bad:#b91c1c;--badbg:#fee2e2;
+--sans:"IBM Plex Sans",system-ui,sans-serif;--mono:"IBM Plex Mono",ui-monospace,monospace}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0d141b;--fg:#e6edf3;--muted:#97a6b4;--line:#253241;--panel:#141e29;--navy:#4fb4e6;--navyfg:#06202e;--chip:#1b2734;--ok:#4ade80;--okbg:#12301d;--warn:#fbbf24;--warnbg:#382a0a;--bad:#f87171;--badbg:#3a1515;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0d141b;--fg:#e6edf3;--muted:#97a6b4;--line:#253241;--panel:#141e29;--navy:#4fb4e6;--navyfg:#06202e;--chip:#1b2734;--ok:#4ade80;--okbg:#12301d;--warn:#fbbf24;--warnbg:#382a0a;--bad:#f87171;--badbg:#3a1515;color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:15px;line-height:1.45;padding-block:28px 64px;padding-inline:16px}
+main{max-width:1040px;margin:0 auto;display:grid;gap:22px}
+h1{font-size:1.55rem;font-weight:700;margin:0;text-wrap:balance}
+h2{font-size:1.08rem;font-weight:600;margin:0 0 10px;text-wrap:balance}
+p{margin:0}.lead{color:var(--muted);max-width:66ch;margin-top:6px}
+.tag{font-family:var(--mono);font-size:.7rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;min-width:0}
+.pill{display:inline-block;font-size:.72rem;font-weight:600;padding:2px 9px;border-radius:999px;white-space:nowrap}
+.g{background:var(--okbg);color:var(--ok)}.a{background:var(--warnbg);color:var(--warn)}.r{background:var(--badbg);color:var(--bad)}.n{background:var(--chip);color:var(--muted)}
+.rule{background:var(--navy);color:var(--navyfg);border-radius:14px;padding:16px 18px;font-size:1.05rem;font-weight:500}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:14px}
+svg{display:block;width:100%;height:auto}
+.t{font-family:var(--sans);font-size:12px;fill:var(--fg)}.tb{font-family:var(--sans);font-size:12px;font-weight:600;fill:var(--fg)}.m{font-family:var(--sans);font-size:10.5px;fill:var(--muted)}
+.scroll{overflow-x:auto}table{border-collapse:collapse;width:100%;font-size:.86rem;min-width:560px}th,td{text-align:left;padding:7px 9px;border-bottom:1px solid var(--line);vertical-align:top}th{font-weight:600;color:var(--muted);font-size:.72rem;text-transform:uppercase;letter-spacing:.05em}
+td.v{font-family:var(--mono);font-size:.8rem}
+ul{margin:0;padding-left:18px;display:grid;gap:5px}
+.phase{display:grid;gap:6px}.phase b{font-size:.98rem}
+</style>
+<main>
+<header>
+  <p class="tag">Drawing Intelligence · reading pictures inside a drawing</p>
+  <h1>Three readers, and a value is trusted only when two agree</h1>
+  <p class="lead">One model on its own will sometimes misread a digit, and nobody can tell when. So no single reader decides. This is the plan for making that hold on any customer drawing.</p>
+</header>
+
+<div class="rule">A value from a picture is filled in automatically only if two independent readers give the same text. Otherwise a person decides, with the picture beside it.</div>
+
+<section class="card">
+  <h2>How one region is read</h2>
+  <svg viewBox="0 0 760 330" role="img" aria-label="Flow of the three readers">
+    <defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="var(--muted)"/></marker></defs>
+    <rect x="8" y="118" width="120" height="74" rx="10" fill="var(--chip)" stroke="var(--line)"/>
+    <text x="68" y="148" text-anchor="middle" class="tb">Region</text><text x="68" y="166" text-anchor="middle" class="m">title block, table,</text><text x="68" y="180" text-anchor="middle" class="m">note, picture</text>
+    <g stroke="var(--muted)" stroke-width="1.3" fill="none" marker-end="url(#ar)"><path d="M128 140C160 110 170 52 206 52"/><path d="M128 155H206"/><path d="M128 170C160 200 170 258 206 258"/></g>
+    <rect x="208" y="18" width="190" height="68" rx="10" fill="var(--panel)" stroke="var(--ok)" stroke-width="1.5"/>
+    <text x="220" y="42" class="tb">1 · CAD text</text><text x="220" y="60" class="m">exact characters stored in the PDF</text><text x="220" y="74" class="m">built · used whenever it exists</text>
+    <rect x="208" y="121" width="190" height="68" rx="10" fill="var(--panel)" stroke="var(--warn)" stroke-width="1.5"/>
+    <text x="220" y="145" class="tb">2 · OCR engine</text><text x="220" y="163" class="m">reads characters from pixels, local</text><text x="220" y="177" class="m">to add · gives text + position</text>
+    <rect x="208" y="224" width="190" height="68" rx="10" fill="var(--panel)" stroke="var(--navy)" stroke-width="1.5"/>
+    <text x="220" y="248" class="tb">3 · Vision model</text><text x="220" y="266" class="m">says which text is which field</text><text x="220" y="280" class="m">built · Qwen3-VL 8B</text>
+    <g stroke="var(--muted)" stroke-width="1.3" fill="none" marker-end="url(#ar)"><path d="M398 52C430 52 432 140 462 148"/><path d="M398 155H462"/><path d="M398 258C430 258 432 170 462 162"/></g>
+    <rect x="464" y="108" width="128" height="94" rx="10" fill="var(--navy)"/>
+    <text x="528" y="140" text-anchor="middle" font-family="var(--sans)" font-size="12" font-weight="600" fill="var(--navyfg)">Cross-check</text>
+    <text x="528" y="158" text-anchor="middle" font-family="var(--sans)" font-size="10.5" fill="var(--navyfg)">same text?</text><text x="528" y="172" text-anchor="middle" font-family="var(--sans)" font-size="10.5" fill="var(--navyfg)">valid format?</text><text x="528" y="186" text-anchor="middle" font-family="var(--sans)" font-size="10.5" fill="var(--navyfg)">matches a standard?</text>
+    <g stroke="var(--muted)" stroke-width="1.3" fill="none" marker-end="url(#ar)"><path d="M592 135C615 110 615 60 636 56"/><path d="M592 155H636"/><path d="M592 175C615 200 615 250 636 254"/></g>
+    <rect x="638" y="28" width="114" height="56" rx="10" fill="var(--okbg)"/><text x="695" y="52" text-anchor="middle" class="tb">Two agree</text><text x="695" y="68" text-anchor="middle" class="m">filled in, marked</text>
+    <rect x="638" y="127" width="114" height="56" rx="10" fill="var(--warnbg)"/><text x="695" y="151" text-anchor="middle" class="tb">One reader only</text><text x="695" y="167" text-anchor="middle" class="m">person confirms</text>
+    <rect x="638" y="226" width="114" height="56" rx="10" fill="var(--badbg)"/><text x="695" y="250" text-anchor="middle" class="tb">They disagree</text><text x="695" y="266" text-anchor="middle" class="m">both shown, person picks</text>
+    <text x="8" y="318" class="m">Every value keeps its source: which readers, which crop, which model version, who confirmed.</text>
+  </svg>
+</section>
+
+<section class="card">
+  <h2>Worked example: the heat sink title block read today</h2>
+  <div class="scroll"><table>
+    <tr><th>Field</th><th>Vision model (real result)</th><th>OCR engine (to add)</th><th>Outcome</th></tr>
+    <tr><td>Part number</td><td class="v">18_1120_001</td><td class="v">18_1120_001</td><td><span class="pill g">two agree</span></td></tr>
+    <tr><td>Material standard</td><td class="v">IS 1079</td><td class="v">IS 1079</td><td><span class="pill g">two agree</span></td></tr>
+    <tr><td>Scale</td><td class="v">NTS</td><td class="v">NTS</td><td><span class="pill g">two agree</span></td></tr>
+    <tr><td>If a digit were misread</td><td class="v">18_1120_007</td><td class="v">18_1120_001</td><td><span class="pill r">disagree · person picks</span></td></tr>
+    <tr><td>Tolerance class from a table</td><td class="v">ISO 2768-m, 30–120 ±0.3</td><td class="v">±0.3</td><td><span class="pill g">agree + matches the standard table</span></td></tr>
+  </table></div>
+  <p class="lead" style="margin-top:10px">The model column in rows 1 to 3 is what came back today. The OCR column and rows 4 to 5 are illustrations of how the check would behave.</p>
+</section>
+
+<section class="grid">
+  <div class="card"><h2>Where AI is used</h2><ul>
+    <li>Title block or table saved as a picture</li>
+    <li>Tolerance table in an unusual layout</li>
+    <li>Sorting notes: which are inspected, which are general</li>
+    <li>Later: scanned drawings</li></ul></div>
+  <div class="card"><h2>Where AI is never used</h2><ul>
+    <li>Dimensions and GD&amp;T on a CAD drawing: the exact text is already there</li>
+    <li>Pass or fail decisions</li>
+    <li>Anything written to the report without a person or a second reader</li></ul></div>
+  <div class="card"><h2>What makes it hold up</h2><ul>
+    <li>A fixed test set of real crops with known answers; accuracy is measured before any change ships</li>
+    <li>At the customer the same model runs on their machine; nothing leaves the building</li>
+    <li>If the model is unavailable the app works exactly as before</li></ul></div>
+</section>
+
+<section class="card">
+  <h2>Steps</h2>
+  <div class="grid">
+    <div class="phase"><span class="pill g">Done today</span><b>Vision model + person confirms</b><span>One crop, consent, suggestion, Apply. Proven on the heat sink title block.</span></div>
+    <div class="phase"><span class="pill a">Step 1 · about a day</span><b>OCR engine and the cross-check</b><span>Add the local OCR reader, compare field by field, show agree / one reader / disagree in the dialog.</span></div>
+    <div class="phase"><span class="pill a">Step 2 · about a day</span><b>Test set and score</b><span>20 to 30 crops from our drawings with correct answers. One command prints accuracy per field.</span></div>
+    <div class="phase"><span class="pill n">Step 3 · after the demo</span><b>Local model at the customer</b><span>Same Qwen model on their hardware behind the same switch. Licence checked first.</span></div>
+    <div class="phase"><span class="pill n">Step 4 · later</span><b>Scanned drawings</b><span>OCR for every dimension, model for structure, geometry check where lines can be traced.</span></div>
+  </div>
+</section>
+
+<section class="card">
+  <h2>What I need from you</h2>
+  <div class="scroll"><table>
+    <tr><th>Decision</th><th>My pick</th><th>Why</th></tr>
+    <tr><td>Approve this plan</td><td>Yes</td><td>It is the only way a wrong digit gets caught without a person reading everything</td></tr>
+    <tr><td>OCR engine to install</td><td>RapidOCR (Python package, about 20 MB of models)</td><td>Open licence as far as I know, runs on this laptop without a graphics card, no separate installer. I will confirm the licence and exact size before installing.</td></tr>
+    <tr><td>When</td><td>Step 1 after the demo</td><td>Tomorrow's customer drawings are CAD exports. The built part already covers a pictured title block, with a person confirming.</td></tr>
+  </table></div>
+</section>
+</main>
