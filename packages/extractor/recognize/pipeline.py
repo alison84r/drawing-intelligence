@@ -85,6 +85,8 @@ def recognize(
             characteristics: list[dict[str, Any]] = []
             open_groups = 0
             pending: list[tuple[Any, Any, dict[str, Any]]] = []
+            notes: list[tuple[dict[str, Any], Any]] = []
+            text_lines: list[Any] = []
             for line in lines:
                 why = rule_out(line, dim_size, width, height, relaxed, tables)
                 if why == "note":
@@ -107,9 +109,12 @@ def recognize(
                             t.cls, t.reason = "char", "already ballooned"
                     else:
                         open_groups += 1
+                        notes.append((note, line))
                         for t in line.all_tokens:
                             t.cls, t.reason, t.guess = "open", "drawing note: add it if it is inspected", note
                     continue
+                if why and (why == "text" or why.startswith("small text") or why == "no value") and line.rot == 0:
+                    text_lines.append(line)
                 if why:
                     for t in line.all_tokens:
                         t.cls, t.reason = "ruled", why
@@ -175,6 +180,28 @@ def recognize(
                         t.cls, t.reason = "char", "already ballooned"
                     continue
                 pending.append((line, group, record))
+
+            # A note that wraps: the text lines directly under it are part of it.
+            for note, nline in sorted(notes, key=lambda n: n[0]["bbox"]["y"]):
+                grew = True
+                while grew:
+                    grew = False
+                    nb = note["bbox"]
+                    for tl in list(text_lines):
+                        tx0, ty0, tx1, ty1 = tl.bbox
+                        if abs(tl.size - nline.size) > 0.2 * nline.size:
+                            continue
+                        gap = ty0 - (nb["y"] + nb["h"])
+                        if -0.4 * nline.size <= gap <= 0.9 * nline.size and nb["x"] - 0.5 * nline.size <= tx0 <= nb["x"] + 5 * nline.size:
+                            note["specification"] = f"{note['specification']} {' '.join(t.text for t in tl.tokens)}"
+                            x0n, y0n = min(nb["x"], tx0), min(nb["y"], ty0)
+                            x1n, y1n = max(nb["x"] + nb["w"], tx1), max(nb["y"] + nb["h"], ty1)
+                            note["bbox"] = {"x": round(x0n, 2), "y": round(y0n, 2), "w": round(x1n - x0n, 2), "h": round(y1n - y0n, 2)}
+                            for t in tl.all_tokens:
+                                t.cls, t.reason, t.guess = "open", "drawing note: add it if it is inspected", note
+                            text_lines.remove(tl)
+                            grew = True
+                            break
 
             # ── Geometry decides: tie every callout to a dimension line, a leader, or nothing.
             callouts = []

@@ -429,7 +429,7 @@ def associate(callouts: list[dict[str, Any]], scene: Scene) -> dict[str, Any]:
                 continue
             best = None
             for a in scene.arrows:
-                if a.used:
+                if a.used or a.shaft_end is None:
                     continue
                 for sc_ in scales:
                     span = c["nominal"] * sc_
@@ -481,7 +481,8 @@ def associate(callouts: list[dict[str, Any]], scene: Scene) -> dict[str, Any]:
         c["geometry"] = _geometry("leader", ld)
 
     # Leaders whose shaft is an arc or was not found: the head points at the feature, the text sits behind it.
-    for c in callouts:
+    # Angles first: their arc arrowheads must not be taken as a plain leader by a neighbour.
+    for c in sorted(callouts, key=lambda c: 0 if c.get("angular") else 1):
         if c.get("geometry"):
             continue
         x0, y0, x1, y1 = c["box"]
@@ -497,7 +498,12 @@ def associate(callouts: list[dict[str, Any]], scene: Scene) -> dict[str, Any]:
                 for ia, la in enumerate(near[:6]):
                     for lb in near[ia + 1 : 6]:
                         between = math.degrees(math.acos(max(-1.0, min(1.0, _dot(la.arrow.dir, lb.arrow.dir)))))
-                        for cand in (180.0 - between, between):
+                        raw = 180.0 - between
+                        chord = _dist(la.arrow.tip, lb.arrow.tip)
+                        half = math.sin(math.radians(max(1.0, min(179.0, raw)) / 2))
+                        radius = chord / (2 * half) if half > 0 else 0.0
+                        lean = math.degrees((la.arrow.length + lb.arrow.length) / (2 * radius)) if radius > 1 else 0.0
+                        for cand in (raw + lean, raw, between):
                             err = abs(cand - nominal)
                             if err <= 3.0 and (best is None or err < best[0]):
                                 best = (err, la, lb, cand)
