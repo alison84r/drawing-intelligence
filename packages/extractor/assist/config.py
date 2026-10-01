@@ -1,4 +1,4 @@
-"""Assist configuration: environment first, then the project's .env file. The key is never logged or returned."""
+"""Assist configuration: the project's .env file first, then the machine environment. The key is never logged or returned."""
 from __future__ import annotations
 
 import os
@@ -43,7 +43,7 @@ def settings() -> AssistSettings:
     file = _env_file()
 
     def get(name: str) -> str:
-        return (os.environ.get(name) or file.get(name) or "").strip()
+        return (file.get(name) or os.environ.get(name) or "").strip()  # what was set for this project wins over a machine-wide value
 
     provider = get("DI_ASSIST_PROVIDER").lower() or "openrouter"
     key, model = get("OPENROUTER_API_KEY"), get("DI_ASSIST_MODEL")
