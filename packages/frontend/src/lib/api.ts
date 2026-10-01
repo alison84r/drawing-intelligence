@@ -99,6 +99,20 @@ export interface CoverageAudit {
   unexplained: AuditItem[]
 }
 
+export interface SheetView {
+  id: string
+  name: string
+  /** False when the drawing gave the view no title and it was numbered in reading order. */
+  labelled: boolean
+  bbox: { x: number; y: number; w: number; h: number }
+  scale: number | null
+  scaleText: string
+  /** declared = printed with the title, measured = from this view's dimension lines, sheet = the sheet's one scale. */
+  scaleSource: 'declared' | 'measured' | 'sheet' | null
+  measuredScale: number | null
+  callouts: number
+}
+
 export interface RecognizePage {
   page: number
   width: number
@@ -108,6 +122,7 @@ export interface RecognizePage {
   tables: number[][]
   arrowheads: number
   audit: CoverageAudit
+  views?: SheetView[]
   tolerance?: {
     scheme: (ToleranceScheme | { kind: 'decimal_places'; label: string; places: Record<string, number>; angular: number | null; source: string; evidence: string[] }) | null
     findings: { level: 'ok' | 'warn'; text: string }[]

@@ -148,6 +148,21 @@ export const useRecognizeStore = create<RecognizeState>()((set, get) => ({
           added += p.characteristics.length
         }
       }
+      // Balloons placed before views were known get their view from where they sit. Not an edit: no undo step.
+      if (!opts.region) {
+        const store = useCharacteristicStore
+        store.setState({
+          items: store.getState().items.map((c) => {
+            const views = pages[c.page]?.views
+            if (c.view || !views?.length) return c
+            const reach = 0.2 * Math.max(pages[c.page].width, pages[c.page].height)
+            const gap = (b: { x: number; y: number; w: number; h: number }) =>
+              Math.hypot(Math.max(b.x - c.anchor.x, 0, c.anchor.x - b.x - b.w), Math.max(b.y - c.anchor.y, 0, c.anchor.y - b.y - b.h))
+            const near = [...views].sort((a, b) => gap(a.bbox) - gap(b.bbox))[0]
+            return gap(near.bbox) <= reach ? { ...c, view: near.name } : c
+          }),
+        })
+      }
       // The drawing's own tolerance statement becomes the default for rows with no printed tolerance.
       const found = res.pages.map((p) => p.tolerance?.scheme).find(Boolean)
       const settings = useSettingsStore.getState()

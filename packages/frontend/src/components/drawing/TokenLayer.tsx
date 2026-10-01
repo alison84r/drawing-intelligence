@@ -133,6 +133,18 @@ export function TokenLayer({ map, page }: Props) {
           ))}
       </svg>
 
+      {/* Audit view: the views found on the sheet, each with its name and scale. */}
+      {tokenView === 'all' && rec?.views?.map((v) => {
+        const r = toRect(v.bbox, map)
+        return (
+          <div key={v.id} className="absolute rounded-sm border border-dashed border-primary/70" style={{ left: r.x, top: r.y, width: r.w, height: r.h }} data-testid="sheet-view">
+            <span className="absolute -top-[18px] left-0 whitespace-nowrap rounded bg-primary px-1.5 text-[10px] font-medium leading-4 text-primary-foreground">
+              {v.name}{v.scaleText ? ` · ${v.scaleText}` : ''}
+            </span>
+          </div>
+        )
+      })}
+
       {bandRect && (
         <div
           className="absolute border-[1.5px] border-dashed border-primary bg-primary/10"

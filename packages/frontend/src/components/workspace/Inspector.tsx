@@ -169,7 +169,7 @@ export function Inspector() {
             <span className="inline-flex h-6 min-w-6 items-center justify-center rounded-full border-2 px-1 text-xs font-semibold" style={{ borderColor: color, color }}>
               {(c.style?.prefix ?? globalStyle.prefix) + balloonLabel(c)}
             </span>
-            Sheet {c.page + 1}{c.zone ? ` · Zone ${c.zone}` : ''}{c.designator ? ` · ${c.designator}` : ''}
+            Sheet {c.page + 1}{c.zone ? ` · Zone ${c.zone}` : ''}{c.view ? ` · ${c.view}` : ''}{c.designator ? ` · ${c.designator}` : ''}
           </span>
           <StatusBadge status={status} />
         </div>

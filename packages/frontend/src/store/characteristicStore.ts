@@ -64,6 +64,8 @@ export interface Characteristic {
   /** Box along the reading direction for diagonal text (centre, size, angle in degrees counter-clockwise). */
   obox?: OrientedBox | null
   geometry?: CalloutGeometry | null
+  /** The view on the sheet this callout belongs to, as named by Recognize ("SECTION A-A", "View 2"). */
+  view?: string
   zone: string
   descriptionType: DescriptionType
   specification: string

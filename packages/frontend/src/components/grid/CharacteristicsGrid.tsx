@@ -166,6 +166,7 @@ function buildColumns(defaults: DefaultTolerances): ColDef<Row>[] {
     { field: 'units', headerName: 'Units', width: 72, cellEditor: 'agSelectCellEditor', cellEditorParams: { values: ['mm', 'in', 'deg'] } },
     { field: 'count', headerName: 'Qty', width: 64, type: 'numericColumn', valueParser: (p) => Math.max(1, Math.round(parseNumber(String(p.newValue ?? '')) ?? 1)) },
     { field: 'zone', headerName: 'Zone', width: 76, valueParser: (p) => String(p.newValue ?? '').toUpperCase() },
+    { field: 'view', headerName: 'View', width: 130, editable: false },
     { field: 'measurementType', headerName: 'Type', width: 96, cellEditor: 'agSelectCellEditor', cellEditorParams: { values: ['Variable', 'Attribute'] } },
     { field: 'designator', headerName: 'Designator', width: 100, cellEditor: 'agSelectCellEditor', cellEditorParams: { values: ['', 'Key', 'Critical', 'Major', 'Minor'] } },
     {
@@ -224,7 +225,7 @@ function buildColumns(defaults: DefaultTolerances): ColDef<Row>[] {
 
 /** Columns shown for each step. "Columns" in the toolbar brings back the rest. */
 const COLUMN_SETS: Record<'review' | 'measure', string[]> = {
-  review: ['balloon', 'specification', 'gdt', 'zone', 'result', 'status', 'evidence'],
+  review: ['balloon', 'specification', 'gdt', 'zone', 'view', 'result', 'status', 'evidence'],
   measure: ['balloon', 'specification', 'gdt', 'min', 'max', 'result', 'status', 'zone'],
 }
 

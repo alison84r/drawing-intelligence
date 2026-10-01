@@ -16,6 +16,7 @@ from .tokens import Token, build_tokens
 from .refine import (SYMBOL_NOTE, add_vector_symbols, attach_modifier_lines, attach_orphan_degrees, enclosure_of, enclosures, is_basic,
                      mark_datum_boxes, merge_counts, oriented_box, place_balloons, split_at_x)
 from .scene import associate, build_scene, unexplained
+from .views import detect_views, recheck_with_view_scale
 from tolerance.detect import detect_scheme
 from .zones import detect_zones, synthetic_grid
 
@@ -72,11 +73,13 @@ def recognize(
             add_vector_symbols(lines, page, scene.segments)
             heads = scene.arrows
             tables: list[tuple[float, float, float, float]] = []
+            all_tables: list[tuple[float, float, float, float]] = []  # every ruled table, filled or not: none of them is a view
             try:
                 for tb in page.find_tables():
                     bx0, by0, bx1, by1 = tb.bbox
                     if (bx1 - bx0) * (by1 - by0) >= 0.25 * width * height or len(tb.rows) < 2:
                         continue
+                    all_tables.append((float(bx0), float(by0), float(bx1), float(by1)))
                     cells = [c for row in tb.extract() for c in row]
                     filled = sum(1 for c in cells if c and str(c).strip())
                     if len(cells) >= 6 and filled / len(cells) >= 0.5:
@@ -215,12 +218,21 @@ def recognize(
                 })
             info = associate(callouts, scene)
             scales = info["scales"]
+            # Views: which one each callout belongs to, and a second look at lengths that only disagree at the sheet scale.
+            try:
+                views = detect_views(page, tokens, all_tables, width, height, callouts, units, scales) if region is None else []
+                recheck_with_view_scale(callouts, views, units)
+            except Exception:  # noqa: BLE001 - views are an aid; recognition never depends on them
+                views = []
+                for c in callouts:
+                    c["view"] = None
             linear = [c for c in callouts if c["linear"]]
             geometry_readable = bool(scales) or (len(linear) >= 5 and sum(1 for c in linear if c.get("geometry")) >= 0.6 * len(linear))
             audit_none, audit_mismatch = [], []
             for (line, group, record, already), c in zip(pending, callouts):
                 g = c.get("geometry")
                 record["geometry"] = g
+                record["view"] = views[c["view"]].to_json(c["view"])["name"] if views and c.get("view") is not None else ""
                 at = {"x": record["anchor"]["x"], "y": record["anchor"]["y"]}
                 kind = g["kind"] if g else "none"
                 if kind == "dimension" and g.get("ratioOk") and group.confidence == 0.5 and group.reason.startswith("single digit"):
@@ -288,6 +300,7 @@ def recognize(
                 "tables": [list(t) for t in tables],
                 "arrowheads": len(heads),
                 "audit": audit,
+                "views": [v.to_json(i) for i, v in enumerate(views)],
                 "tolerance": tolerance,
                 "tokens": [t.to_json() for t in tokens],
                 "characteristics": characteristics,

@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { CheckCheck, CircleAlert, CircleCheck, CircleX, Loader2, Ruler, ScanSearch, Settings2 } from 'lucide-react'
+import { CheckCheck, CircleAlert, CircleCheck, CircleX, LayoutGrid, Loader2, Ruler, ScanSearch, Settings2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { focusAt, openGroups, useRecognizeStore } from '@/store/recognizeStore'
@@ -183,6 +183,27 @@ export function SidePanel() {
             <li className="flex items-start gap-2">
               <CircleCheck className="mt-px size-3.5 shrink-0 text-status-pass" />
               <span>{audit.verified} values agree with their dimension line{audit.scales.length > 1 ? `, ${audit.scales.length} view scales` : ''}</span>
+            </li>
+          )}
+          {page?.views && page.views.length > 0 && (
+            <li className="flex items-start gap-2" data-testid="sheet-views">
+              <LayoutGrid className="mt-px size-3.5 shrink-0 text-primary" />
+              <span>
+                {page.views.length} {page.views.length === 1 ? 'view' : 'views'}
+                <span className="mt-1 flex flex-wrap gap-1">
+                  {page.views.map((v) => (
+                    <button
+                      key={v.id}
+                      type="button"
+                      onClick={() => focusAt(v.bbox.x + v.bbox.w / 2, v.bbox.y + v.bbox.h / 2, page.dimensionFontSize)}
+                      title={v.scaleSource === 'declared' ? 'Scale printed on the drawing' : v.scaleSource === 'measured' ? 'Scale measured from this view\'s dimension lines' : v.scaleSource === 'sheet' ? 'Scale of the sheet' : 'No scale found'}
+                      className="rounded border px-1.5 py-0.5 text-[11px] transition-colors hover:border-primary hover:bg-primary/5"
+                    >
+                      {v.name}{v.scaleText ? <span className="ml-1 tabular-nums text-muted-foreground">{v.scaleText}</span> : null}
+                    </button>
+                  ))}
+                </span>
+              </span>
             </li>
           )}
           {stale && <li className="text-status-draft">Read by an older recognizer version. Recognize again to refresh.</li>}
