@@ -67,6 +67,8 @@ def recognize(
 
             def printed_token(t: Token) -> bool:
                 cx, cy = (t.x0 + t.x1) / 2, (t.y0 + t.y1) / 2
+                if not (0 <= cx <= width and 0 <= cy <= height):
+                    return False  # left over outside the sheet: in the file, never on the paper
                 if any(x0 <= cx <= x1 and y0 <= cy <= y1 for x0, y0, x1, y1 in pictures):
                     return False
                 # A symbol font can place its text box beside the glyph it draws (a degree sign sits above the box):
@@ -112,6 +114,8 @@ def recognize(
                     bx0, by0, bx1, by1 = tb.bbox
                     if (bx1 - bx0) * (by1 - by0) >= 0.25 * width * height or len(tb.rows) < 2:
                         continue
+                    if not (0 <= (bx0 + bx1) / 2 <= width and 0 <= (by0 + by1) / 2 <= height):
+                        continue  # left over outside the sheet
                     all_tables.append((float(bx0), float(by0), float(bx1), float(by1)))
                     cells = [c for row in tb.extract() for c in row]
                     filled = sum(1 for c in cells if c and str(c).strip())
@@ -137,7 +141,8 @@ def recognize(
                     as_tolerance = read_tolerance_grid(cells["rows"])
                     if as_tolerance and tolerance_table is None:
                         tolerance_table = as_tolerance
-                    grids.append({**cells, "kind": "tolerance" if as_tolerance else r["kind"] if r["kind"] != "title_text" else "title_block"})
+                    holes = r.get("_hole") or any(h.get("_hole") and _overlaps(h["bbox"], cells["bbox"], 0.6) for h in shielded)
+                    grids.append({**cells, "kind": "hole_table" if holes else "tolerance" if as_tolerance else r["kind"] if r["kind"] != "title_text" else "title_block"})
             tolerance = detect_scheme(sheet_text, marked_class, tolerance_table)
             offered: set[str] = set()  # records inside a table under a window: offered for picking, not placed
 
@@ -167,6 +172,11 @@ def recognize(
                     withheld[zone_kind] += 1
                     for t in line.all_tokens:
                         t.cls, t.reason = "ruled", "title block" if zone_kind == "title_block" else "under a picture, not visible on the drawing"
+                    continue
+                if zone_kind == "table" and not relaxed:
+                    # A table found by our own detectors (hole table, tolerance table): its cells are not dimensions.
+                    for t in line.all_tokens:
+                        t.cls, t.reason = "ruled", "table cell"
                     continue
                 why = rule_out(line, dim_size, width, height, relaxed, tables)
                 if why == "note":

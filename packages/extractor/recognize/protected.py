@@ -16,6 +16,7 @@ from typing import Any
 
 import math
 
+from .holes import find_hole_tables
 from .tokens import Token
 from .views import _regions, _strokes, _thick_pen
 
@@ -91,6 +92,8 @@ def protected_regions(page: Any, tables: list[Box], tokens: list[Token], width: 
     except Exception:  # noqa: BLE001 - an aid: the table finder's result still stands
         pass
 
+    holes = set(find_hole_tables(tokens, width, height))
+    found += [("table", b) for b in holes]
     # Sparse tables count only if they turn out to be a title block (decided by their words below).
     found += [("maybe", b) for b in (tuple(float(v) for v in t) for t in any_tables) if b not in {x for _, x in found} and not border_strip(b)]  # type: ignore[misc]
 
@@ -101,11 +104,11 @@ def protected_regions(page: Any, tables: list[Box], tokens: list[Token], width: 
         # Title-block words decide; a picture in the bottom-right corner of the sheet is one even without readable text.
         big = (box[2] - box[0]) * (box[3] - box[1]) >= 0.015 * area  # a logo is a picture, not a title block
         corner = kind == "picture" and big and (box[0] + box[2]) / 2 > 0.5 * width and (box[1] + box[3]) / 2 > 0.7 * height
-        if titles >= 3 or corner:
+        if (titles >= 3 or corner) and box not in holes:
             kind = "title_block"
         if kind == "maybe":
             continue  # a sparse table that is not a title block: left alone
-        out.append({"kind": kind, "bbox": {"x": round(box[0], 1), "y": round(box[1], 1), "w": round(box[2] - box[0], 1), "h": round(box[3] - box[1], 1)}, "_box": box, "_picture": box in pictures})
+        out.append({"kind": kind, "bbox": {"x": round(box[0], 1), "y": round(box[1], 1), "w": round(box[2] - box[0], 1), "h": round(box[3] - box[1], 1)}, "_box": box, "_picture": box in pictures, "_hole": box in holes})
     # A title block drawn as plain text and rules: found by its field names, and accepted only if no
     # dimension arrowhead falls inside (a box that reaches into the drawing is worse than none).
     box = title_word_cluster(tokens, width, height)

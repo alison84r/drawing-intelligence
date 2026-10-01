@@ -32,7 +32,7 @@ def candidates(pdf_bytes: bytes, page_index: int) -> list[dict[str, Any]]:
         if r.get("picture"):
             kind, label = "picture", "Title block (picture)" if r["kind"] == "title_block" else "Picture"
         else:
-            kind, label = "table", "Tolerance table" if tolerance else "Title block" if r["kind"] == "title_block" else "Table"
+            kind, label = "table", "Tolerance table" if tolerance else "Title block" if r["kind"] == "title_block" else "Hole table" if any(g["kind"] == "hole_table" and _contains(box, g["bbox"]) for g in grids) else "Table"
         out.append({"kind": kind, "label": label, "task": "tolerance_table" if tolerance else "title_block" if r["kind"] == "title_block" else None, "bbox": box})
     # One entry per thing: a region inside a larger one of the same kind is the same thing.
     out = [c for c in out if not any(o is not c and o["kind"] == c["kind"] and _contains(o["bbox"], c["bbox"]) and o["bbox"] != c["bbox"] for o in out)]

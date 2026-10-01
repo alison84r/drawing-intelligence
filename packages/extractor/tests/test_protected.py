@@ -96,3 +96,36 @@ def test_regions_offered_for_reading(pdf):
     assert labels[0] == "Tolerance table" and found[0]["task"] == "tolerance_table"
     assert labels.count("Title block (picture)") == 1
     assert all(c["bbox"]["w"] > 100 for c in found)  # no border strips, no frames
+
+
+DRAWINGS = HEAT_SINK.parent
+
+
+@pytest.mark.parametrize("name,sheet,rows", [("sample4_HT.pdf", 3, 26), ("PLATE DRAWING.PDF", 0, 22), ("smaple 3_HT.PDF", 0, 23)])
+def test_hole_table_is_found_and_not_ballooned(name, sheet, rows):
+    path = DRAWINGS / name
+    if not path.exists():
+        pytest.skip("sample drawing not present")
+    page = recognize(path.read_bytes(), pages=[sheet])["pages"][0]
+    tables = [g for g in page["grids"] if g["kind"] == "hole_table"]
+    assert tables and any(len(g["rows"]) == rows for g in tables)
+    for c in page["characteristics"]:
+        cx, cy = c["bbox"]["x"] + c["bbox"]["w"] / 2, c["bbox"]["y"] + c["bbox"]["h"] / 2
+        assert not any(g["bbox"]["x"] <= cx <= g["bbox"]["x"] + g["bbox"]["w"] and g["bbox"]["y"] <= cy <= g["bbox"]["y"] + g["bbox"]["h"] for g in tables)
+
+
+def test_text_left_outside_the_sheet_is_ignored():
+    path = DRAWINGS / "M.088C.100.07.004.pdf"
+    if not path.exists():
+        pytest.skip("sample drawing not present")
+    page = recognize(path.read_bytes(), pages=[1])["pages"][0]
+    assert all(p["bbox"]["w"] > 0 and 0 <= p["bbox"]["x"] < page["width"] for p in page["protected"])
+
+
+def test_inventor_export_reads_text_at_its_printed_size():
+    """Inventor puts the size on the font and leaves the text matrix at 1: dimensions must not look like small print."""
+    path = DRAWINGS / "2D-DETAIL.pdf"
+    if not path.exists():
+        pytest.skip("sample drawing not present")
+    page = recognize(path.read_bytes(), pages=[0])["pages"][0]
+    assert page["dimensionFontSize"] > 8 and len(page["characteristics"]) >= 18 and page["audit"]["verified"] >= 12

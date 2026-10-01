@@ -114,10 +114,25 @@ def _rotation(matrix: tuple[float, ...]) -> int:
     return int(round(math.degrees(math.atan2(b, a)))) % 360
 
 
-def _font_scale(matrix: tuple[float, ...], fallback: float) -> float:
+def _font_scale(matrix: tuple[float, ...], c: dict[str, Any]) -> float:
+    """
+    The printed height of the text, in points.
+
+    Most CAD exports set the font to size 1 and put the real size in the text matrix, so the matrix scale is
+    the size (and it stays right for rotated text, where the reported glyph height is not). Autodesk Inventor
+    does the opposite: a unit matrix and the real size on the font. Then the size is the glyph's extent across
+    its reading direction: its height when upright, its width when it runs up the sheet.
+    """
     a, b = float(matrix[0]), float(matrix[1])
     s = math.hypot(a, b)
-    return s if s > 0.1 else fallback
+    if s > 1.5:
+        return s
+    height, width = float(c.get("height") or 0), float(c.get("width") or 0)
+    if abs(b) <= 0.1 * abs(a) and height > 0:
+        return height
+    if abs(a) <= 0.1 * abs(b) and width > 0:
+        return width
+    return float(c.get("size") or 0) or s
 
 
 def _font_base(name: str) -> str:
@@ -151,7 +166,7 @@ def build_tokens(chars: list[dict[str, Any]], page: int) -> list[Token]:
             continue
         font = _font_base(c.get("fontname", ""))
         matrix = c.get("matrix", (1, 0, 0, 1, 0, 0))
-        size = _font_scale(matrix, float(c.get("size") or 0))
+        size = _font_scale(matrix, c)
         rot = _rotation(matrix)
         text, kind = _canon(text, font)
         items.append(Token("", page, text, float(c["x0"]), float(c["top"]), float(c["x1"]), float(c["bottom"]), size, font, rot, kind))

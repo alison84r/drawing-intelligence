@@ -257,7 +257,7 @@ export function SidePanel() {
           <div className="flex flex-wrap gap-1 border-t bg-muted/30 px-2.5 py-2">
             {page.grids.map((g, i) => (
               <button key={i} type="button" className={pill} onClick={() => setShownGrid(g)}>
-                {g.kind === 'tolerance' ? 'Tolerance table' : g.kind === 'title_block' ? 'Title block' : 'Table'}
+                {g.kind === 'tolerance' ? 'Tolerance table' : g.kind === 'title_block' ? 'Title block' : g.kind === 'hole_table' ? 'Hole table' : 'Table'}
                 <span className="ml-1 tabular-nums text-muted-foreground">{g.rows.length} × {g.cols}</span>
               </button>
             ))}

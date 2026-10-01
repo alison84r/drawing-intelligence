@@ -5,7 +5,7 @@ import type { SheetGrid } from '@/lib/api'
 import type { ToleranceScheme } from '@/store/settingsStore'
 import { cn } from '@/lib/utils'
 
-const KIND: Record<SheetGrid['kind'], string> = { tolerance: 'General tolerance table', title_block: 'Title block', table: 'Table' }
+const KIND: Record<SheetGrid['kind'], string> = { tolerance: 'General tolerance table', title_block: 'Title block', table: 'Table', hole_table: 'Hole table' }
 
 /** Columns a merged cell covers: the empty positions after it in the row. */
 function spans(row: (string | null)[]): { text: string; span: number }[] {

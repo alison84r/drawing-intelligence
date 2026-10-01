@@ -115,7 +115,7 @@ export interface SheetView {
 
 /** A table on the sheet read cell by cell. A merged cell holds its text once; the positions it covers are null. */
 export interface SheetGrid {
-  kind: 'tolerance' | 'title_block' | 'table'
+  kind: 'tolerance' | 'title_block' | 'table' | 'hole_table'
   bbox: { x: number; y: number; w: number; h: number }
   rows: (string | null)[][]
   cols: number
