@@ -31,16 +31,20 @@ def test_window_over_the_title_block_places_nothing(pdf):
     assert out["characteristics"] == []
     assert out["withheld"]["title_block"] + out["withheld"]["picture"] > 0
     assert not any(t["guess"] for t in out["tokens"])  # not even offered
+    assert not [t["text"] for t in out["tokens"] if t["cls"] == "open"]  # and nothing left amber
 
 
-def test_window_over_a_table_offers_but_does_not_place(pdf):
+def test_window_over_the_tolerance_table_places_and_offers_nothing(pdf):
+    """The general tolerance table (merged cells, missed by the plain table finder) holds no characteristic."""
     page = recognize(pdf)["pages"][0]
-    # The general tolerance table at the bottom left: merged cells, missed by the plain table finder.
     tables = [p["bbox"] for p in page["protected"] if p["kind"] == "table" and p["bbox"]["w"] > 200 and p["bbox"]["y"] > 0.8 * page["height"]]
     assert tables
     out = recognize(pdf, region=tables[0], relaxed=True)["pages"][0]
-    assert out["characteristics"] == [] and out["withheld"]["table"] > 0
-    assert any(t["guess"] for t in out["tokens"])  # offered for picking
+    assert out["characteristics"] == [] and out["withheld"]["table"] > 0 and out["withheld"]["offered"] == 0
+    # Nothing is left amber: headings, ranges and cell text are settled as table text.
+    b = tables[0]
+    inside = [t for t in out["tokens"] if b["y"] <= t["bbox"]["y"] + t["bbox"]["h"] / 2 <= b["y"] + b["h"]]
+    assert inside and not [t["text"] for t in inside if t["cls"] == "open"]
 
 
 def test_window_over_a_view_still_places_balloons(pdf):

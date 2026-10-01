@@ -12,7 +12,7 @@ from typing import Any
 import pdfplumber
 
 from .inkfit import fit_box, has_ink, render_gray
-from .grouper import attach_stacks, build_lines, dimension_font_size, parse_line, rule_out
+from .grouper import MODIFIER_WORDS, attach_stacks, build_lines, dimension_font_size, parse_line, rule_out
 from .tokens import Token, build_tokens
 from .refine import (SYMBOL_NOTE, add_vector_symbols, attach_modifier_lines, attach_orphan_degrees, enclosure_of, enclosures, is_basic,
                      mark_datum_boxes, merge_counts, oriented_box, place_balloons, split_at_x)
@@ -54,7 +54,36 @@ def recognize(
                 continue
             width, height = float(page.width), float(page.height)
             tokens = build_tokens(page.chars, index)
-            tolerance = detect_scheme(tokens)
+            try:
+                ink = render_gray(pdf_bytes, index)
+            except Exception:  # noqa: BLE001 - without a render the PDF text boxes are used as they are
+                ink = None
+            # Text can be in the file and not on the drawing: under a white patch, under a pasted picture.
+            # Only printed text may say anything about the part: not a tolerance class, not a note, not a value.
+            pictures = [(float(im["x0"]), float(im["top"]), float(im["x1"]), float(im["bottom"])) for im in page.images
+                        if (float(im["x1"]) - float(im["x0"])) * (float(im["bottom"]) - float(im["top"])) >= 0.004 * width * height]
+
+            def printed_token(t: Token) -> bool:
+                cx, cy = (t.x0 + t.x1) / 2, (t.y0 + t.y1) / 2
+                if any(x0 <= cx <= x1 and y0 <= cy <= y1 for x0, y0, x1, y1 in pictures):
+                    return False
+                return ink is None or has_ink(ink, (t.x0, t.y0, t.x1, t.y1))
+
+            hidden_ids = {t.id for t in tokens if not printed_token(t)}
+            # The class a tolerance table singles out: the designation letter with a circle drawn round it.
+            shapes = enclosures(page)
+            def ringed(t: Token) -> bool:
+                # A circle about the size of the letter, centred on it. The font's text box can poke out of the ring,
+                # so the test is on centres and size, not on containment.
+                cx, cy = (t.x0 + t.x1) / 2, (t.y0 + t.y1) / 2
+                for sx0, sy0, sx1, sy1 in shapes["shapes"]:
+                    sw, sh = sx1 - sx0, sy1 - sy0
+                    if 0.8 <= sw / sh <= 1.25 and 0.7 * t.size <= sw <= 2.2 * t.size and abs((sx0 + sx1) / 2 - cx) <= 0.25 * sw and abs((sy0 + sy1) / 2 - cy) <= 0.25 * sh:
+                        return True
+                return False
+
+            circled = {t.text.lower() for t in tokens if t.id not in hidden_ids and t.text.lower() in ("f", "m", "c", "v") and ringed(t)}
+            tolerance = detect_scheme([t for t in tokens if t.id not in hidden_ids], circled.pop() if len(circled) == 1 else None)
             grid = detect_zones(tokens, width, height)
             synthetic = grid is None
             if grid is None:
@@ -62,15 +91,10 @@ def recognize(
             dim_size = dimension_font_size([t for t in tokens if t.cls != "ruled"])
             if region is not None:
                 tokens = [t for t in tokens if _intersects(t, region)]
-            try:
-                ink = render_gray(pdf_bytes, index)
-            except Exception:  # noqa: BLE001 - without a render the PDF text boxes are used as they are
-                ink = None
             mark_datum_boxes([t for t in tokens if t.size >= 0.6 * dim_size or t.kind == "gdt"], ink)
             attach_stacks(tokens, dim_size)
             lines = build_lines(tokens, dim_size)
             lines = attach_modifier_lines(attach_orphan_degrees(merge_counts(split_at_x(lines))))
-            shapes = enclosures(page)
             scene = build_scene(page)
             add_vector_symbols(lines, page, scene.segments)
             heads = scene.arrows
@@ -90,7 +114,7 @@ def recognize(
                 tables = []
 
             # Title block, pictures and tables: no balloons there, whatever tool asked.
-            printed = [t for t in tokens if ink is None or has_ink(ink, (t.x0, t.y0, t.x1, t.y1))]  # text that is really on the sheet
+            printed = [t for t in tokens if t.id not in hidden_ids]  # text that is really on the sheet
             shielded = protected_regions(page, tables, printed, width, height, [a.tip for a in heads], all_tables)
             withheld = {"title_block": 0, "picture": 0, "table": 0}
             offered: set[str] = set()  # records inside a table under a window: offered for picking, not placed
@@ -107,7 +131,7 @@ def recognize(
                     for t in line.all_tokens:
                         t.cls, t.reason = "ruled", "outside the drawing border"
                     continue
-                if ink is not None and not has_ink(ink, line.bbox):
+                if sum(1 for t in line.all_tokens if t.id in hidden_ids) >= 0.6 * len(line.all_tokens):
                     for t in line.all_tokens:
                         t.cls, t.reason = "ruled", "in the file but not visible on the drawing"
                     continue
@@ -210,8 +234,14 @@ def recognize(
                     record["comments"] = ", ".join(SYMBOL_NOTE[f] for f in feats if f in SYMBOL_NOTE)
                 already = any(e.get("page") == index and e.get("bbox") and _overlaps(e["bbox"], bbox) for e in existing)
                 if zone_kind == "table" and relaxed and not already:
-                    offered.add(record["id"])
                     withheld["table"] += 1
+                    # A table row read as one string ("400 UPTO 6 UPTO 30") is not a value. Only a clean value is
+                    # worth offering; headings, ranges and sentences are table text.
+                    if any(re.search(r"[A-Za-z]{3,}", t.text) and t.text.upper() not in MODIFIER_WORDS for t in line.tokens):
+                        for t in line.all_tokens:
+                            t.cls, t.reason = "ruled", "table text"
+                        continue
+                    offered.add(record["id"])
                 # A callout that is already ballooned still takes part in the geometry pass, so the audit stays whole on a re-run.
                 pending.append((line, group, record, already))
 
@@ -317,6 +347,23 @@ def recognize(
                 for t in tokens:
                     if t.size >= 5:
                         t.x0, t.y0, t.x1, t.y1 = fit_box(ink, (t.x0, t.y0, t.x1, t.y1), t.rot, t.size)
+            # Text that was not turned into a value is only worth the inspector's eye where a characteristic can be.
+            # In a title block, under a picture, in a table, or not printed at all, it is settled: not amber.
+            for t in tokens:
+                if t.cls != "open" or t.guess:
+                    continue
+                tx, ty = (t.x0 + t.x1) / 2, (t.y0 + t.y1) / 2
+                where = region_at(tx, ty, shielded)
+                if t.id in hidden_ids:
+                    t.cls, t.reason = "ruled", "in the file but not visible on the drawing"
+                elif outside_frame(tx, ty, width, height):
+                    t.cls, t.reason = "ruled", "outside the drawing border"
+                elif where in ("title_block", "picture"):
+                    t.cls, t.reason = "ruled", "title block" if where == "title_block" else "under a picture, not visible on the drawing"
+                elif where == "title_text" and (re.search(r"[A-Za-z]{2,}", t.text) or t.size < 0.85 * dim_size):
+                    t.cls, t.reason = "ruled", "title block"
+                elif where == "table":
+                    t.cls, t.reason = "ruled", "table text"
             # Tokens that no line claimed stay open with a reason.
             for t in tokens:
                 if t.cls == "open" and not t.reason:
@@ -336,7 +383,7 @@ def recognize(
                 "audit": audit,
                 "views": [v.to_json(i) for i, v in enumerate(views)],
                 "protected": [{"kind": "title_block" if r["kind"] == "title_text" else r["kind"], "bbox": r["bbox"]} for r in shielded],
-                "withheld": withheld if region is not None else None,
+                "withheld": {**withheld, "offered": len(offered)} if region is not None else None,
                 "tolerance": tolerance,
                 "tokens": [t.to_json() for t in tokens],
                 "characteristics": characteristics,

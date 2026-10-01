@@ -181,11 +181,16 @@ export const useRecognizeStore = create<RecognizeState>()((set, get) => ({
           if (found.angular !== null) settings.setDefault('angular', found.angular)
         }
       }
-      const held = res.pages.reduce((n, p) => ({ block: n.block + (p.withheld?.title_block ?? 0) + (p.withheld?.picture ?? 0), table: n.table + (p.withheld?.table ?? 0) }), { block: 0, table: 0 })
+      const held = res.pages.reduce((n, p) => ({
+        block: n.block + (p.withheld?.title_block ?? 0) + (p.withheld?.picture ?? 0),
+        table: n.table + (p.withheld?.table ?? 0),
+        offered: n.offered + (p.withheld?.offered ?? 0),
+      }), { block: 0, table: 0, offered: 0 })
       const notice = !opts.region ? null
-        : held.block > 0 && added === 0 && held.table === 0 ? 'That window is over the title block. Nothing there is a characteristic, so no balloons were placed. To read it, use Read a region.'
-        : held.table > 0 ? `${held.table} ${held.table === 1 ? 'value is' : 'values are'} inside a table. They are marked in amber: click the ones that are inspected.`
-        : held.block > 0 ? 'Text in the title block was left out.'
+        : held.offered > 0 ? `${held.offered} ${held.offered === 1 ? 'value' : 'values'} inside a table ${held.offered === 1 ? 'is' : 'are'} marked in amber. Click the ones that are inspected.`
+        : added > 0 ? null
+        : held.block > 0 ? 'That window is over the title block. Nothing there is a characteristic, so no balloons were placed. To read it, use Read a region.'
+        : held.table > 0 ? 'That window is over a table. Nothing in it reads as an inspected value, so no balloons were placed.'
         : null
       set({ notice, stale: false, status: 'done', pages, lastRun: Date.now(), lastAdded: added, tokenView: get().tokenView === 'off' ? 'review' : get().tokenView })
       if (added > 0) useUiStore.getState().setTool('select')

@@ -74,3 +74,22 @@ def test_bracket_refers_to_a_company_standard_that_is_not_on_the_sheet() -> None
 
 def test_no_statement_means_no_scheme() -> None:
     assert _detect("cmp1")["scheme"] is None
+
+
+def test_heat_sink_class_comes_from_what_is_printed():
+    """The file also holds a note 'TOLERANCE CLASS :- MEDIUM' hidden under a white patch. It must not be the evidence."""
+    from pathlib import Path
+
+    import pytest
+
+    from recognize.pipeline import recognize
+
+    path = Path(__file__).resolve().parents[4] / "Drawings" / "01270007-01_heat-sink-plate (1) (1).pdf"
+    if not path.exists():
+        pytest.skip("sample drawings not present")
+    page = recognize(path.read_bytes())["pages"][0]
+    scheme = page["tolerance"]["scheme"]
+    assert scheme and scheme["label"] == "ISO 2768-m" and scheme["verifiedAgainstSheet"] is True
+    assert any("circled" in e for e in scheme["evidence"])
+    assert not any("UNSPECIFIED TOLERANCE CLASS" in e for e in scheme["evidence"])
+    assert not any(t["guess"] and t["guess"]["descriptionType"] == "Note" for t in page["tokens"])  # the hidden notes are not offered

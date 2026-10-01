@@ -71,7 +71,11 @@ def _num(s: str) -> float:
     return float(s.replace(",", "."))
 
 
-def detect_scheme(tokens: list[Any]) -> dict[str, Any]:
+def detect_scheme(tokens: list[Any], marked_class: str | None = None) -> dict[str, Any]:
+    """
+    marked_class: the class letter (f, m, c, v) that the sheet singles out graphically, typically a circle
+    drawn round it in the designation column of the printed table. Used only when no note names the class.
+    """
     lines = text_lines(tokens)
     findings: list[dict[str, str]] = []
     cls: str | None = None
@@ -100,6 +104,10 @@ def detect_scheme(tokens: list[Any]) -> dict[str, Any]:
             key = CLASS_NAMES[re.sub(r"\s+", " ", m.group(1).lower())]
             printed.setdefault(key, [_num(v) for v in re.findall(r"±\s*(\d+(?:[.,]\d+)?)", m.group(2))])
             printed_line.setdefault(key, ln.strip()[:140])
+
+    if cls is None and marked_class in printed:
+        cls = marked_class
+        evidence.append(f"Class {marked_class} ({CLASS_LABEL[marked_class]}) is circled in the table on the sheet")
 
     if cls is not None:
         reference = ISO_2768_LINEAR[cls]
