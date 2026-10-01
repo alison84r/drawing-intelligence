@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { api, type RecognizePage, type RecognizeToken } from '@/lib/api'
+import { api, type IntakeReport, type RecognizePage, type RecognizeToken } from '@/lib/api'
 import { useCharacteristicStore, type Characteristic } from './characteristicStore'
 import { useSessionStore } from './sessionStore'
 import { useSettingsStore } from './settingsStore'
@@ -30,7 +30,11 @@ interface RecognizeState {
   lastAdded: number
   /** Live rubber band for the window tool, in page points. */
   band: Region | null
+  /** Readability verdict for the open drawing, fetched when it opens. */
+  intake: IntakeReport | null
+  intakeFor: string | null
 
+  loadIntake: (revisionId: string) => Promise<void>
   run: (opts?: { region?: Region; pages?: number[] }) => Promise<void>
   adopt: (guessId: string) => void
   setTokenView: (v: TokenView) => void
@@ -63,6 +67,19 @@ export const useRecognizeStore = create<RecognizeState>()((set, get) => ({
   lastRun: null,
   lastAdded: 0,
   band: null,
+  intake: null,
+  intakeFor: null,
+
+  loadIntake: async (revisionId) => {
+    if (get().intakeFor === revisionId) return
+    set({ intakeFor: revisionId, intake: null })
+    try {
+      const report = await api.intake(revisionId)
+      if (get().intakeFor === revisionId) set({ intake: report })
+    } catch {
+      /* the card simply stays empty; Recognize reports its own errors */
+    }
+  },
 
   run: async (opts = {}) => {
     const revisionId = useSessionStore.getState().revisionId
@@ -131,5 +148,5 @@ export const useRecognizeStore = create<RecognizeState>()((set, get) => ({
     useCharacteristicStore.getState().removeAuto()
     set({ pages: {}, status: 'idle', error: null, lastAdded: 0 })
   },
-  clearTokens: () => set({ pages: {}, status: 'idle', error: null, lastAdded: 0, band: null }),
+  clearTokens: () => set({ pages: {}, status: 'idle', error: null, lastAdded: 0, band: null, intake: null, intakeFor: null }),
 }))

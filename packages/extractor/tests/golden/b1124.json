@@ -1,0 +1,101 @@
+{
+ "drawing": "18_1124_000.pdf",
+ "verifiedByEye": true,
+ "characteristics": [
+  {
+   "specification": "10",
+   "descriptionType": "Linear",
+   "toleranceType": "Bilateral",
+   "nominal": 10.0,
+   "tolHigh": null,
+   "tolLow": null,
+   "count": 1,
+   "designator": "",
+   "zone": "A1",
+   "gdt": null,
+   "at": [
+    224.2,
+    190.2
+   ],
+   "page": 0
+  },
+  {
+   "specification": "5.3",
+   "descriptionType": "Linear",
+   "toleranceType": "Bilateral",
+   "nominal": 5.3,
+   "tolHigh": null,
+   "tolLow": null,
+   "count": 1,
+   "designator": "",
+   "zone": "A3",
+   "gdt": null,
+   "at": [
+    567.3,
+    193.0
+   ],
+   "page": 0
+  },
+  {
+   "specification": "15.3",
+   "descriptionType": "Linear",
+   "toleranceType": "Bilateral",
+   "nominal": 15.3,
+   "tolHigh": null,
+   "tolLow": null,
+   "count": 1,
+   "designator": "",
+   "zone": "B4",
+   "gdt": null,
+   "at": [
+    714.5,
+    251.8
+   ],
+   "page": 0
+  },
+  {
+   "specification": "⟂0.4 A",
+   "descriptionType": "Perpendicularity",
+   "toleranceType": "GD&T",
+   "nominal": 0.4,
+   "tolHigh": null,
+   "tolLow": null,
+   "count": 1,
+   "designator": "",
+   "zone": "B4",
+   "gdt": {
+    "symbol": "⟂",
+    "zone": "",
+    "tolerance": "0.4",
+    "modifier": "",
+    "datums": [
+     "A",
+     "",
+     ""
+    ]
+   },
+   "at": [
+    718.0,
+    274.0
+   ],
+   "page": 0
+  },
+  {
+   "specification": "1.00",
+   "descriptionType": "Linear",
+   "toleranceType": "Bilateral",
+   "nominal": 1.0,
+   "tolHigh": null,
+   "tolLow": null,
+   "count": 1,
+   "designator": "",
+   "zone": "C3",
+   "gdt": null,
+   "at": [
+    456.2,
+    443.5
+   ],
+   "page": 0
+  }
+ ]
+}

@@ -1,4 +1,5 @@
-import { AlertTriangle, CheckCheck, Loader2, RotateCcw, ScanSearch, Sparkles, SquareDashedMousePointer } from 'lucide-react'
+import { useEffect } from 'react'
+import { AlertTriangle, CheckCheck, CircleAlert, CircleCheck, CircleX, Loader2, RotateCcw, ScanSearch, Sparkles, SquareDashedMousePointer } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
@@ -40,10 +41,18 @@ export function RecognizePanel() {
   const acceptAll = useCharacteristicStore((s) => s.acceptAll)
   const select = useCharacteristicStore((s) => s.select)
 
+  const intake = useRecognizeStore((s) => s.intake)
+  const loadIntake = useRecognizeStore((s) => s.loadIntake)
+  useEffect(() => {
+    if (revisionId && ready) void loadIntake(revisionId)
+  }, [revisionId, ready, loadIntake])
+  const intakePage = intake?.pages.find((p) => p.page === pageIndex) ?? intake?.pages[0]
+  const unreadable = intake?.level === 'bad'
+
   const running = status === 'running'
   const needs = openGroups(page)
   const unread = page ? page.tokens.filter((t) => t.cls === 'open' && !t.guess).length : 0
-  const canRun = ready && Boolean(revisionId) && !running
+  const canRun = ready && Boolean(revisionId) && !running && !unreadable
 
   return (
     <section className="space-y-2">
@@ -79,6 +88,32 @@ export function RecognizePanel() {
         </Tooltip>
       </div>
       {!revisionId && ready && <p className="text-[11px] text-status-draft">Open the drawing from the library to recognize it.</p>}
+      {intake && intakePage && (
+        <div
+          className={cn(
+            'rounded-md border bg-background',
+            intake.level === 'bad' && 'border-status-fail/50',
+            intake.level === 'warn' && 'border-status-draft/50',
+          )}
+          data-testid="intake-card"
+        >
+          <div className="flex items-center gap-1.5 border-b px-2.5 py-1.5 text-[11px] font-medium">
+            {intake.level === 'ok' ? <CircleCheck className="size-3.5 text-status-pass" /> : intake.level === 'warn' ? <CircleAlert className="size-3.5 text-status-draft" /> : <CircleX className="size-3.5 text-status-fail" />}
+            {intake.verdict}
+          </div>
+          <ul className="space-y-1 px-2.5 py-2">
+            {intakePage.rows.map((r) => (
+              <li key={r.key} className="grid grid-cols-[auto_1fr] gap-x-2 text-[11px] leading-snug">
+                <span className={cn('mt-[5px] size-1.5 rounded-full', r.level === 'ok' ? 'bg-status-pass' : r.level === 'warn' ? 'bg-status-draft' : 'bg-status-fail')} />
+                <span>
+                  <span className="font-medium">{r.label}</span> <span className="text-muted-foreground">{r.value}</span>
+                </span>
+              </li>
+            ))}
+          </ul>
+          {unreadable && <p className="border-t px-2.5 py-1.5 text-[11px] text-muted-foreground">Balloon this sheet by hand, or ask for a vector PDF export from CAD.</p>}
+        </div>
+      )}
       {error && <p className="text-[11px] text-status-fail" role="alert">{error}</p>}
 
       {page && (

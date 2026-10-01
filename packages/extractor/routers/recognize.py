@@ -9,6 +9,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 from db import DrawingRevision, get_session
+from recognize.intake import RECOGNIZER_VERSION, intake
 from recognize.pipeline import recognize
 
 router = APIRouter(prefix="/api", tags=["recognize"])
@@ -30,6 +31,22 @@ def recognize_revision(revision_id: str, body: RecognizeRequest) -> dict[str, An
             raise HTTPException(404, "Revision not found")
         pdf_bytes = rev.pdf
     try:
-        return recognize(pdf_bytes, pages=body.pages, region=body.region, relaxed=body.relaxed, units=body.units, existing_bboxes=body.existing)
+        out = recognize(pdf_bytes, pages=body.pages, region=body.region, relaxed=body.relaxed, units=body.units, existing_bboxes=body.existing)
+        out["recognizerVersion"] = RECOGNIZER_VERSION
+        return out
     except Exception as exc:  # noqa: BLE001
         raise HTTPException(500, f"Recognize failed: {exc}") from exc
+
+
+@router.get("/revisions/{revision_id}/intake")
+def intake_revision(revision_id: str) -> dict[str, Any]:
+    """Can this drawing be recognised, and what should the inspector watch for?"""
+    with get_session() as s:
+        rev = s.get(DrawingRevision, revision_id)
+        if not rev:
+            raise HTTPException(404, "Revision not found")
+        pdf_bytes = rev.pdf
+    try:
+        return intake(pdf_bytes)
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(500, f"Intake check failed: {exc}") from exc

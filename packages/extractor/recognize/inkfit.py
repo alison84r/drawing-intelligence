@@ -97,3 +97,35 @@ def fit_box(img: np.ndarray, box: Box, rot: int, size: float) -> Box:
         if fitted[2] - fitted[0] < 0.3 * size:
             return box
     return fitted
+
+
+def is_boxed(img: np.ndarray, box: Box, size: float) -> bool:
+    """True when ruled lines close in on all four sides of the (ink-fitted) box: a basic dimension, a datum box, a frame cell."""
+    x0, y0, x1, y1 = box
+    px0, px1 = int(x0 * SCALE), int(x1 * SCALE) + 1
+    py0, py1 = int(y0 * SCALE), int(y1 * SCALE) + 1
+    h, w = img.shape
+    if px0 < 2 or py0 < 2 or px1 >= w - 2 or py1 >= h - 2 or px1 - px0 < 3 or py1 - py0 < 3:
+        return False
+    reach_v = int(0.9 * size * SCALE)
+    reach_h = int(1.3 * size * SCALE)
+    dark = img < DARK
+
+    def row_hit(rows: range) -> bool:
+        for y in rows:
+            if 0 <= y < h and dark[y, px0:px1].mean() >= 0.9:
+                return True
+        return False
+
+    def col_hit(cols: range) -> bool:
+        for x in cols:
+            if 0 <= x < w and dark[py0:py1, x].mean() >= 0.9:
+                return True
+        return False
+
+    return (
+        row_hit(range(py0 - 2, py0 - reach_v, -1))
+        and row_hit(range(py1 + 1, py1 + reach_v))
+        and col_hit(range(px0 - 2, px0 - reach_h, -1))
+        and col_hit(range(px1 + 1, px1 + reach_h))
+    )

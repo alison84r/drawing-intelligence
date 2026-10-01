@@ -14,7 +14,8 @@ from .geometry import detect_arrowheads
 from .inkfit import fit_box, render_gray
 from .grouper import attach_stacks, build_lines, dimension_font_size, parse_line, rule_out, score_with_geometry
 from .tokens import Token, build_tokens
-from .refine import add_vector_diameter, attach_orphan_degrees, merge_counts, oriented_box, place_balloons, split_at_x
+from .refine import (add_vector_diameter, attach_modifier_lines, attach_orphan_degrees, enclosure_of, enclosures, is_basic,
+                     mark_datum_boxes, merge_counts, oriented_box, place_balloons, split_at_x)
 from .zones import detect_zones, synthetic_grid
 
 Region = dict[str, float]  # x, y, w, h in page points
@@ -56,16 +57,18 @@ def recognize(
             dim_size = dimension_font_size([t for t in tokens if t.cls != "ruled"])
             if region is not None:
                 tokens = [t for t in tokens if _intersects(t, region)]
-            attach_stacks(tokens, dim_size)
-            lines = build_lines(tokens, dim_size)
-            lines = attach_orphan_degrees(merge_counts(split_at_x(lines)))
-            if not any(t.kind == "dia" for t in tokens):
-                add_vector_diameter(lines, page)
-            heads = detect_arrowheads(page)
             try:
                 ink = render_gray(pdf_bytes, index)
             except Exception:  # noqa: BLE001 - without a render the PDF text boxes are used as they are
                 ink = None
+            mark_datum_boxes([t for t in tokens if t.size >= 0.6 * dim_size or t.kind == "gdt"], ink)
+            attach_stacks(tokens, dim_size)
+            lines = build_lines(tokens, dim_size)
+            lines = attach_modifier_lines(attach_orphan_degrees(merge_counts(split_at_x(lines))))
+            shapes = enclosures(page)
+            if not any(t.kind == "dia" for t in tokens):
+                add_vector_diameter(lines, page)
+            heads = detect_arrowheads(page)
             tables: list[tuple[float, float, float, float]] = []
             try:
                 for tb in page.find_tables():
@@ -89,16 +92,34 @@ def recognize(
                     continue
                 group = parse_line(line, units)
                 if group is None:
+                    general = any(t.kind == "pm" for t in line.tokens)
                     for t in line.all_tokens:
-                        t.cls, t.reason = "open", "could not read a value"
+                        t.cls, t.reason = ("ruled", "general tolerance note") if general else ("open", "could not read a value")
                     continue
                 score_with_geometry(group, heads)
                 x0, y0, x1, y1 = line.bbox
-                if ink is not None:
-                    x0, y0, x1, y1 = fit_box(ink, (x0, y0, x1, y1), line.rot, line.size)
+                if ink is not None and line.rot % 90 == 0:
+                    # Fit each token to its ink and take the union: stacked deviations and frames keep every part.
+                    fitted = [fit_box(ink, (t.x0, t.y0, t.x1, t.y1), t.rot, t.size) for t in line.all_tokens]
+                    x0, y0 = min(f[0] for f in fitted), min(f[1] for f in fitted)
+                    x1, y1 = max(f[2] for f in fitted), max(f[3] for f in fitted)
                 bbox = {"x": round(x0, 2), "y": round(y0, 2), "w": round(x1 - x0, 2), "h": round(y1 - y0, 2)}
                 zone = grid.zone((x0 + x1) / 2, (y0 + y1) / 2)
                 obox = oriented_box(line.tokens, line.size)
+                # Geometry around the text decides what kind of callout this is.
+                around = enclosure_of((x0, y0, x1, y1), line.size, shapes)
+                if around == "bubble" and group.kind == "dimension" and len(line.tokens) == 1 and line.tokens[0].text.isdigit():
+                    for t in line.all_tokens:
+                        t.cls, t.reason = "ruled", "item balloon"
+                    continue
+                if group.kind == "dimension" and group.record["toleranceType"] not in ("Reference",) and is_basic(line, ink):
+                    group.record.update(toleranceType="Basic", tolHigh=None, tolLow=None)
+                    group.confidence, group.reason = 1.0, "basic dimension (boxed)"
+                notes_below = getattr(line, "notes_below", [])
+                if notes_below:
+                    group.record["specification"] = f"{group.record['specification']} {' '.join(notes_below)}"
+                    if group.confidence == 0.5 and group.reason.startswith("single digit"):
+                        group.confidence, group.reason = 0.8, "default tolerance applies"
                 size = line.size
                 record = {
                     "id": str(uuid.uuid4()),
@@ -111,12 +132,12 @@ def recognize(
                     "bbox": bbox,
                     "obox": obox,
                     "zone": zone,
-                    "designator": "",
+                    "designator": "Key" if around == "flag" else "",
                     "result": None,
                     "status": "Draft",
                     "source": "auto",
                     "confidence": group.confidence,
-                    "comments": "",
+                    "comments": "Inspection flag item" if around == "flag" else "",
                     "style": None,
                     **{k: v for k, v in group.record.items() if not k.startswith("_")},
                 }

@@ -33,37 +33,35 @@ def _edges(labels: list[tuple[float, str]], extent: float) -> list[tuple[float, 
 
 
 def detect_zones(tokens: list[Token], width: float, height: float) -> ZoneGrid | None:
-    margin_x, margin_y = width * 0.03, height * 0.035
-    tokens = [t for t in tokens if t.size >= 5]
-    left = [t for t in tokens if t.rot == 0 and _LETTER.match(t.text) and t.cx < margin_x]
-    right = [t for t in tokens if t.rot == 0 and _LETTER.match(t.text) and t.cx > width - margin_x]
-    top = [t for t in tokens if t.rot == 0 and _NUMBER.match(t.text) and t.cy < margin_y]
-    bottom = [t for t in tokens if t.rot == 0 and _NUMBER.match(t.text) and t.cy > height - margin_y]
+    """Border labels: a row of numbers along the top or bottom, a column of letters down a side."""
+    cand = [t for t in tokens if t.rot == 0 and t.size >= 3]
 
-    letters = left if len(left) >= len(right) else right
-    numbers = top if len(top) >= len(bottom) else bottom
-    if len(letters) < 2 or len(numbers) < 3:
-        return None
-    # Border labels share one font size; drop strays of another size.
-    from collections import Counter
-    common = Counter(round(t.size) for t in letters + numbers).most_common(1)[0][0]
-    keep = lambda t: abs(t.size - common) <= max(1.0, 0.15 * common)  # noqa: E731
-    left, right, top, bottom = [[t for t in g if keep(t)] for g in (left, right, top, bottom)]
-    letters = left if len(left) >= len(right) else right
-    numbers = top if len(top) >= len(bottom) else bottom
-    if len(letters) < 2 or len(numbers) < 3:
-        return None
-    for t in left + right + top + bottom:
-        t.cls, t.reason = "ruled", "zone label"
-
-    # Merge duplicates (same label printed on both edges) by averaging positions.
-    def centres(items: list[Token], axis: str) -> list[tuple[float, str]]:
-        by: dict[str, list[float]] = {}
+    def clusters(items: list[Token], axis: str, spread_axis: str, extent: float, need: int) -> list[list[Token]]:
+        by: dict[int, list[Token]] = {}
         for t in items:
-            by.setdefault(t.text, []).append(getattr(t, axis))
-        return [(sum(v) / len(v), k) for k, v in by.items()]
+            by.setdefault(int(round(getattr(t, axis) / 4)), []).append(t)
+        out = []
+        for key in sorted(by):
+            grp = by[key] + by.get(key + 1, [])
+            labels = {t.text for t in grp}
+            span = max(getattr(t, spread_axis) for t in grp) - min(getattr(t, spread_axis) for t in grp)
+            sizes = {round(t.size) for t in grp}
+            if len(labels) >= need and len(grp) <= len(labels) + 1 and span >= 0.4 * extent and len(sizes) <= 2:
+                out.append(grp)
+        return out
 
-    return ZoneGrid(cols=_edges(centres(numbers, "cx"), width), rows=_edges(centres(letters, "cy"), height))
+    numbers = [t for t in cand if _NUMBER.match(t.text) and (t.cy < 0.09 * height or t.cy > 0.91 * height)]
+    letters = [t for t in cand if _LETTER.match(t.text) and (t.cx < 0.09 * width or t.cx > 0.91 * width)]
+    rows = clusters(numbers, "cy", "cx", width, 3)
+    cols = clusters(letters, "cx", "cy", height, 2)
+    if not rows or not cols:
+        return None
+    for grp in rows + cols:
+        for t in grp:
+            t.cls, t.reason = "ruled", "zone label"
+    row = max(rows, key=len)
+    col = max(cols, key=len)
+    return ZoneGrid(cols=_edges([(t.cx, t.text) for t in row], width), rows=_edges([(t.cy, t.text) for t in col], height))
 
 
 def synthetic_grid(width: float, height: float) -> ZoneGrid:

@@ -29,7 +29,8 @@ MODIFIER_WORDS = {
     "NPT", "UNC", "UNF", "DIA", "RAD", "BSC", "BASIC", "X", "THREAD", "TAP", "DRILL", "REAM", "CHAMFER", "CHAM", "R", "SR", "S",
     "MM", "IN", "TOL", "SPHERE", "SQ", "HEX", "STOCK", "BOTH", "SIDES", "EACH", "SIDE", "END", "ENDS", "ALL", "AROUND", "OVER",
     "HOLE", "HOLES", "SLOT", "SLOTS", "EQUALLY", "SPACED", "CSINK", "CENTER", "CENTRE", "LINE", "ON", "PCD", "BCD", "BC", "TAPPED",
-    "FULL", "THRD", "THD", "DEPTH", "CHAM", "WIDE", "LONG", "DIA", "DEG",
+    "FULL", "THRD", "THD", "DEPTH", "CHAM", "WIDE", "LONG", "DIA", "DEG", "THICK", "THICKNESS", "THRU", "THROUGH", "NOS", "OFF", "POSN",
+    "EQUI", "EQUISPACED", "APART", "ACROSS", "FLATS", "CRS", "PITCH", "DRILLED", "TAPPED", "REF", "NOM", "APPROX", "TYPICAL", "SYM", "SYMM",
 }
 GDT_TYPE = {
     "Position": "Position", "Flatness": "Flatness", "Perpendicularity": "Perpendicularity", "Parallelism": "Parallelism",
@@ -151,6 +152,13 @@ def build_lines(tokens: list[Token], dim_size: float) -> list[Line]:
                 symbolic = t.kind != "text" or last.kind != "text"
                 across_ok = abs(_across(t) - _across(last)) <= (0.8 if symbolic else 0.6) * ref
                 gap_ok = -0.35 * ref <= gap <= (1.6 if symbolic else 1.2) * ref
+                plain = lambda x: x.kind == "text" and NUMBER.match(x.text) and x.text[0] not in "+-" and not x.extra.get("stack")  # noqa: E731
+                if plain(t) and plain(last) and gap > 0.45 * ref:
+                    starts_new = True
+                if t.text.upper() in ("TYP", "TYP.") and gap > 0.9 * ref:
+                    starts_new = True
+                if t.extra.get("datum_box") or last.extra.get("datum_box"):
+                    starts_new = True
                 if size_ok and not starts_new and across_ok and gap_ok and gap < best_gap:
                     best, best_gap = ln, gap
             if best is None:
@@ -179,16 +187,18 @@ def rule_out(line: Line, dim_size: float, width: float, height: float, relaxed: 
         return "view label"
     if line.tokens[0].kind == "pm":
         return "general tolerance note"
+    if all(t.extra.get("datum_box") for t in line.tokens):
+        return "datum feature symbol"
     if len(words) == 1 and (LETTER.match(words[0]) or SECTION_LABEL.match(words[0])) and line.tokens[0].kind == "text":
         return "datum or view letter"
     if relaxed:
         return None
     if line.size < 0.6 * dim_size:
         return "small text: notes or title block"
-    if x0 > width * 0.7 and y0 > height * 0.78:
-        return "title block"
     alpha = [run for w in upper for run in re.findall(r"[A-Z]{3,}", w) if run not in MODIFIER_WORDS]
-    if alpha:
+    has_value = any(NUMBER.match(t.text) or RADIUS.match(t.text) or t.kind == "dia" for t in line.tokens if t.size >= 0.8 * dim_size)
+    # A sentence is a note. One or two unknown words next to a value must not hide the value: it goes to review.
+    if alpha and (len(alpha) > 2 or not has_value or re.match(r"^\d+\.$", words[0])):
         return "text"
     if all(t.kind == "text" and not NUMBER.match(t.text) and not COUNT.match(t.text) and not RADIUS.match(t.text) and not THREAD.match(t.text) and not PAREN.match(t.text) for t in line.tokens):
         return "no value"
@@ -296,6 +306,11 @@ def parse_dimension(line: Line, units: str) -> Group | None:
         if txt.upper() == "X" and nominal is not None and nxt is not None and _num(nxt.text) is not None:
             # "5 X 45°": chamfer, leg by angle.
             after = toks[i + 2] if i + 2 < len(toks) else None
+            # "Ø5 X 3 HOLES": the count follows the value.
+            if after is not None and after.text.upper() in ("HOLES", "HOLE", "PLACES", "PLCS", "PL", "NOS", "OFF", "SLOTS", "POSN") and nxt.text.isdigit():
+                count = int(nxt.text)
+                i += 2
+                continue
             if after is not None and after.kind == "deg":
                 desc = "Chamfer"
                 notes.append(f"x {nxt.text}°")
@@ -337,12 +352,10 @@ def parse_dimension(line: Line, units: str) -> Group | None:
                 notes.append(f"x{m_th.group(2)}")
             i += 1
             continue
-        if txt == "(" and nxt is not None:
-            txt = f"({nxt.text}" + ("" if nxt.text.endswith(")") else ")")
+        if txt in ("(", ")"):
+            reference = True
             i += 1
-        elif txt.startswith("(") and not txt.endswith(")") and nxt is not None and nxt.text == ")":
-            txt = txt + ")"
-            i += 1
+            continue
         if (txt.startswith("(") or txt.endswith(")")) and _num(txt.strip("()")) is not None:
             txt = f"({txt.strip('()')})"
         m_p = PAREN.match(txt)
@@ -411,14 +424,17 @@ def parse_dimension(line: Line, units: str) -> Group | None:
     for tol in (tol_high, tol_low):
         if explicit and tol is not None:
             places = max(places, _places(f"{abs(tol):.6f}".rstrip("0").rstrip(".")))
+    unknown = [n for n in notes if re.fullmatch(r"[A-Za-z]{3,}", n) and n.upper() not in MODIFIER_WORDS]
     if reference:
         tol_type, conf, reason = "Reference", 0.8, "reference dimension"
     elif explicit:
         conf, reason = 1.0, "tolerance printed"
-    elif prefix or places >= 1 or desc in ("Angular", "Chamfer") or count > 1 or len(nominal_text) >= 2:
+    elif prefix or places >= 1 or desc in ("Angular", "Chamfer") or count > 1 or len(nominal_text) >= 2 or (notes and not unknown):
         conf, reason = 0.8, "default tolerance applies"
     else:
         conf, reason = 0.5, "single digit, could be a label"
+    if unknown:
+        conf, reason = 0.5, "unrecognised word: " + " ".join(unknown)
     spec_parts = []
     if count > 1:
         spec_parts.append(f"{count}X")

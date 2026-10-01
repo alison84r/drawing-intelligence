@@ -13,7 +13,8 @@ import math
 import re
 from typing import Any
 
-from .grouper import COUNT, NUMBER, Line
+from .grouper import COUNT, MODIFIER_WORDS, NUMBER, Line
+from .inkfit import fit_box, is_boxed
 from .tokens import Token, content_id
 
 DECIMAL = re.compile(r"^\d+[.,]\d+$")
@@ -177,3 +178,117 @@ def place_balloons(records: list[dict[str, Any]], tokens: list[Token], width: fl
             best = (cx + hw + 1.5 * size, cy - hh - 1.5 * size)
         placed.append(best)
         r["balloonPos"] = {"x": round(best[0], 2), "y": round(best[1], 2)}
+
+
+LETTER = re.compile(r"^[A-Z]$")
+
+
+def mark_datum_boxes(tokens: list[Token], ink: Any) -> None:
+    """A single letter in its own box is a datum feature symbol. Letters in a frame have boxed neighbours and stay."""
+    if ink is None:
+        return
+    boxed: dict[str, bool] = {}
+
+    def boxed_token(t: Token) -> bool:
+        if t.id not in boxed:
+            fitted = fit_box(ink, (t.x0, t.y0, t.x1, t.y1), t.rot, t.size)
+            boxed[t.id] = is_boxed(ink, fitted, t.size)
+        return boxed[t.id]
+
+    for t in tokens:
+        if t.kind != "text" or not LETTER.match(t.text) or t.rot != 0 or t.cls == "ruled":
+            continue
+        if not boxed_token(t):
+            continue
+        neighbours = [o for o in tokens if o is not t and o.rot == 0 and abs(o.cy - t.cy) <= 0.6 * t.size
+                      and (0 <= o.x0 - t.x1 <= 2.2 * t.size or 0 <= t.x0 - o.x1 <= 2.2 * t.size)]
+        if any(boxed_token(o) for o in neighbours):
+            continue
+        if any(o.kind == "gdt" and o.rot == 0 and abs(o.cy - t.cy) <= 0.8 * t.size and 0 <= t.x0 - o.x1 <= 9 * t.size for o in tokens):
+            continue
+        t.extra["datum_box"] = True
+
+
+def nominal_token(line: Line) -> Token | None:
+    for t in line.tokens:
+        if t.kind == "text" and NUMBER.match(t.text) and t.text[0] not in "+-":
+            return t
+    return None
+
+
+def is_basic(line: Line, ink: Any) -> bool:
+    """The nominal sits in its own drawn box: a theoretically exact (basic) dimension."""
+    if ink is None:
+        return False
+    t = nominal_token(line)
+    if t is None:
+        return False
+    fitted = fit_box(ink, (t.x0, t.y0, t.x1, t.y1), t.rot, t.size)
+    return is_boxed(ink, fitted, t.size)
+
+
+def enclosures(page: Any) -> dict[str, list[tuple[float, float, float, float]]]:
+    """Closed shapes that may be drawn round a callout: whole curves, and ovals built from two lines and two end arcs."""
+    shapes = []
+    arcs = []
+    for cv in page.curves:
+        w, h = float(cv["width"]), float(cv["height"])
+        box = (float(cv["x0"]), float(cv["top"]), float(cv["x1"]), float(cv["bottom"]))
+        if 6 <= w <= 260 and 6 <= h <= 90:
+            shapes.append(box)
+        if 4 <= w <= 60 and 4 <= h <= 60:
+            arcs.append(box)
+    hlines = []
+    for ln in page.lines:
+        if abs(float(ln["bottom"]) - float(ln["top"])) < 0.6 and 8 <= float(ln["width"]) <= 300:
+            hlines.append((float(ln["x0"]), float(ln["top"]), float(ln["x1"])))
+    return {"shapes": shapes, "arcs": arcs, "hlines": hlines}
+
+
+def enclosure_of(box: tuple[float, float, float, float], size: float, geo: dict[str, list]) -> str | None:
+    """'flag' when an oval is drawn round the callout, 'bubble' when a circle is drawn round it."""
+    x0, y0, x1, y1 = box
+    w, h = x1 - x0, y1 - y0
+    for sx0, sy0, sx1, sy1 in geo["shapes"]:
+        if sx0 <= x0 + 0.5 and sy0 <= y0 + 0.5 and sx1 >= x1 - 0.5 and sy1 >= y1 - 0.5:
+            sw, sh = sx1 - sx0, sy1 - sy0
+            if sw <= w + 5 * size and sh <= h + 2.6 * size:
+                return "bubble" if sw / sh < 1.25 else "flag"
+    # Two parallel lines above and below with the same ends, closed by arcs.
+    above = [l for l in geo["hlines"] if y0 - 1.6 * size <= l[1] <= y0 + 0.5 and l[0] <= x0 + 0.35 * w and l[2] >= x1 - 0.35 * w and l[2] - l[0] <= w + 6 * size]
+    below = [l for l in geo["hlines"] if y1 - 0.5 <= l[1] <= y1 + 1.6 * size and l[0] <= x0 + 0.35 * w and l[2] >= x1 - 0.35 * w and l[2] - l[0] <= w + 6 * size]
+    for a in above:
+        for b in below:
+            if abs(a[0] - b[0]) > 1.5 or abs(a[2] - b[2]) > 1.5:
+                continue
+            gap = b[1] - a[1]
+            ends = 0
+            for ex in (a[0], a[2]):
+                if any(abs(((ax0 + ax1) / 2) - ex) <= 0.6 * gap and ay0 >= a[1] - 1 and ay1 <= b[1] + 1 and (ay1 - ay0) >= 0.4 * gap for ax0, ay0, ax1, ay1 in geo["arcs"]):
+                    ends += 1
+            if ends == 2:
+                return "flag"
+    return None
+
+
+def attach_modifier_lines(lines: list[Line]) -> list[Line]:
+    """A line that is only "TYP" or "TYP ON BOTH ENDS" belongs to the callout right above it."""
+    def words(ln: Line) -> list[str]:
+        return [t.text.upper().strip(".") for t in ln.tokens]
+
+    mods = [ln for ln in lines if ln.rot == 0 and words(ln)[0] in ("TYP", "TYPICAL") and all(re.fullmatch(r"[A-Z]+", w) for w in words(ln))]
+    for m in mods:
+        mx0, my0, mx1, my1 = m.bbox
+        best, best_gap = None, 1e9
+        for ln in lines:
+            if ln is m or ln in mods or ln.rot != 0 or nominal_token(ln) is None and not any(t.kind == "text" and t.text[:1] == "R" for t in ln.tokens):
+                continue
+            x0, y0, x1, y1 = ln.bbox
+            gap = my0 - y1
+            if -0.3 * m.size <= gap <= 1.2 * m.size and min(mx1, x1) - max(mx0, x0) > 0 and gap < best_gap:
+                best, best_gap = ln, gap
+        if best is not None:
+            best.notes_below = getattr(best, "notes_below", []) + [t.text for t in m.tokens]  # type: ignore[attr-defined]
+            best.extra_tokens = getattr(best, "extra_tokens", []) + list(m.tokens)  # type: ignore[attr-defined]
+            lines.remove(m)
+    return lines

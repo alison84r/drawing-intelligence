@@ -81,6 +81,20 @@ export interface RecognizePage {
   stats: { tokens: number; char: number; open: number; ruled: number; characteristics: number; needsYou: number }
 }
 
+export interface IntakeRow {
+  key: string
+  label: string
+  level: 'ok' | 'warn' | 'bad'
+  value: string
+}
+
+export interface IntakeReport {
+  level: 'ok' | 'warn' | 'bad'
+  verdict: string
+  recognizerVersion: string
+  pages: { page: number; level: 'ok' | 'warn' | 'bad'; rows: IntakeRow[] }[]
+}
+
 export interface RecognizeRequest {
   pages: number[] | null
   region: { x: number; y: number; w: number; h: number } | null
@@ -151,6 +165,7 @@ export const api = {
   ) => request<InspectionSummary>(`/api/inspections/${id}`, json(body, 'PUT')),
   deleteInspection: (id: string) => request<void>(`/api/inspections/${id}`, { method: 'DELETE' }),
 
+  intake: (revisionId: string) => request<IntakeReport>(`/api/revisions/${revisionId}/intake`),
   recognize: (revisionId: string, body: RecognizeRequest) => request<{ pages: RecognizePage[] }>(`/api/revisions/${revisionId}/recognize`, json(body)),
 
   exportInspection: async (

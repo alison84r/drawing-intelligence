@@ -18,3 +18,4 @@ pdftosvg.exe
 packages/frontend/public/mock/
 .env
 *.di.json
+packages/frontend/public/pdfjs/

@@ -1,0 +1,678 @@
+{
+ "drawing": "18_1120_001.pdf",
+ "verifiedByEye": true,
+ "characteristics": [
+  {
+   "specification": "R5 TYP",
+   "descriptionType": "Radius",
+   "toleranceType": "Bilateral",
+   "nominal": 5.0,
+   "tolHigh": null,
+   "tolLow": null,
+   "count": 1,
+   "designator": "",
+   "zone": "A2",
+   "gdt": null,
+   "at": [
+    301.2,
+    64.2
+   ],
+   "page": 0
+  },
+  {
+   "specification": "Ø30 +0.2/0",
+   "descriptionType": "Diameter",
+   "toleranceType": "Unilateral",
+   "nominal": 30.0,
+   "tolHigh": 0.2,
+   "tolLow": 0.0,
+   "count": 1,
+   "designator": "",
+   "zone": "A4",
+   "gdt": null,
+   "at": [
+    638.8,
+    85.3
+   ],
+   "page": 0
+  },
+  {
+   "specification": "27 +0.1/0",
+   "descriptionType": "Linear",
+   "toleranceType": "Unilateral",
+   "nominal": 27.0,
+   "tolHigh": 0.1,
+   "tolLow": 0.0,
+   "count": 1,
+   "designator": "Key",
+   "zone": "A1",
+   "gdt": null,
+   "at": [
+    173.8,
+    138.3
+   ],
+   "page": 0
+  },
+  {
+   "specification": "104",
+   "descriptionType": "Linear",
+   "toleranceType": "Bilateral",
+   "nominal": 104.0,
+   "tolHigh": null,
+   "tolLow": null,
+   "count": 1,
+   "designator": "Key",
+   "zone": "A2",
+   "gdt": null,
+   "at": [
+    380.3,
+    107.7
+   ],
+   "page": 0
+  },
+  {
+   "specification": "50",
+   "descriptionType": "Linear",
+   "toleranceType": "Bilateral",
+   "nominal": 50.0,
+   "tolHigh": null,
+   "tolLow": null,
+   "count": 1,
+   "designator": "",
+   "zone": "A3",
+   "gdt": null,
+   "at": [
+    598.2,
+    148.8
+   ],
+   "page": 0
+  },
+  {
+   "specification": "⌖Ø0.1 A B C",
+   "descriptionType": "Position",
+   "toleranceType": "GD&T",
+   "nominal": 0.1,
+   "tolHigh": null,
+   "tolLow": null,
+   "count": 1,
+   "designator": "",
+   "zone": "A4",
+   "gdt": {
+    "symbol": "⌖",
+    "zone": "Ø",
+    "tolerance": "0.1",
+    "modifier": "",
+    "datums": [
+     "A",
+     "B",
+     "C"
+    ]
+   },
+   "at": [
+    672.8,
+    116.7
+   ],
+   "page": 0
+  },
+  {
+   "specification": "R37.5",
+   "descriptionType": "Radius",
+   "toleranceType": "Bilateral",
+   "nominal": 37.5,
+   "tolHigh": null,
+   "tolLow": null,
+   "count": 1,
+   "designator": "",
+   "zone": "A4",
+   "gdt": null,
+   "at": [
+    730.5,
+    152.0
+   ],
+   "page": 0
+  },
+  {
+   "specification": "58",
+   "descriptionType": "Linear",
+   "toleranceType": "Bilateral",
+   "nominal": 58.0,
+   "tolHigh": null,
+   "tolLow": null,
+   "count": 1,
+   "designator": "",
+   "zone": "A6",
+   "gdt": null,
+   "at": [
+    1112.2,
+    203.8
+   ],
+   "page": 0
+  },
+  {
+   "specification": "90 +0/-0.2",
+   "descriptionType": "Linear",
+   "toleranceType": "Unilateral",
+   "nominal": 90.0,
+   "tolHigh": 0.0,
+   "tolLow": -0.2,
+   "count": 1,
+   "designator": "Key",
+   "zone": "B1",
+   "gdt": null,
+   "at": [
+    150.3,
+    294.8
+   ],
+   "page": 0
+  },
+  {
+   "specification": "107°",
+   "descriptionType": "Angular",
+   "toleranceType": "Bilateral",
+   "nominal": 107.0,
+   "tolHigh": null,
+   "tolLow": null,
+   "count": 1,
+   "designator": "",
+   "zone": "B2",
+   "gdt": null,
+   "at": [
+    355.8,
+    253.8
+   ],
+   "page": 0
+  },
+  {
+   "specification": "Ø32.6 +0.2/0",
+   "descriptionType": "Diameter",
+   "toleranceType": "Unilateral",
+   "nominal": 32.6,
+   "tolHigh": 0.2,
+   "tolLow": 0.0,
+   "count": 1,
+   "designator": "",
+   "zone": "B3",
+   "gdt": null,
+   "at": [
+    446.2,
+    225.5
+   ],
+   "page": 0
+  },
+  {
+   "specification": "37",
+   "descriptionType": "Linear",
+   "toleranceType": "Bilateral",
+   "nominal": 37.0,
+   "tolHigh": null,
+   "tolLow": null,
+   "count": 1,
+   "designator": "",
+   "zone": "A4",
+   "gdt": null,
+   "at": [
+    691.0,
+    221.8
+   ],
+   "page": 0
+  },
+  {
+   "specification": "90°",
+   "descriptionType": "Angular",
+   "toleranceType": "Bilateral",
+   "nominal": 90.0,
+   "tolHigh": null,
+   "tolLow": null,
+   "count": 1,
+   "designator": "",
+   "zone": "B6",
+   "gdt": null,
+   "at": [
+    982.4,
+    290.5
+   ],
+   "page": 0
+  },
+  {
+   "specification": "Ø32.6",
+   "descriptionType": "Diameter",
+   "toleranceType": "Bilateral",
+   "nominal": 32.6,
+   "tolHigh": null,
+   "tolLow": null,
+   "count": 1,
+   "designator": "",
+   "zone": "B2",
+   "gdt": null,
+   "at": [
+    345.2,
+    349.8
+   ],
+   "page": 0
+  },
+  {
+   "specification": "⌖Ø0.1 A B C",
+   "descriptionType": "Position",
+   "toleranceType": "GD&T",
+   "nominal": 0.1,
+   "tolHigh": null,
+   "tolLow": null,
+   "count": 1,
+   "designator": "",
+   "zone": "B2",
+   "gdt": {
+    "symbol": "⌖",
+    "zone": "Ø",
+    "tolerance": "0.1",
+    "modifier": "",
+    "datums": [
+     "A",
+     "B",
+     "C"
+    ]
+   },
+   "at": [
+    388.5,
+    372.5
+   ],
+   "page": 0
+  },
+  {
+   "specification": "52 ±0.2",
+   "descriptionType": "Linear",
+   "toleranceType": "Bilateral",
+   "nominal": 52.0,
+   "tolHigh": 0.2,
+   "tolLow": -0.2,
+   "count": 1,
+   "designator": "",
+   "zone": "B4",
+   "gdt": null,
+   "at": [
+    691.0,
+    354.1
+   ],
+   "page": 0
+  },
+  {
+   "specification": "69",
+   "descriptionType": "Linear",
+   "toleranceType": "Bilateral",
+   "nominal": 69.0,
+   "tolHigh": null,
+   "tolLow": null,
+   "count": 1,
+   "designator": "",
+   "zone": "B4",
+   "gdt": null,
+   "at": [
+    724.0,
+    373.2
+   ],
+   "page": 0
+  },
+  {
+   "specification": "120",
+   "descriptionType": "Linear",
+   "toleranceType": "Reference",
+   "nominal": 120.0,
+   "tolHigh": null,
+   "tolLow": null,
+   "count": 1,
+   "designator": "",
+   "zone": "B4",
+   "gdt": null,
+   "at": [
+    755.7,
+    339.2
+   ],
+   "page": 0
+  },
+  {
+   "specification": "⏥0.4",
+   "descriptionType": "Flatness",
+   "toleranceType": "GD&T",
+   "nominal": 0.4,
+   "tolHigh": null,
+   "tolLow": null,
+   "count": 1,
+   "designator": "",
+   "zone": "B5",
+   "gdt": {
+    "symbol": "⏥",
+    "zone": "",
+    "tolerance": "0.4",
+    "modifier": "",
+    "datums": [
+     "",
+     "",
+     ""
+    ]
+   },
+   "at": [
+    950.5,
+    381.5
+   ],
+   "page": 0
+  },
+  {
+   "specification": "30",
+   "descriptionType": "Linear",
+   "toleranceType": "Bilateral",
+   "nominal": 30.0,
+   "tolHigh": null,
+   "tolLow": null,
+   "count": 1,
+   "designator": "",
+   "zone": "B6",
+   "gdt": null,
+   "at": [
+    1058.0,
+    328.8
+   ],
+   "page": 0
+  },
+  {
+   "specification": "⟂0.4 A",
+   "descriptionType": "Perpendicularity",
+   "toleranceType": "GD&T",
+   "nominal": 0.4,
+   "tolHigh": null,
+   "tolLow": null,
+   "count": 1,
+   "designator": "",
+   "zone": "B6",
+   "gdt": {
+    "symbol": "⟂",
+    "zone": "",
+    "tolerance": "0.4",
+    "modifier": "",
+    "datums": [
+     "A",
+     "",
+     ""
+    ]
+   },
+   "at": [
+    1099.3,
+    351.0
+   ],
+   "page": 0
+  },
+  {
+   "specification": "62",
+   "descriptionType": "Linear",
+   "toleranceType": "Bilateral",
+   "nominal": 62.0,
+   "tolHigh": null,
+   "tolLow": null,
+   "count": 1,
+   "designator": "",
+   "zone": "C1",
+   "gdt": null,
+   "at": [
+    150.3,
+    509.8
+   ],
+   "page": 0
+  },
+  {
+   "specification": "50",
+   "descriptionType": "Linear",
+   "toleranceType": "Bilateral",
+   "nominal": 50.0,
+   "tolHigh": null,
+   "tolLow": null,
+   "count": 1,
+   "designator": "",
+   "zone": "C1",
+   "gdt": null,
+   "at": [
+    187.5,
+    493.5
+   ],
+   "page": 0
+  },
+  {
+   "specification": "37°",
+   "descriptionType": "Angular",
+   "toleranceType": "Bilateral",
+   "nominal": 37.0,
+   "tolHigh": null,
+   "tolLow": null,
+   "count": 1,
+   "designator": "",
+   "zone": "C2",
+   "gdt": null,
+   "at": [
+    242.8,
+    507.7
+   ],
+   "page": 0
+  },
+  {
+   "specification": "Ø10.4",
+   "descriptionType": "Diameter",
+   "toleranceType": "Bilateral",
+   "nominal": 10.4,
+   "tolHigh": null,
+   "tolLow": null,
+   "count": 1,
+   "designator": "",
+   "zone": "C3",
+   "gdt": null,
+   "at": [
+    431.0,
+    431.2
+   ],
+   "page": 0
+  },
+  {
+   "specification": "⌖Ø0.1 B C",
+   "descriptionType": "Position",
+   "toleranceType": "GD&T",
+   "nominal": 0.1,
+   "tolHigh": null,
+   "tolLow": null,
+   "count": 1,
+   "designator": "",
+   "zone": "C3",
+   "gdt": {
+    "symbol": "⌖",
+    "zone": "Ø",
+    "tolerance": "0.1",
+    "modifier": "",
+    "datums": [
+     "B",
+     "C",
+     ""
+    ]
+   },
+   "at": [
+    465.3,
+    453.8
+   ],
+   "page": 0
+  },
+  {
+   "specification": "73°",
+   "descriptionType": "Angular",
+   "toleranceType": "Bilateral",
+   "nominal": 73.0,
+   "tolHigh": null,
+   "tolLow": null,
+   "count": 1,
+   "designator": "",
+   "zone": "C4",
+   "gdt": null,
+   "at": [
+    630.3,
+    458.0
+   ],
+   "page": 0
+  },
+  {
+   "specification": "Ø12",
+   "descriptionType": "Diameter",
+   "toleranceType": "Bilateral",
+   "nominal": 12.0,
+   "tolHigh": null,
+   "tolLow": null,
+   "count": 1,
+   "designator": "",
+   "zone": "D2",
+   "gdt": null,
+   "at": [
+    280.5,
+    622.8
+   ],
+   "page": 0
+  },
+  {
+   "specification": "90°",
+   "descriptionType": "Angular",
+   "toleranceType": "Bilateral",
+   "nominal": 90.0,
+   "tolHigh": null,
+   "tolLow": null,
+   "count": 1,
+   "designator": "",
+   "zone": "C3",
+   "gdt": null,
+   "at": [
+    542.4,
+    548.1
+   ],
+   "page": 0
+  },
+  {
+   "specification": "28",
+   "descriptionType": "Linear",
+   "toleranceType": "Bilateral",
+   "nominal": 28.0,
+   "tolHigh": null,
+   "tolLow": null,
+   "count": 1,
+   "designator": "",
+   "zone": "C3",
+   "gdt": null,
+   "at": [
+    599.7,
+    613.0
+   ],
+   "page": 0
+  },
+  {
+   "specification": "31",
+   "descriptionType": "Linear",
+   "toleranceType": "Bilateral",
+   "nominal": 31.0,
+   "tolHigh": null,
+   "tolLow": null,
+   "count": 1,
+   "designator": "",
+   "zone": "C3",
+   "gdt": null,
+   "at": [
+    600.5,
+    553.5
+   ],
+   "page": 0
+  },
+  {
+   "specification": "5 THICK",
+   "descriptionType": "Linear",
+   "toleranceType": "Bilateral",
+   "nominal": 5.0,
+   "tolHigh": null,
+   "tolLow": null,
+   "count": 1,
+   "designator": "",
+   "zone": "D4",
+   "gdt": null,
+   "at": [
+    783.7,
+    630.5
+   ],
+   "page": 0
+  },
+  {
+   "specification": "⌖Ø0.2 B C",
+   "descriptionType": "Position",
+   "toleranceType": "GD&T",
+   "nominal": 0.2,
+   "tolHigh": null,
+   "tolLow": null,
+   "count": 1,
+   "designator": "",
+   "zone": "D1",
+   "gdt": {
+    "symbol": "⌖",
+    "zone": "Ø",
+    "tolerance": "0.2",
+    "modifier": "",
+    "datums": [
+     "B",
+     "C",
+     ""
+    ]
+   },
+   "at": [
+    239.8,
+    645.3
+   ],
+   "page": 0
+  },
+  {
+   "specification": "60",
+   "descriptionType": "Linear",
+   "toleranceType": "Bilateral",
+   "nominal": 60.0,
+   "tolHigh": null,
+   "tolLow": null,
+   "count": 1,
+   "designator": "",
+   "zone": "D2",
+   "gdt": null,
+   "at": [
+    402.2,
+    698.8
+   ],
+   "page": 0
+  },
+  {
+   "specification": "57",
+   "descriptionType": "Linear",
+   "toleranceType": "Bilateral",
+   "nominal": 57.0,
+   "tolHigh": null,
+   "tolLow": null,
+   "count": 1,
+   "designator": "",
+   "zone": "D3",
+   "gdt": null,
+   "at": [
+    446.0,
+    674.5
+   ],
+   "page": 0
+  },
+  {
+   "specification": "45",
+   "descriptionType": "Linear",
+   "toleranceType": "Bilateral",
+   "nominal": 45.0,
+   "tolHigh": null,
+   "tolLow": null,
+   "count": 1,
+   "designator": "",
+   "zone": "D3",
+   "gdt": null,
+   "at": [
+    463.0,
+    647.2
+   ],
+   "page": 0
+  }
+ ]
+}

@@ -23,7 +23,16 @@ export async function sha256Hex(buffer: ArrayBuffer): Promise<string> {
 
 export async function loadPdf(buffer: ArrayBuffer): Promise<PDFDocumentProxy> {
   // pdf.js transfers the buffer to the worker, so hand it a copy.
-  return pdfjs.getDocument({ data: buffer.slice(0) }).promise
+  // Decoders, character maps, fonts and colour profiles are served locally (see scripts/copy-pdfjs-assets.mjs):
+  // the app runs air-gapped, and without them scans render blank and non-embedded fonts render wrong.
+  return pdfjs.getDocument({
+    data: buffer.slice(0),
+    wasmUrl: '/pdfjs/wasm/',
+    cMapUrl: '/pdfjs/cmaps/',
+    cMapPacked: true,
+    standardFontDataUrl: '/pdfjs/standard_fonts/',
+    iccUrl: '/pdfjs/iccs/',
+  }).promise
 }
 
 export async function readPageSizes(doc: PDFDocumentProxy): Promise<PageSize[]> {
