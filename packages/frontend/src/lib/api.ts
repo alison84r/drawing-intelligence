@@ -27,6 +27,14 @@ export interface RevisionSummary {
   inspections: InspectionSummary[]
 }
 
+export interface ImportedRevision extends RevisionSummary {
+  partNumber: string
+  partName: string
+  /** True when this exact file was already stored for the part. */
+  duplicate: boolean
+  intake: { level: 'ok' | 'warn' | 'bad'; verdict: string; reason: string }
+}
+
 export interface PartSummary {
   id: string
   partNumber: string
@@ -177,7 +185,7 @@ export const api = {
     if (opts.partNumber) fd.append('partNumber', opts.partNumber)
     if (opts.partName) fd.append('partName', opts.partName)
     if (opts.revision) fd.append('revision', opts.revision)
-    return request<RevisionSummary & { partNumber: string; partName: string }>('/api/revisions', { method: 'POST', body: fd })
+    return request<ImportedRevision>('/api/revisions', { method: 'POST', body: fd })
   },
   revisionPdfUrl: (id: string) => `/api/revisions/${id}/pdf`,
   deleteRevision: (id: string) => request<void>(`/api/revisions/${id}`, { method: 'DELETE' }),
@@ -207,7 +215,7 @@ export const api = {
 
   exportInspection: async (
     id: string,
-    opts: { as9102: boolean; ppap: boolean; pdf: boolean; includeReference: boolean; includeDraft?: boolean },
+    opts: { as9102: boolean; ppap: boolean; pdf: boolean; includeReference: boolean; includeDraft?: boolean; stamp?: boolean },
   ): Promise<{ blob: Blob; fileName: string }> => {
     const res = await fetch(`/api/inspections/${id}/export`, json(opts))
     if (!res.ok) {

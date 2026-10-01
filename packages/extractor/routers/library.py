@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import hashlib
 import io
+import os
 import re
 from typing import Any
 
@@ -15,6 +16,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
 from db import Characteristic, DrawingRevision, Inspection, Part, get_session
+from recognize.intake import intake
 
 router = APIRouter(prefix="/api", tags=["library"])
 
@@ -64,6 +66,56 @@ def _part_summary(p: Part) -> dict[str, Any]:
 def _page_sizes(pdf_bytes: bytes) -> list[dict[str, float]]:
     with pdfplumber.open(io.BytesIO(pdf_bytes)) as pdf:
         return [{"width": float(p.width), "height": float(p.height)} for p in pdf.pages]
+
+
+# Upload limits. Environment overrides let a deployment tighten or widen them without a code change.
+MAX_UPLOAD_BYTES = int(os.environ.get("DI_MAX_UPLOAD_MB", "100")) * 1024 * 1024
+MAX_PAGES = int(os.environ.get("DI_MAX_PAGES", "200"))
+_CHUNK = 1024 * 1024
+
+
+async def _read_limited(file: UploadFile) -> bytes:
+    """Read the upload in chunks and stop as soon as it passes the size limit."""
+    parts: list[bytes] = []
+    total = 0
+    while chunk := await file.read(_CHUNK):
+        total += len(chunk)
+        if total > MAX_UPLOAD_BYTES:
+            raise HTTPException(413, f"The file is larger than {MAX_UPLOAD_BYTES // (1024 * 1024)} MB")
+        parts.append(chunk)
+    return b"".join(parts)
+
+
+def _inspect_pdf(pdf_bytes: bytes) -> list[dict[str, float]]:
+    """Page sizes of an uploaded PDF, or a plain reason why it cannot be used."""
+    if not pdf_bytes:
+        raise HTTPException(400, "The file is empty")
+    # The header may sit after a few bytes of junk; the type is decided by content, never by the file name.
+    if b"%PDF-" not in pdf_bytes[:1024]:
+        raise HTTPException(415, "This is not a PDF file")
+    try:
+        sizes = _page_sizes(pdf_bytes)
+    except Exception as exc:  # noqa: BLE001
+        name = type(exc).__name__
+        if "Password" in name or "Encrypt" in name:
+            raise HTTPException(422, "The PDF is password protected. Export it again without a password.") from exc
+        raise HTTPException(422, "The PDF is damaged and could not be opened") from exc
+    if not sizes:
+        raise HTTPException(422, "The PDF has no pages")
+    if len(sizes) > MAX_PAGES:
+        raise HTTPException(413, f"The PDF has {len(sizes)} pages; the limit is {MAX_PAGES}")
+    return sizes
+
+
+def _intake_summary(pdf_bytes: bytes) -> dict[str, Any]:
+    """Readiness of the drawing for Recognize, with the one line an inspector needs."""
+    try:
+        report = intake(pdf_bytes)
+    except Exception:  # noqa: BLE001
+        return {"level": "warn", "verdict": "Stored. The readiness check could not finish.", "reason": ""}
+    worst = [r for p in report["pages"] for r in p["rows"] if r["level"] == report["level"] and r["level"] != "ok"]
+    reason = f"{worst[0]['label']}: {worst[0]['value']}" if worst else ""
+    return {"level": report["level"], "verdict": report["verdict"], "reason": reason}
 
 
 def _guess_part_number(file_name: str) -> str:
@@ -119,6 +171,7 @@ def delete_part(part_id: str) -> Response:
 
 @router.post("/revisions", status_code=201)
 async def import_revision(
+    response: Response,
     file: UploadFile = File(...),
     partId: str | None = Form(None),
     partNumber: str | None = Form(None),
@@ -126,14 +179,11 @@ async def import_revision(
     revision: str = Form(""),
 ) -> dict[str, Any]:
     """Upload a PDF as a new revision. Creates the part when only a part number is given."""
-    pdf_bytes = await file.read()
-    if not pdf_bytes.startswith(b"%PDF"):
-        raise HTTPException(400, "File does not appear to be a valid PDF")
-    file_name = file.filename or "drawing.pdf"
-    try:
-        sizes = _page_sizes(pdf_bytes)
-    except Exception as exc:  # noqa: BLE001
-        raise HTTPException(400, f"Could not read PDF: {exc}") from exc
+    pdf_bytes = await _read_limited(file)
+    file_name = os.path.basename((file.filename or "drawing.pdf").replace("\\", "/"))[:255] or "drawing.pdf"
+    sizes = _inspect_pdf(pdf_bytes)
+    digest = hashlib.sha256(pdf_bytes).hexdigest()
+    readiness = _intake_summary(pdf_bytes)
 
     with get_session() as s:
         part: Part | None = None
@@ -142,6 +192,11 @@ async def import_revision(
             if not part:
                 raise HTTPException(404, "Part not found")
         else:
+            # Dropped without naming a part: the same file anywhere in the library is the same revision.
+            known = s.scalar(select(DrawingRevision).where(DrawingRevision.sha256 == digest)) if not partNumber else None
+            if known:
+                response.status_code = 200
+                return {**_revision_summary(known), "partNumber": known.part.part_number, "partName": known.part.part_name, "duplicate": True, "intake": readiness}
             number = (partNumber or _guess_part_number(file_name)).strip()
             part = s.scalar(select(Part).where(Part.part_number == number))
             if not part:
@@ -151,18 +206,24 @@ async def import_revision(
             elif partName and not part.part_name:
                 part.part_name = partName.strip()
 
+        # The same file again is the same revision: hand back the one already stored.
+        same = next((r for r in part.revisions if r.sha256 == digest), None)
+        if same:
+            response.status_code = 200
+            return {**_revision_summary(same), "partNumber": part.part_number, "partName": part.part_name, "duplicate": True, "intake": readiness}
+
         rev = DrawingRevision(
             part_id=part.id,
             revision=revision.strip() or f"{len(part.revisions) + 1:02d}",
             file_name=file_name,
-            sha256=hashlib.sha256(pdf_bytes).hexdigest(),
+            sha256=digest,
             pdf=pdf_bytes,
             page_sizes=sizes,
         )
         s.add(rev)
         s.commit()
         s.refresh(rev)
-        return {**_revision_summary(rev), "partNumber": part.part_number, "partName": part.part_name}
+        return {**_revision_summary(rev), "partNumber": part.part_number, "partName": part.part_name, "duplicate": False, "intake": readiness}
 
 
 @router.get("/revisions/{revision_id}/pdf")

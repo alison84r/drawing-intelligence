@@ -43,6 +43,7 @@ export function ExportDialog({ open, onClose }: Props) {
   const [pdf, setPdf] = useState(true)
   const [includeReference, setIncludeReference] = useState(false)
   const [includeDraft, setIncludeDraft] = useState(false)
+  const [stamp, setStamp] = useState(true)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -66,7 +67,7 @@ export function ExportDialog({ open, onClose }: Props) {
     try {
       // Make sure the server has the latest edits before it renders the report.
       if (saveState !== 'saved') await new Promise((r) => setTimeout(r, 1200))
-      const { blob, fileName } = await api.exportInspection(inspectionId, { as9102, ppap, pdf, includeReference, includeDraft })
+      const { blob, fileName } = await api.exportInspection(inspectionId, { as9102, ppap, pdf, includeReference, includeDraft, stamp })
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
@@ -99,6 +100,13 @@ export function ExportDialog({ open, onClose }: Props) {
             title="PPAP dimensional results" text="AIAG layout: item, specification, limits, result, OK / NOT OK." />
           <Option checked={pdf} onChange={setPdf} icon={<FileText className="size-4 text-primary" />} tag=".pdf"
             title="Ballooned drawing" text="Copy of the PDF with balloons and leaders drawn as vector shapes at their exact positions." />
+
+          {pdf && (
+            <label className="flex items-center justify-between gap-3 rounded-md border px-3 py-2 text-xs">
+              <span>Status stamp and legend on the drawing, placed where the sheet is empty</span>
+              <Switch checked={stamp} onCheckedChange={setStamp} aria-label="Status stamp and legend" />
+            </label>
+          )}
 
           <label className="flex items-center justify-between gap-3 rounded-md border px-3 py-2 text-xs">
             <span>Include reference and basic dimensions ({refs})</span>

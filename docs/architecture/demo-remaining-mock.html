@@ -1,0 +1,183 @@
+<title>Demo Remaining Items</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* layout: one column of approval cards, each = picture on the left, decision facts on the right */
+:root{--bg:#f3f6f9;--fg:#13212d;--muted:#5b6a78;--line:#d6dee6;--panel:#ffffff;--navy:#004a77;--navyfg:#ffffff;--chip:#e9eff5;--ok:#15803d;--okbg:#dcfce7;--warn:#b45309;--warnbg:#fef3c7;--bad:#b91c1c;--badbg:#fee2e2;--sheet:#fdfdfb;--ink:#2b3640;--blue:#1d4ed8;
+--sans:"IBM Plex Sans",system-ui,sans-serif;--mono:"IBM Plex Mono",ui-monospace,monospace}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0d141b;--fg:#e6edf3;--muted:#97a6b4;--line:#253241;--panel:#141e29;--navy:#4fb4e6;--navyfg:#06202e;--chip:#1b2734;--ok:#4ade80;--okbg:#12301d;--warn:#fbbf24;--warnbg:#382a0a;--bad:#f87171;--badbg:#3a1515;--sheet:#e9ecef;--ink:#2b3640;--blue:#1d4ed8;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0d141b;--fg:#e6edf3;--muted:#97a6b4;--line:#253241;--panel:#141e29;--navy:#4fb4e6;--navyfg:#06202e;--chip:#1b2734;--ok:#4ade80;--okbg:#12301d;--warn:#fbbf24;--warnbg:#382a0a;--bad:#f87171;--badbg:#3a1515;--sheet:#e9ecef;--ink:#2b3640;--blue:#1d4ed8;color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:15px;line-height:1.45;padding-block:28px 64px;padding-inline:16px}
+main{max-width:1060px;margin:0 auto;display:grid;gap:22px}
+h1{font-size:1.55rem;font-weight:700;margin:0;text-wrap:balance}
+h2{font-size:1.1rem;font-weight:600;margin:0;text-wrap:balance}
+p{margin:0}.lead{color:var(--muted);max-width:66ch;margin-top:6px}
+.tag{font-family:var(--mono);font-size:.7rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.pill{display:inline-block;font-size:.72rem;font-weight:600;padding:2px 9px;border-radius:999px;white-space:nowrap}
+.g{background:var(--okbg);color:var(--ok)}.a{background:var(--warnbg);color:var(--warn)}.r{background:var(--badbg);color:var(--bad)}.n{background:var(--chip);color:var(--muted)}
+.done{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr));gap:10px}
+.done div{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:.88rem;display:grid;gap:4px}
+.item{background:var(--panel);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.head{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;padding:14px 16px;border-bottom:1px solid var(--line)}
+.head h2{flex:1;min-width:200px}
+.body{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,330px),1fr));gap:0}
+.pic{padding:16px;border-right:1px solid var(--line);min-width:0}
+.facts{padding:16px;display:grid;gap:10px;align-content:start;min-width:0;font-size:.9rem}
+.facts ul{margin:0;padding-left:18px;display:grid;gap:5px}
+svg{display:block;width:100%;height:auto}
+.sv-t{font-family:var(--sans);font-size:11px;fill:var(--fg)}.sv-m{font-family:var(--sans);font-size:10px;fill:var(--muted)}
+.row{display:flex;gap:8px;align-items:center;padding:7px 10px;border:1px solid var(--line);border-radius:8px;font-size:.84rem}
+.row b{font-weight:600}.row span:last-child{margin-left:auto}
+.stack{display:grid;gap:6px}
+.tbl{overflow-x:auto}table{border-collapse:collapse;width:100%;font-size:.84rem}th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line);vertical-align:top}th{font-weight:600;color:var(--muted);font-size:.74rem;text-transform:uppercase;letter-spacing:.05em}
+.ask{background:var(--navy);color:var(--navyfg);border-radius:14px;padding:16px 18px;display:grid;gap:6px}
+.ask b{font-size:1.02rem}
+@media (max-width:720px){.pic{border-right:0;border-bottom:1px solid var(--line)}}
+</style>
+<main>
+<header>
+  <p class="tag">Drawing Intelligence · before Friday's demo</p>
+  <h1>What is done, and four things waiting for your yes</h1>
+  <p class="lead">Each card shows what you would see, what it costs, and what could go wrong. Nothing below is built until you approve it.</p>
+</header>
+
+<section class="done" aria-label="Done today">
+  <div><span class="pill g">Done · verified</span><b>Step-based workspace</b><span>Recognize → Review → Measure → Export, floating tools, work list, requirement panel.</span></div>
+  <div><span class="pill g">Done · verified</span><b>Navy theme</b><span>Navy primary. Red only means fail.</span></div>
+  <div><span class="pill g">Done · verified</span><b>Tolerance from the drawing</b><span>Heat sink read as ISO 2768-m. 113.4 now ±0.3, was ±0.2.</span></div>
+  <div><span class="pill n">Safety net</span><b>Fallback build kept</b><span>Tag v0.3.0 is untouched if anything misbehaves.</span></div>
+</section>
+
+<article class="item">
+  <div class="head"><span class="tag">A</span><h2>Upload any PDF, and say clearly what we got</h2><span class="pill g">Recommend: before demo</span></div>
+  <div class="body">
+    <div class="pic">
+      <svg viewBox="0 0 440 300" role="img" aria-label="Upload flow mock">
+        <rect x="6" y="6" width="428" height="78" rx="10" fill="none" stroke="var(--navy)" stroke-width="1.5" stroke-dasharray="6 5"/>
+        <text x="220" y="40" text-anchor="middle" class="sv-t" font-weight="600">Drop PDFs anywhere, one or many</text>
+        <text x="220" y="58" text-anchor="middle" class="sv-m">or Browse · up to 100 MB each · any page size · multi-sheet</text>
+        <text x="8" y="108" class="sv-m">CHECKED ON ARRIVAL, IN ABOUT A SECOND</text>
+        <g>
+          <rect x="6" y="116" width="428" height="40" rx="8" fill="var(--okbg)"/>
+          <text x="18" y="134" class="sv-t" font-weight="600">bracket_A-204.pdf</text><text x="18" y="148" class="sv-m">CAD export · 3 sheets · text and lines readable</text>
+          <text x="424" y="140" text-anchor="end" class="sv-t" fill="var(--ok)" font-weight="600">Ready → opens</text>
+          <rect x="6" y="162" width="428" height="40" rx="8" fill="var(--warnbg)"/>
+          <text x="18" y="180" class="sv-t" font-weight="600">housing_rev_C.pdf</text><text x="18" y="194" class="sv-m">Text saved as outlines, or title block is a picture</text>
+          <text x="424" y="186" text-anchor="end" class="sv-t" fill="var(--warn)" font-weight="600">Opens · manual balloons</text>
+          <rect x="6" y="208" width="428" height="40" rx="8" fill="var(--badbg)"/>
+          <text x="18" y="226" class="sv-t" font-weight="600">old_scan.pdf</text><text x="18" y="240" class="sv-m">Scanned image, password locked, damaged, or not a PDF</text>
+          <text x="424" y="232" text-anchor="end" class="sv-t" fill="var(--bad)" font-weight="600">Plain reason shown</text>
+        </g>
+        <text x="8" y="274" class="sv-m">Part number and revision are guessed from the title block, you confirm.</text>
+        <text x="8" y="290" class="sv-m">The same file uploaded twice is recognised and not duplicated.</text>
+      </svg>
+    </div>
+    <div class="facts">
+      <p><b>Today:</b> one PDF at a time, part number guessed from the file name, no size limit, a locked or odd PDF gives a raw error.</p>
+      <ul>
+        <li>Several files in one drop</li>
+        <li>Three clear outcomes instead of an error message</li>
+        <li>Size and page limits, file type checked by content, duplicate check by fingerprint</li>
+        <li>Nothing leaves the machine</li>
+      </ul>
+      <p><span class="pill g">Risk: low</span> Library screen only. The workspace is not touched.</p>
+    </div>
+  </div>
+</article>
+
+<article class="item">
+  <div class="head"><span class="tag">B</span><h2>Status stamp and legend on the exported PDF</h2><span class="pill g">Recommend: before demo</span></div>
+  <div class="body">
+    <div class="pic">
+      <svg viewBox="0 0 440 290" role="img" aria-label="Exported sheet with stamp and legend">
+        <rect x="6" y="6" width="428" height="278" fill="var(--sheet)" stroke="var(--ink)"/>
+        <rect x="16" y="16" width="408" height="258" fill="none" stroke="var(--ink)" stroke-width=".6"/>
+        <path d="M60 70h150v70h-40v40h-70v-40h-40z" fill="none" stroke="var(--ink)"/>
+        <circle cx="96" cy="60" r="8" fill="#16a34a"/><text x="96" y="63.5" text-anchor="middle" font-size="9" fill="#fff" font-family="var(--sans)">1</text>
+        <circle cx="222" cy="104" r="8" fill="#dc2626"/><text x="222" y="107.5" text-anchor="middle" font-size="9" fill="#fff" font-family="var(--sans)">2</text>
+        <circle cx="150" cy="192" r="8" fill="#fff" stroke="#1d4ed8" stroke-width="1.5"/><text x="150" y="195.5" text-anchor="middle" font-size="9" fill="#1d4ed8" font-family="var(--sans)">3</text>
+        <rect x="290" y="210" width="134" height="64" fill="none" stroke="var(--ink)" stroke-width=".6"/><text x="298" y="226" font-size="8" fill="var(--ink)" font-family="var(--sans)">TITLE BLOCK (untouched)</text>
+        <g transform="rotate(-8 330 70)">
+          <rect x="262" y="40" width="140" height="56" rx="6" fill="none" stroke="#15803d" stroke-width="2.4"/>
+          <text x="332" y="62" text-anchor="middle" font-size="14" font-weight="700" fill="#15803d" font-family="var(--sans)">FAI ACCEPTED</text>
+          <text x="332" y="77" text-anchor="middle" font-size="8" fill="#15803d" font-family="var(--mono)">FAIR-2026-0412 · 02 OCT 2026</text>
+          <text x="332" y="88" text-anchor="middle" font-size="7" fill="#15803d" font-family="var(--sans)">51 of 51 measured · 0 nonconforming</text>
+        </g>
+        <rect x="262" y="120" width="150" height="74" fill="#fff" stroke="var(--ink)" stroke-width=".6"/>
+        <text x="270" y="134" font-size="8" font-weight="700" fill="var(--ink)" font-family="var(--sans)">LEGEND</text>
+        <circle cx="276" cy="146" r="4.5" fill="#16a34a"/><text x="288" y="149" font-size="8" fill="var(--ink)" font-family="var(--sans)">Pass · 49</text>
+        <circle cx="276" cy="160" r="4.5" fill="#dc2626"/><text x="288" y="163" font-size="8" fill="var(--ink)" font-family="var(--sans)">Fail · 2</text>
+        <circle cx="276" cy="174" r="4.5" fill="#fff" stroke="#1d4ed8" stroke-width="1.2"/><text x="288" y="177" font-size="8" fill="var(--ink)" font-family="var(--sans)">Not measured · 25</text>
+        <text x="270" y="189" font-size="6.5" fill="#5b6a78" font-family="var(--sans)">Marks added by Drawing Intelligence. Original unchanged.</text>
+      </svg>
+    </div>
+    <div class="facts">
+      <ul>
+        <li>Stamp words follow the real state: <b>Accepted</b>, <b>Rejected</b> or <b>In progress</b></li>
+        <li>Stamp and legend go where the sheet is empty, never over geometry or the title block</li>
+        <li>On or off in the export dialog</li>
+        <li>The stored original PDF is never altered</li>
+      </ul>
+      <p><span class="pill g">Risk: low</span> Export only. Default stays as today if switched off.</p>
+    </div>
+  </div>
+</article>
+
+<article class="item">
+  <div class="head"><span class="tag">C</span><h2>Views on the sheet, each with its own scale</h2><span class="pill a">Recommend: after demo</span></div>
+  <div class="body">
+    <div class="pic">
+      <svg viewBox="0 0 440 240" role="img" aria-label="Sheet split into views">
+        <rect x="6" y="6" width="428" height="228" fill="var(--sheet)" stroke="var(--ink)"/>
+        <g fill="none" stroke="var(--blue)" stroke-width="1.3" stroke-dasharray="5 4">
+          <rect x="22" y="22" width="190" height="96" rx="4"/><rect x="22" y="130" width="190" height="90" rx="4"/><rect x="230" y="22" width="90" height="96" rx="4"/><rect x="236" y="140" width="70" height="60" rx="4"/></g>
+        <g font-family="var(--sans)" font-size="9" fill="var(--blue)" font-weight="600">
+          <text x="28" y="34">FRONT · 1:1</text><text x="28" y="142">TOP · 1:1</text><text x="236" y="34">SECTION A-A · 1:1</text><text x="242" y="152">DETAIL A · 2:1</text></g>
+        <rect x="336" y="150" width="88" height="74" fill="none" stroke="var(--ink)" stroke-width=".6"/><text x="342" y="164" font-size="8" fill="var(--ink)" font-family="var(--sans)">TITLE BLOCK</text>
+        <rect x="336" y="22" width="88" height="60" fill="none" stroke="var(--ink)" stroke-width=".6"/><text x="342" y="36" font-size="8" fill="var(--ink)" font-family="var(--sans)">NOTES</text>
+      </svg>
+    </div>
+    <div class="facts">
+      <ul>
+        <li>Sheet split into views, tables, notes and title block, by geometry only</li>
+        <li>A detail at 2:1 is checked at 2:1, so fewer false "value differs" flags</li>
+        <li>Each row says which view it belongs to</li>
+      </ul>
+      <p><span class="pill a">Risk: medium</span> It changes the recognizer the day before a go or no-go. The heat sink already shows 5 "value differs" flags, some of which this would clear, but I would rather not move tested results tonight.</p>
+    </div>
+  </div>
+</article>
+
+<article class="item">
+  <div class="head"><span class="tag">D</span><h2>Small model and OCR, for pictures inside a CAD PDF</h2><span class="pill a">Recommend: after demo</span></div>
+  <div class="body">
+    <div class="pic">
+      <div class="stack">
+        <div class="row"><b>CAD text and lines</b><span class="pill g">already read exactly</span></div>
+        <div class="row"><b>Title block pasted as a picture</b><span class="pill a">needs OCR</span></div>
+        <div class="row"><b>Tolerance table in an odd layout</b><span class="pill a">small model helps</span></div>
+        <div class="row"><b>Scanned drawings</b><span class="pill n">customer says none</span></div>
+      </div>
+      <div class="tbl" style="margin-top:12px"><table>
+        <tr><th>To install</th><th>Size</th><th>Licence</th></tr>
+        <tr><td>OCR engine (Tesseract or RapidOCR)</td><td>about 20 to 80 MB</td><td>Apache-2.0</td></tr>
+        <tr><td>Ollama runtime</td><td>about 1 GB</td><td>MIT</td></tr>
+        <tr><td>One small vision model</td><td>about 2 to 4 GB</td><td>checked per model before download</td></tr>
+      </table></div>
+    </div>
+    <div class="facts">
+      <ul>
+        <li>Runs on this machine, no drawing sent anywhere</li>
+        <li>This laptop has no usable graphics card, so a model answers in tens of seconds, not instantly</li>
+        <li>A model's reading is always shown as a suggestion with its source, never applied silently</li>
+      </ul>
+      <p><span class="pill a">Needs your permission</span> I install or download nothing until you say yes to the exact list.</p>
+    </div>
+  </div>
+</article>
+
+<section class="ask">
+  <b>Your call</b>
+  <span>My pick: build <b>A</b> and <b>B</b> now, keep <b>C</b> and <b>D</b> for after the demo. Reply with the letters you approve, for example "A B" or "all four".</span>
+</section>
+</main>

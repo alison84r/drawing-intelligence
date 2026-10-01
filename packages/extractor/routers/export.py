@@ -28,6 +28,7 @@ class ExportRequest(BaseModel):
     pdf: bool = True
     includeReference: bool = False
     includeDraft: bool = True
+    stamp: bool = True  # status stamp and legend on the ballooned drawing
 
 
 def _safe(name: str) -> str:
@@ -65,7 +66,7 @@ def export_inspection(inspection_id: str, body: ExportRequest) -> Response:
         files.append((f"{base}_PPAP_Dimensional_Results.xlsx", build_ppap_workbook(info, chars, defaults)))
     if body.pdf:
         stamp = f"{info.get('partNumber', '')} Rev {info.get('drawingRevision', '')} · {len(chars)} characteristics · Drawing Intelligence by DataVers.AI"
-        files.append((f"{base}_ballooned.pdf", build_ballooned_pdf(pdf_bytes, chars, settings, stamp)))
+        files.append((f"{base}_ballooned.pdf", build_ballooned_pdf(pdf_bytes, chars, settings, stamp, {"fairNumber": info.get("fairNumber", "")} if body.stamp else None)))
     if not files:
         raise HTTPException(400, "Nothing selected to export")
 

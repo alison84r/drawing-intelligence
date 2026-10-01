@@ -6,6 +6,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { ThemeToggle } from '@/components/theme/ThemeToggle'
 import { BRAND, BrandFooter, BrandLogo } from '@/components/brand/Brand'
 import { api, type InspectionSummary, type PartSummary, type RevisionSummary } from '@/lib/api'
+import { MAX_UPLOAD_MB, refusalBeforeSend, UploadResults, type UploadRow } from './UploadResults'
 import { openInspectionFromServer } from '@/lib/project'
 import { cn } from '@/lib/utils'
 
@@ -71,6 +72,7 @@ export function LibraryScreen() {
   const [query, setQuery] = useState('')
   const [busy, setBusy] = useState<string | null>(null)
   const [dragOver, setDragOver] = useState(false)
+  const [uploads, setUploads] = useState<UploadRow[]>([])
   const fileInput = useRef<HTMLInputElement>(null)
   const pendingPartId = useRef<string | undefined>(undefined)
 
@@ -108,20 +110,66 @@ export function LibraryScreen() {
     }
   }
 
-  /** Import a PDF as a revision of the given part (or a new part named after the file), then start ballooning it. */
-  const importPdf = (file: File, partId?: string) =>
+  /** Open a stored revision: its latest inspection, or a first one when it has none. */
+  const openRevision = async (revisionId: string) => {
+    const list = await api.listParts()
+    const rev = list.flatMap((p) => p.revisions).find((r) => r.id === revisionId)
+    const last = rev?.inspections[rev.inspections.length - 1]
+    const inspectionId = last?.id ?? (await api.createInspection(revisionId, 'Full FAI')).id
+    await openInspectionFromServer(inspectionId)
+  }
+
+  /**
+   * Take one or many PDFs. Each file is checked and gets a plain outcome; a single good file opens straight away.
+   * Dropped on a part, the files become its revisions; otherwise each file is its own part.
+   */
+  const importFiles = (files: File[], partId?: string) =>
     run('import', async () => {
-      const rev = await api.importRevision(file, { partId })
-      const insp = await api.createInspection(rev.id, 'Full FAI')
+      if (files.length === 0) return
+      const stamp = Date.now()
+      const rows: UploadRow[] = files.map((f, i) => ({ key: `${stamp}-${i}`, name: f.name, state: 'waiting', detail: '' }))
+      const show = (i: number, patch: Partial<UploadRow>) => {
+        rows[i] = { ...rows[i], ...patch }
+        setUploads([...rows])
+      }
+      setUploads([...rows])
+      for (let i = 0; i < files.length; i++) {
+        const refusal = refusalBeforeSend(files[i])
+        if (refusal) {
+          show(i, { state: 'refused', detail: refusal })
+          continue
+        }
+        show(i, { state: 'sending' })
+        try {
+          const rev = await api.importRevision(files[i], { partId })
+          const sheets = `${rev.sheets} ${rev.sheets === 1 ? 'sheet' : 'sheets'}`
+          const where = `${rev.partNumber} · Rev ${rev.revision} · ${sheets}`
+          const note = rev.duplicate ? 'Already in the library, not stored twice' : rev.intake.reason || rev.intake.verdict
+          show(i, {
+            state: rev.intake.level === 'ok' ? 'ready' : rev.intake.level === 'warn' ? 'review' : 'unreadable',
+            detail: `${where} · ${note}`,
+            revisionId: rev.id,
+            partId: rev.partId,
+          })
+        } catch (e) {
+          show(i, { state: 'refused', detail: e instanceof Error ? e.message : 'The upload failed' })
+        }
+      }
       await refresh()
-      await openInspectionFromServer(insp.id)
+      const stored = rows.filter((r) => r.revisionId)
+      if (stored.length > 0) setSelectedId(stored[stored.length - 1].partId ?? null)
+      // One readable drawing: go straight to work, as before.
+      if (files.length === 1 && stored.length === 1 && stored[0].state !== 'unreadable') {
+        await openRevision(stored[0].revisionId as string)
+        setUploads([])
+      }
     })
 
   const onDrop = (e: React.DragEvent, partId?: string) => {
     e.preventDefault()
+    e.stopPropagation()
     setDragOver(false)
-    const file = e.dataTransfer.files?.[0]
-    if (file && /\.pdf$/i.test(file.name)) void importPdf(file, partId)
+    void importFiles(Array.from(e.dataTransfer.files ?? []), partId)
   }
 
   const pickFile = (partId?: string) => {
@@ -228,10 +276,11 @@ export function LibraryScreen() {
             onDragLeave={() => setDragOver(false)}
             onDrop={(e) => onDrop(e, selected?.id)}
           >
+            <UploadResults rows={uploads} busy={busy !== null} onClear={() => setUploads([])} onOpen={(row) => void run(row.key, () => openRevision(row.revisionId as string))} />
             {!selected ? (
               <div className="flex h-full flex-col items-center justify-center gap-3 text-center text-sm text-muted-foreground">
                 <Upload className="size-6" />
-                <p>Drop a vector PDF anywhere on this page to start.</p>
+                <p>Drop PDFs anywhere on this page to start. One or many, up to {MAX_UPLOAD_MB} MB each.</p>
                 <Button size="sm" onClick={() => pickFile(undefined)}><FilePlus2 /> New from PDF</Button>
               </div>
             ) : (
@@ -316,7 +365,7 @@ export function LibraryScreen() {
                 <div
                   className={cn('rounded-lg border-2 border-dashed p-5 text-center text-xs text-muted-foreground', dragOver && 'border-primary')}
                 >
-                  Drop a PDF here to add a revision to {selected.partNumber}
+                  Drop PDFs here to add revisions to {selected.partNumber}
                 </div>
               </div>
             )}
@@ -327,10 +376,10 @@ export function LibraryScreen() {
           ref={fileInput}
           type="file"
           accept="application/pdf,.pdf"
+          multiple
           className="hidden"
           onChange={(e) => {
-            const file = e.target.files?.[0]
-            if (file) void importPdf(file, pendingPartId.current)
+            void importFiles(Array.from(e.target.files ?? []), pendingPartId.current)
             e.target.value = ''
           }}
         />
