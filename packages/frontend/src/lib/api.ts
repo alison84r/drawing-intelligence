@@ -133,7 +133,7 @@ export interface RecognizePage {
   views?: SheetView[]
   grids?: SheetGrid[]
   /** Regions that never get balloons: the title block, pictures, tables. */
-  protected?: { kind: 'title_block' | 'picture' | 'table'; bbox: { x: number; y: number; w: number; h: number } }[]
+  protected?: { kind: 'title_block' | 'picture' | 'table'; bbox: { x: number; y: number; w: number; h: number }; picture?: boolean }[]
   /** After a window read: how many values were held back, by kind of region. */
   /** table = values found inside a table; offered = how many of those are shown in amber to pick. */
   withheld?: { title_block: number; picture: number; table: number; offered: number } | null
@@ -186,6 +186,10 @@ export interface AssistCheck {
 export interface AssistCandidate {
   id: string
   kind: 'picture' | 'table'
+  /** What it is, in the words shown to the person: Tolerance table, Title block, Picture. */
+  label: string
+  /** The reading that fits this region, when it is known. */
+  task: AssistTask | null
   bbox: { x: number; y: number; w: number; h: number }
 }
 

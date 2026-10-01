@@ -78,3 +78,21 @@ def test_text_hidden_under_a_white_patch_is_never_read(pdf):
     w = recognize(pdf, region={"x": 794, "y": 950, "w": 871, "h": 95}, relaxed=True)["pages"][0]
     assert w["characteristics"] == []
     assert any(t["reason"] == "in the file but not visible on the drawing" for t in w["tokens"])
+
+
+def test_sheet_border_is_not_a_table(pdf):
+    """The zone letters down the sides sit in ruled cells; they are the frame of the sheet, not a table."""
+    page = recognize(pdf)["pages"][0]
+    for p in page["protected"]:
+        assert not (p["bbox"]["w"] < 0.03 * page["width"] and p["bbox"]["h"] > 0.4 * page["height"])
+    assert [g["kind"] for g in page["grids"]] == ["tolerance"]  # nothing is read from under the title-block picture
+
+
+def test_regions_offered_for_reading(pdf):
+    from assist.regions import candidates
+
+    found = candidates(pdf, 0)
+    labels = [c["label"] for c in found]
+    assert labels[0] == "Tolerance table" and found[0]["task"] == "tolerance_table"
+    assert labels.count("Title block (picture)") == 1
+    assert all(c["bbox"]["w"] > 100 for c in found)  # no border strips, no frames

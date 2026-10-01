@@ -78,26 +78,34 @@ def protected_regions(page: Any, tables: list[Box], tokens: list[Token], width: 
         box = (float(im["x0"]), float(im["top"]), float(im["x1"]), float(im["bottom"]))
         if 0.004 * area <= (box[2] - box[0]) * (box[3] - box[1]) <= 0.6 * area:
             found.append(("picture", box))
-    found += [("table", tuple(float(v) for v in t)) for t in tables]  # type: ignore[misc]
+    pictures = {b for _, b in found}
+
+    def border_strip(b: Box) -> bool:
+        # The zone letters and numbers round the sheet sit in ruled cells: a long, very thin "table" along an edge.
+        w, h = b[2] - b[0], b[3] - b[1]
+        return (w <= 0.03 * width and h >= 0.4 * height) or (h <= 0.03 * height and w >= 0.4 * width)
+
+    found += [("table", b) for b in (tuple(float(v) for v in t) for t in tables) if not border_strip(b)]  # type: ignore[misc]
     try:
         found += [("table", b) for b in ruled_grids(page, tokens, list(tips), width, height)]
     except Exception:  # noqa: BLE001 - an aid: the table finder's result still stands
         pass
 
     # Sparse tables count only if they turn out to be a title block (decided by their words below).
-    found += [("maybe", tuple(float(v) for v in t)) for t in any_tables if tuple(float(v) for v in t) not in {b for _, b in found}]  # type: ignore[misc]
+    found += [("maybe", b) for b in (tuple(float(v) for v in t) for t in any_tables) if b not in {x for _, x in found} and not border_strip(b)]  # type: ignore[misc]
 
     out = []
     for kind, box in found:
         words = {t.text.upper().strip(":. ") for t in tokens if _inside((t.x0 + t.x1) / 2, (t.y0 + t.y1) / 2, box)}
         titles = sum(1 for w in words if TITLE_WORDS.match(w))
         # Title-block words decide; a picture in the bottom-right corner of the sheet is one even without readable text.
-        corner = kind == "picture" and (box[0] + box[2]) / 2 > 0.5 * width and (box[1] + box[3]) / 2 > 0.7 * height
+        big = (box[2] - box[0]) * (box[3] - box[1]) >= 0.015 * area  # a logo is a picture, not a title block
+        corner = kind == "picture" and big and (box[0] + box[2]) / 2 > 0.5 * width and (box[1] + box[3]) / 2 > 0.7 * height
         if titles >= 3 or corner:
             kind = "title_block"
         if kind == "maybe":
             continue  # a sparse table that is not a title block: left alone
-        out.append({"kind": kind, "bbox": {"x": round(box[0], 1), "y": round(box[1], 1), "w": round(box[2] - box[0], 1), "h": round(box[3] - box[1], 1)}, "_box": box})
+        out.append({"kind": kind, "bbox": {"x": round(box[0], 1), "y": round(box[1], 1), "w": round(box[2] - box[0], 1), "h": round(box[3] - box[1], 1)}, "_box": box, "_picture": box in pictures})
     # A title block drawn as plain text and rules: found by its field names, and accepted only if no
     # dimension arrowhead falls inside (a box that reaches into the drawing is worse than none).
     box = title_word_cluster(tokens, width, height)

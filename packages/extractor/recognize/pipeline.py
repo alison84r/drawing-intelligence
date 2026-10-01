@@ -129,11 +129,11 @@ def recognize(
             tolerance_table = None
             if region is None:
                 for r in shielded:
-                    if r["kind"] == "picture":
-                        continue
+                    if r["kind"] == "picture" or r.get("_picture"):
+                        continue  # whatever rules lie under a picture are not on the drawing
                     cells = read_grid(page, r["_box"], hidden_boxes)
-                    if not cells or any(g["bbox"] == cells["bbox"] for g in grids):
-                        continue
+                    if not cells or any(_overlaps(g["bbox"], cells["bbox"], 0.6) for g in grids):
+                        continue  # the same table found twice (as a ruled table and by its field names)
                     as_tolerance = read_tolerance_grid(cells["rows"])
                     if as_tolerance and tolerance_table is None:
                         tolerance_table = as_tolerance
@@ -404,7 +404,7 @@ def recognize(
                 "arrowheads": len(heads),
                 "audit": audit,
                 "views": [v.to_json(i) for i, v in enumerate(views)],
-                "protected": [{"kind": "title_block" if r["kind"] == "title_text" else r["kind"], "bbox": r["bbox"]} for r in shielded],
+                "protected": [{"kind": "title_block" if r["kind"] == "title_text" else r["kind"], "bbox": r["bbox"], "picture": bool(r.get("_picture"))} for r in shielded],
                 "grids": grids,
                 "withheld": {**withheld, "offered": len(offered)} if region is not None else None,
                 "tolerance": tolerance,

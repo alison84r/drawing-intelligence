@@ -79,6 +79,7 @@ export function AssistDialog({ open, status, onClose }: { open: boolean; status:
 
   const pick = (c: AssistCandidate) => {
     setPicked(c)
+    if (c.task) setTask(c.task)
     setConsent(false)
     setResult(null)
     setError(null)
@@ -152,7 +153,7 @@ export function AssistDialog({ open, status, onClose }: { open: boolean; status:
               <button key={c.id} type="button" onClick={() => pick(c)}
                 className={cn('flex w-full items-center gap-2 rounded-md border p-1.5 text-left text-xs transition-colors hover:border-primary/60', picked?.id === c.id && 'border-primary bg-primary/5')}>
                 <img src={api.assistCropUrl(revisionId, pageIndex, c.bbox)} alt="" className="h-12 w-16 shrink-0 rounded border bg-white object-contain" />
-                <span className="flex items-center gap-1.5">{c.kind === 'picture' ? <ImageIcon className="size-3.5" /> : <Table2 className="size-3.5" />}{c.kind === 'picture' ? 'Picture' : 'Table'}</span>
+                <span className="flex items-center gap-1.5">{c.kind === 'picture' ? <ImageIcon className="size-3.5" /> : <Table2 className="size-3.5" />}{c.label}</span>
               </button>
             ))}
           </div>

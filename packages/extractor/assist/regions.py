@@ -1,36 +1,53 @@
 """Which parts of a sheet are worth asking about, and the crop that would be sent. Nothing here leaves the machine."""
 from __future__ import annotations
 
-import io
 from typing import Any
 
 import fitz  # PyMuPDF (demo build; replaced with the permissive renderer before shipping)
-import pdfplumber
 
 MAX_SIDE_PX = 1600
 
 
+def _contains(outer: dict[str, float], inner: dict[str, float]) -> bool:
+    return (outer["x"] <= inner["x"] + 1 and outer["y"] <= inner["y"] + 1
+            and outer["x"] + outer["w"] >= inner["x"] + inner["w"] - 1 and outer["y"] + outer["h"] >= inner["y"] + inner["h"] - 1)
+
+
 def candidates(pdf_bytes: bytes, page_index: int) -> list[dict[str, Any]]:
-    """Pictures embedded in the sheet (their text cannot be read) and ruled tables, largest first."""
+    """
+    The regions of the sheet worth asking about, from the same detector the recognizer uses: pictures (their text
+    cannot be read), the title block, and real tables. The sheet border and frames inside views are not offered.
+    """
+    from recognize.pipeline import recognize  # local import: the recognizer is heavy and only needed here
+
+    pages = recognize(pdf_bytes, pages=[page_index])["pages"]
+    if not pages:
+        return []
+    page = pages[0]
+    grids = page.get("grids") or []
     out: list[dict[str, Any]] = []
-    with pdfplumber.open(io.BytesIO(pdf_bytes)) as pdf:
-        if not 0 <= page_index < len(pdf.pages):
-            return out
-        page = pdf.pages[page_index]
-        width, height = float(page.width), float(page.height)
-        area = width * height or 1.0
-        for im in page.images:
-            x0, y0, x1, y1 = float(im["x0"]), float(im["top"]), float(im["x1"]), float(im["bottom"])
-            if 0.004 * area <= (x1 - x0) * (y1 - y0) <= 0.6 * area:
-                out.append({"kind": "picture", "bbox": {"x": round(x0, 1), "y": round(y0, 1), "w": round(x1 - x0, 1), "h": round(y1 - y0, 1)}})
-        try:
-            for tb in page.find_tables():
-                x0, y0, x1, y1 = (float(v) for v in tb.bbox)
-                if 0.004 * area <= (x1 - x0) * (y1 - y0) <= 0.25 * area and len(tb.rows) >= 2:
-                    out.append({"kind": "table", "bbox": {"x": round(x0, 1), "y": round(y0, 1), "w": round(x1 - x0, 1), "h": round(y1 - y0, 1)}})
-        except Exception:  # noqa: BLE001 - table finding is best effort
-            pass
-    out.sort(key=lambda c: -(c["bbox"]["w"] * c["bbox"]["h"]))
+    for r in page.get("protected") or []:
+        box = r["bbox"]
+        tolerance = any(g["kind"] == "tolerance" and _contains(box, g["bbox"]) for g in grids)
+        if r.get("picture"):
+            kind, label = "picture", "Title block (picture)" if r["kind"] == "title_block" else "Picture"
+        else:
+            kind, label = "table", "Tolerance table" if tolerance else "Title block" if r["kind"] == "title_block" else "Table"
+        out.append({"kind": kind, "label": label, "task": "tolerance_table" if tolerance else "title_block" if r["kind"] == "title_block" else None, "bbox": box})
+    # One entry per thing: a region inside a larger one of the same kind is the same thing.
+    out = [c for c in out if not any(o is not c and o["kind"] == c["kind"] and _contains(o["bbox"], c["bbox"]) and o["bbox"] != c["bbox"] for o in out)]
+    def overlap(a: dict[str, float], b: dict[str, float]) -> float:
+        ix = max(0.0, min(a["x"] + a["w"], b["x"] + b["w"]) - max(a["x"], b["x"]))
+        iy = max(0.0, min(a["y"] + a["h"], b["y"] + b["h"]) - max(a["y"], b["y"]))
+        return ix * iy / max(1.0, min(a["w"] * a["h"], b["w"] * b["h"]))
+
+    kept: list[dict[str, Any]] = []
+    for c in sorted(out, key=lambda c: -(c["bbox"]["w"] * c["bbox"]["h"])):
+        if not any(k["kind"] == c["kind"] and overlap(k["bbox"], c["bbox"]) > 0.6 for k in kept):
+            kept.append(c)
+    out = kept
+    order = {"Tolerance table": 0, "Title block (picture)": 1, "Title block": 2, "Table": 3, "Picture": 4}
+    out.sort(key=lambda c: (order.get(c["label"], 9), -(c["bbox"]["w"] * c["bbox"]["h"])))
     for i, c in enumerate(out):
         c["id"] = f"r{i + 1}"
     return out[:12]
