@@ -19,11 +19,12 @@ import {
 } from 'ag-grid-community'
 import { useTheme } from '@/components/theme/ThemeProvider'
 import { Fcf } from '@/components/gdt/Fcf'
-import { StatusBadge } from '@/components/layout/RightPanel'
+import { StatusBadge } from '@/components/status/StatusBadge'
+import { isMeasurable } from '@/lib/progress'
 import { balloonLabel, useCharacteristicStore, type Characteristic } from '@/store/characteristicStore'
 import { useDocumentStore } from '@/store/documentStore'
 import { useSettingsStore, type DefaultTolerances } from '@/store/settingsStore'
-import { deriveLimits, displayStatus, fmt, hasNumericTolerance, parseNumber, placesOf, requirementText } from '@/lib/tolerance'
+import { deriveLimits, displayStatus, fmt, hasNumericTolerance, limitPlaces, parseNumber, placesOf, requirementText } from '@/lib/tolerance'
 
 ModuleRegistry.registerModules([AllCommunityModule])
 
@@ -32,13 +33,13 @@ const COLUMN_STATE_KEY = 'di.grid.columns'
 const gridTheme = themeQuartz
   .withParams(
     {
-      accentColor: '#e11d48',
+      accentColor: '#004a77',
       fontFamily: 'Inter, system-ui, sans-serif',
       fontSize: 12,
       headerFontSize: 11,
       headerFontWeight: 600,
-      rowHeight: 30,
-      headerHeight: 30,
+      rowHeight: 34,
+      headerHeight: 32,
       spacing: 5,
       wrapperBorder: false,
       wrapperBorderRadius: 0,
@@ -47,7 +48,7 @@ const gridTheme = themeQuartz
       headerBackgroundColor: '#f8fafc',
       borderColor: '#e2e8f0',
       oddRowBackgroundColor: '#fcfcfd',
-      selectedRowBackgroundColor: 'rgba(225,29,72,.10)',
+      selectedRowBackgroundColor: 'rgba(0,74,119,.10)',
       rowHoverColor: 'rgba(15,23,42,.04)',
     },
     'light',
@@ -59,9 +60,9 @@ const gridTheme = themeQuartz
       headerBackgroundColor: '#1e293b',
       borderColor: '#1e293b',
       oddRowBackgroundColor: '#131c2e',
-      selectedRowBackgroundColor: 'rgba(244,63,94,.18)',
+      selectedRowBackgroundColor: 'rgba(56,165,219,.18)',
       rowHoverColor: 'rgba(241,245,249,.05)',
-      accentColor: '#f43f5e',
+      accentColor: '#38a5db',
     },
     'dark',
   )
@@ -158,10 +159,10 @@ function buildColumns(defaults: DefaultTolerances): ColDef<Row>[] {
       },
       comparator: (a: string, b: string) => (parseFloat(a) || 0) - (parseFloat(b) || 0),
     },
-    { field: 'tolHigh', headerName: 'High', width: 104, type: 'numericColumn', valueParser: num, valueFormatter: tolFormatter('high'), cellClassRules: { 'text-muted-foreground': (p) => p.data?.tolHigh === null } },
-    { field: 'tolLow', headerName: 'Low', width: 104, type: 'numericColumn', valueParser: num, valueFormatter: tolFormatter('low'), cellClassRules: { 'text-muted-foreground': (p) => p.data?.tolLow === null } },
-    { headerName: 'Min', colId: 'min', width: 84, editable: false, type: 'numericColumn', valueGetter: (p: ValueGetterParams<Row>) => (p.data ? limitsOf(p.data).min : null), valueFormatter: (p) => (p.data ? fmt(p.value as number | null, p.data.places) : '') },
-    { headerName: 'Max', colId: 'max', width: 84, editable: false, type: 'numericColumn', valueGetter: (p: ValueGetterParams<Row>) => (p.data ? limitsOf(p.data).max : null), valueFormatter: (p) => (p.data ? fmt(p.value as number | null, p.data.places) : '') },
+    { field: 'tolHigh', headerName: 'High', width: 104, tooltipValueGetter: (p) => (p.data ? limitsOf(p.data).origin ?? '' : ''), type: 'numericColumn', valueParser: num, valueFormatter: tolFormatter('high'), cellClassRules: { 'text-muted-foreground': (p) => p.data?.tolHigh === null } },
+    { field: 'tolLow', headerName: 'Low', width: 104, tooltipValueGetter: (p) => (p.data ? limitsOf(p.data).origin ?? '' : ''), type: 'numericColumn', valueParser: num, valueFormatter: tolFormatter('low'), cellClassRules: { 'text-muted-foreground': (p) => p.data?.tolLow === null } },
+    { headerName: 'Min', colId: 'min', width: 84, editable: false, type: 'numericColumn', valueGetter: (p: ValueGetterParams<Row>) => (p.data ? limitsOf(p.data).min : null), valueFormatter: (p) => (p.data ? fmt(p.value as number | null, limitPlaces(p.data.places, limitsOf(p.data))) : '') },
+    { headerName: 'Max', colId: 'max', width: 84, editable: false, type: 'numericColumn', valueGetter: (p: ValueGetterParams<Row>) => (p.data ? limitsOf(p.data).max : null), valueFormatter: (p) => (p.data ? fmt(p.value as number | null, limitPlaces(p.data.places, limitsOf(p.data))) : '') },
     { field: 'units', headerName: 'Units', width: 72, cellEditor: 'agSelectCellEditor', cellEditorParams: { values: ['mm', 'in', 'deg'] } },
     { field: 'count', headerName: 'Qty', width: 64, type: 'numericColumn', valueParser: (p) => Math.max(1, Math.round(parseNumber(String(p.newValue ?? '')) ?? 1)) },
     { field: 'zone', headerName: 'Zone', width: 76, valueParser: (p) => String(p.newValue ?? '').toUpperCase() },
@@ -194,8 +195,37 @@ function buildColumns(defaults: DefaultTolerances): ColDef<Row>[] {
       valueGetter: (p: ValueGetterParams<Row>) => (p.data ? displayStatus(p.data, limitsOf(p.data)) : ''),
       cellRenderer: StatusCell,
     },
+    {
+      headerName: 'Evidence',
+      colId: 'evidence',
+      width: 210,
+      editable: false,
+      sortable: false,
+      valueGetter: (p: ValueGetterParams<Row>) => {
+        const c = p.data
+        if (!c) return ''
+        if (c.descriptionType === 'Note') return 'Drawing note'
+        if (c.source !== 'auto') return 'Placed by hand'
+        const g = c.geometry
+        if (!g) return 'No line or leader found'
+        if (g.ratioOk === false) return `Drawn ${g.measured ?? '?'}, value differs`
+        if (g.ratioOk) return g.kind === 'angular' ? 'Angle verified' : 'Length verified'
+        return g.kind === 'leader' ? 'On a leader' : g.kind === 'attached' ? 'With the callout beside it' : 'On a dimension line'
+      },
+      cellClassRules: {
+        'text-status-fail': (p) => p.data?.geometry?.ratioOk === false,
+        'text-status-draft': (p) => !!p.data && p.data.source === 'auto' && !p.data.geometry && p.data.descriptionType !== 'Note',
+        'text-muted-foreground': (p) => !!p.data && (p.data.geometry?.ratioOk !== false) && (p.data.source !== 'auto' || !!p.data.geometry || p.data.descriptionType === 'Note'),
+      },
+    },
     { field: 'comments', headerName: 'Comments', width: 180 },
   ]
+}
+
+/** Columns shown for each step. "Columns" in the toolbar brings back the rest. */
+const COLUMN_SETS: Record<'review' | 'measure', string[]> = {
+  review: ['balloon', 'specification', 'gdt', 'zone', 'result', 'status', 'evidence'],
+  measure: ['balloon', 'specification', 'gdt', 'min', 'max', 'result', 'status', 'zone'],
 }
 
 export function CharacteristicsGrid({ quickFilter }: { quickFilter: string }) {
@@ -212,16 +242,48 @@ export function CharacteristicsGrid({ quickFilter }: { quickFilter: string }) {
   const rowData = useMemo(() => items.map((c) => ({ ...c })), [items])
   const columnDefs = useMemo(() => buildColumns(defaults), [defaults])
 
+  const step = useUiStore((s) => s.step)
+  const allColumns = useUiStore((s) => s.allColumns)
+  const measureFilter = useUiStore((s) => s.measureFilter)
+
+  const applyColumnSet = useCallback((api: GridApi<Row>, which: 'review' | 'measure', all: boolean) => {
+    const ids = (api.getColumns() ?? []).map((col) => col.getColId())
+    const show = new Set(COLUMN_SETS[which])
+    api.setColumnsVisible(ids.filter((id) => all || show.has(id)), true)
+    api.setColumnsVisible(ids.filter((id) => !all && !show.has(id)), false)
+  }, [])
+
   const onGridReady = useCallback((e: GridReadyEvent<Row>) => {
     apiRef.current = e.api
     if (import.meta.env.DEV) (window as unknown as { __gridApi: GridApi<Row> }).__gridApi = e.api
     try {
       const raw = localStorage.getItem(COLUMN_STATE_KEY)
-      if (raw) e.api.applyColumnState({ state: JSON.parse(raw) as ColumnState[], applyOrder: true })
+      if (raw) e.api.applyColumnState({ state: (JSON.parse(raw) as ColumnState[]).map(({ hide: _hide, ...rest }) => rest), applyOrder: true })
     } catch {
       /* ignore bad saved state */
     }
+    const ui = useUiStore.getState()
+    applyColumnSet(e.api, ui.step, ui.allColumns)
+  }, [applyColumnSet])
+
+  useEffect(() => {
+    if (apiRef.current) applyColumnSet(apiRef.current, step, allColumns)
+  }, [step, allColumns, applyColumnSet])
+
+  // While measuring, the side panel chooses which rows are listed.
+  const stepRef = useRef({ step, measureFilter, defaults })
+  stepRef.current = { step, measureFilter, defaults }
+  const isExternalFilterPresent = useCallback(() => stepRef.current.step === 'measure' && stepRef.current.measureFilter !== 'all', [])
+  const doesExternalFilterPass = useCallback((node: { data?: Row }) => {
+    const c = node.data
+    const { measureFilter: f, defaults: d } = stepRef.current
+    if (!c) return true
+    if (f === 'failed') return displayStatus(c, deriveLimits(c, d)) === 'Fail'
+    return isMeasurable(c) && (c.result === null || c.result === '')
   }, [])
+  useEffect(() => {
+    apiRef.current?.onFilterChanged()
+  }, [step, measureFilter, items])
 
   const saveColumnState = useCallback(() => {
     const api = apiRef.current
@@ -290,6 +352,8 @@ export function CharacteristicsGrid({ quickFilter }: { quickFilter: string }) {
         onGridReady={onGridReady}
         onCellValueChanged={onCellValueChanged}
         onRowClicked={onRowClicked}
+        isExternalFilterPresent={isExternalFilterPresent}
+        doesExternalFilterPass={doesExternalFilterPass}
         preventDefaultOnContextMenu
         onCellContextMenu={(e) => {
           const ev = e.event as MouseEvent | null

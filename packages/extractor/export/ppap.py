@@ -12,7 +12,7 @@ from openpyxl.drawing.image import Image as XlImage
 from openpyxl.styles import Alignment
 
 from .as9102 import BORDER, CELL_FONT, CENTER, FAIL_FONT, PASS_FONT, TITLE_FONT, WRAP, _header_row, _labelled
-from .characteristics import balloon_label, derive_limits, display_status, fmt, num, requirement_text, sort_key
+from .characteristics import balloon_label, derive_limits, display_status, fmt, limit_places, num, requirement_text, sort_key
 from .brand import credit_row, place_logo
 from .fcf_image import render_fcf_png
 
@@ -44,7 +44,7 @@ def build_ppap_workbook(info: dict[str, Any], chars: list[dict[str, Any]], defau
         result_txt = fmt(n, p) if (n is not None and not isinstance(result, str)) else ("" if result is None else str(result))
         verdict = "OK" if status == "Pass" else "NOT OK" if status == "Fail" else ""
         values = [
-            balloon_label(c), requirement_text(c, limits), fmt(limits.min, p), fmt(limits.max, p), result_txt, verdict,
+            balloon_label(c), requirement_text(c, limits), fmt(limits.min, limit_places(p, limits)), fmt(limits.max, limit_places(p, limits)), result_txt, verdict,
             c.get("zone") or "", int(c.get("page") or 0) + 1, c.get("comments") or "",
         ]
         for i, v in enumerate(values, start=1):

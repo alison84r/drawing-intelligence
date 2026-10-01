@@ -41,11 +41,37 @@ export function isAngular(c: Pick<Characteristic, 'descriptionType' | 'units'>):
   return c.descriptionType === 'Angular' || c.units === 'deg'
 }
 
-/** Symmetric default tolerance for a characteristic with no printed tolerance. */
-export function defaultTolerance(c: Pick<Characteristic, 'descriptionType' | 'units' | 'places'>, d: DefaultTolerances): number {
-  if (isAngular(c)) return d.angular
+type TolInput = Pick<Characteristic, 'descriptionType' | 'units' | 'places'> & { nominal?: number | null }
+
+/**
+ * Tolerance applied when none is printed, and where it comes from.
+ * A size-range scheme declared by the drawing (ISO 2768 style) wins over decimal places.
+ * Mirrors default_tolerance_info in the export service: both must agree.
+ */
+export function defaultToleranceInfo(c: TolInput, d: DefaultTolerances): { tol: number; origin: string } {
+  if (isAngular(c)) return { tol: d.angular, origin: 'angle: settings value' }
+  const scheme = d.scheme
+  const nominal = c.nominal ?? null
+  if (scheme && scheme.kind === 'size_range' && nominal !== null) {
+    const radius = (c.descriptionType === 'Radius' || c.descriptionType === 'Chamfer') && scheme.radius
+    const rows = radius ? scheme.radius ?? [] : scheme.linear
+    const v = Math.abs(nominal)
+    for (let i = 0; i < rows.length; i++) {
+      const [lo, hi, tol] = rows[i]
+      if ((v > lo || (i === 0 && v >= lo)) && v <= hi) {
+        const span = hi >= 1e8 ? `over ${lo}` : `${lo} to ${hi}`
+        return { tol, origin: `${scheme.label}, ${radius ? 'radius ' : ''}${span}` }
+      }
+    }
+  }
   const key = (['places0', 'places1', 'places2', 'places3'] as const)[Math.min(c.places, 3)]
-  return d[key]
+  const note = scheme && scheme.kind === 'size_range' ? ' (value is outside the table)' : ''
+  return { tol: d[key], origin: `by decimal places${note}` }
+}
+
+/** Symmetric default tolerance for a characteristic with no printed tolerance. */
+export function defaultTolerance(c: TolInput, d: DefaultTolerances): number {
+  return defaultToleranceInfo(c, d).tol
 }
 
 export interface Limits {
@@ -54,8 +80,10 @@ export interface Limits {
   /** Effective signed deviations actually used, after defaults. */
   high: number | null
   low: number | null
-  /** True when the default-by-places tolerance was applied because none was typed. */
+  /** True when a default tolerance was applied because none was typed. */
   auto: boolean
+  /** Where the tolerance comes from, e.g. "ISO 2768-m, 30 to 120". */
+  origin?: string
 }
 
 export function hasNumericTolerance(c: Pick<Characteristic, 'toleranceType' | 'descriptionType' | 'measurementType'>): boolean {
@@ -82,16 +110,18 @@ export function deriveLimits(c: Characteristic, d: DefaultTolerances): Limits {
   let high = c.tolHigh
   let low = c.tolLow
   let auto = false
+  let origin = 'printed on the drawing'
   if (high === null && low === null) {
-    const t = defaultTolerance(c, d)
-    high = t
-    low = -t
+    const info = defaultToleranceInfo(c, d)
+    high = info.tol
+    low = -info.tol
     auto = true
+    origin = info.origin
   } else {
     high = high ?? 0
     low = low ?? 0
   }
-  return { min: c.nominal + Math.min(low, high), max: c.nominal + Math.max(low, high), high, low, auto }
+  return { min: c.nominal + Math.min(low, high), max: c.nominal + Math.max(low, high), high, low, auto, origin }
 }
 
 export type DisplayStatus = 'Draft' | 'Accepted' | 'Pass' | 'Fail'
@@ -116,6 +146,17 @@ export function displayStatus(c: Characteristic, limits: Limits): DisplayStatus 
 
 export function fmt(n: number | null, places: number): string {
   return n === null ? '' : n.toFixed(Math.max(places, 0))
+}
+
+function decimalsOf(v: number | null): number {
+  if (v === null) return 0
+  for (let p = 0; p < 4; p++) if (Math.abs(v - Number(v.toFixed(p))) < 1e-9) return p
+  return 4
+}
+
+/** Places to print a limit with: a whole-number size with ±0.2 has limits at one decimal. */
+export function limitPlaces(places: number, limits: { high: number | null; low: number | null }): number {
+  return Math.max(places, decimalsOf(limits.high), decimalsOf(limits.low))
 }
 
 /** Plain-text feature control frame, e.g. "⌖ Ø0.2Ⓜ A B C". */

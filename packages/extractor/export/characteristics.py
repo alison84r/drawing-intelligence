@@ -30,6 +30,20 @@ def fmt(v: float | None, places: int) -> str:
     return "" if v is None else f"{v:.{max(int(places), 0)}f}"
 
 
+def _decimals(v: float | None) -> int:
+    if v is None:
+        return 0
+    for p in range(4):
+        if abs(v - round(v, p)) < 1e-9:
+            return p
+    return 4
+
+
+def limit_places(places: int, limits: "Limits") -> int:
+    """Places to print a limit with: a whole-number size with ±0.2 has limits at one decimal. Twin of limitPlaces in tolerance.ts."""
+    return max(int(places), _decimals(limits.high), _decimals(limits.low))
+
+
 def is_angular(c: dict[str, Any]) -> bool:
     return c.get("descriptionType") == "Angular" or c.get("units") == "deg"
 
@@ -44,12 +58,29 @@ def has_numeric_tolerance(c: dict[str, Any]) -> bool:
     return c.get("toleranceType") not in ("Basic", "Reference", "Attribute")
 
 
-def default_tolerance(c: dict[str, Any], defaults: dict[str, float]) -> float:
-    d = {**DEFAULT_TOLERANCES, **(defaults or {})}
+def default_tolerance_info(c: dict[str, Any], defaults: dict[str, Any]) -> tuple[float, str]:
+    """Tolerance applied when none is printed, and where it comes from. Mirrors defaultToleranceInfo in tolerance.ts."""
+    d = {**DEFAULT_TOLERANCES, **{k: v for k, v in (defaults or {}).items() if k != "scheme"}}
+    scheme = (defaults or {}).get("scheme")
     if is_angular(c):
-        return float(d["angular"])
-    key = ["places0", "places1", "places2", "places3"][min(int(c.get("places") or 0), 3)]
-    return float(d[key])
+        return float(d["angular"]), "angle: settings value"
+    nominal = num(c.get("nominal"))
+    if scheme and scheme.get("kind") == "size_range" and nominal is not None:
+        radius = c.get("descriptionType") in ("Radius", "Chamfer") and scheme.get("radius")
+        rows = scheme["radius"] if radius else scheme.get("linear") or []
+        v = abs(nominal)
+        for i, (lo, hi, tol) in enumerate(rows):
+            if (v > lo or (i == 0 and v >= lo)) and v <= hi:
+                span = f"over {lo:g}" if hi >= 1e8 else f"{lo:g} to {hi:g}"
+                return float(tol), f"{scheme.get('label', 'tolerance table')}, {'radius ' if radius else ''}{span}"
+    places = min(int(c.get("places") or 0), 3)
+    key = ["places0", "places1", "places2", "places3"][places]
+    note = " (value is outside the table)" if scheme and scheme.get("kind") == "size_range" else ""
+    return float(d[key]), f"by decimal places{note}"
+
+
+def default_tolerance(c: dict[str, Any], defaults: dict[str, Any]) -> float:
+    return default_tolerance_info(c, defaults)[0]
 
 
 @dataclass
@@ -59,6 +90,7 @@ class Limits:
     high: float | None
     low: float | None
     auto: bool
+    origin: str = ""
 
 
 def derive_limits(c: dict[str, Any], defaults: dict[str, float]) -> Limits:
@@ -78,13 +110,14 @@ def derive_limits(c: dict[str, Any], defaults: dict[str, float]) -> Limits:
             return none
         return Limits(min(hi, lo), max(hi, lo), hi, lo, False)
     auto = False
+    origin = "printed on the drawing"
     if hi is None and lo is None:
-        t = default_tolerance(c, defaults)
+        t, origin = default_tolerance_info(c, defaults)
         hi, lo, auto = t, -t, True
     else:
         hi = hi if hi is not None else 0.0
         lo = lo if lo is not None else 0.0
-    return Limits(nominal + min(lo, hi), nominal + max(lo, hi), hi, lo, auto)
+    return Limits(nominal + min(lo, hi), nominal + max(lo, hi), hi, lo, auto, origin)
 
 
 def display_status(c: dict[str, Any], limits: Limits) -> str:

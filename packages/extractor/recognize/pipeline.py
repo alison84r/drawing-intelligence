@@ -16,6 +16,7 @@ from .tokens import Token, build_tokens
 from .refine import (SYMBOL_NOTE, add_vector_symbols, attach_modifier_lines, attach_orphan_degrees, enclosure_of, enclosures, is_basic,
                      mark_datum_boxes, merge_counts, oriented_box, place_balloons, split_at_x)
 from .scene import associate, build_scene, unexplained
+from tolerance.detect import detect_scheme
 from .zones import detect_zones, synthetic_grid
 
 Region = dict[str, float]  # x, y, w, h in page points
@@ -50,6 +51,7 @@ def recognize(
                 continue
             width, height = float(page.width), float(page.height)
             tokens = build_tokens(page.chars, index)
+            tolerance = detect_scheme(tokens)
             grid = detect_zones(tokens, width, height)
             synthetic = grid is None
             if grid is None:
@@ -175,11 +177,8 @@ def recognize(
                 if feats and not record["comments"]:
                     record["comments"] = ", ".join(SYMBOL_NOTE[f] for f in feats if f in SYMBOL_NOTE)
                 already = any(e.get("page") == index and e.get("bbox") and _overlaps(e["bbox"], bbox) for e in existing)
-                if already:
-                    for t in group.tokens:
-                        t.cls, t.reason = "char", "already ballooned"
-                    continue
-                pending.append((line, group, record))
+                # A callout that is already ballooned still takes part in the geometry pass, so the audit stays whole on a re-run.
+                pending.append((line, group, record, already))
 
             # A note that wraps: the text lines directly under it are part of it.
             for note, nline in sorted(notes, key=lambda n: n[0]["bbox"]["y"]):
@@ -205,7 +204,7 @@ def recognize(
 
             # ── Geometry decides: tie every callout to a dimension line, a leader, or nothing.
             callouts = []
-            for line, group, record in pending:
+            for line, group, record, _ in pending:
                 b = record["bbox"]
                 callouts.append({
                     "box": (b["x"], b["y"], b["x"] + b["w"], b["y"] + b["h"]),
@@ -219,7 +218,7 @@ def recognize(
             linear = [c for c in callouts if c["linear"]]
             geometry_readable = bool(scales) or (len(linear) >= 5 and sum(1 for c in linear if c.get("geometry")) >= 0.6 * len(linear))
             audit_none, audit_mismatch = [], []
-            for (line, group, record), c in zip(pending, callouts):
+            for (line, group, record, already), c in zip(pending, callouts):
                 g = c.get("geometry")
                 record["geometry"] = g
                 at = {"x": record["anchor"]["x"], "y": record["anchor"]["y"]}
@@ -235,6 +234,10 @@ def recognize(
                     # On a sheet where geometry is readable, a value with no dimension line or leader is not trusted.
                     if geometry_readable and not relaxed and record["toleranceType"] not in ("Basic",) and group.confidence < 1.0:
                         group.confidence, group.reason = 0.5, "no dimension line or leader found"
+                if already:
+                    for t in group.tokens:
+                        t.cls, t.reason = "char", "already ballooned"
+                    continue
                 record["confidence"] = group.confidence
                 confident = relaxed or group.confidence >= 0.8
                 if confident:
@@ -285,6 +288,7 @@ def recognize(
                 "tables": [list(t) for t in tables],
                 "arrowheads": len(heads),
                 "audit": audit,
+                "tolerance": tolerance,
                 "tokens": [t.to_json() for t in tokens],
                 "characteristics": characteristics,
                 "stats": {

@@ -5,13 +5,30 @@ export type Units = 'mm' | 'in'
 export type Standard = 'ASME' | 'ISO'
 
 /** Default symmetric tolerances keyed by the number of decimal places printed. */
+/** A general tolerance declared by the drawing: plus/minus by size range (ISO 2768 style). Rows are [over, up to, tolerance]. */
+export interface ToleranceScheme {
+  kind: 'size_range'
+  label: string
+  standard?: string
+  cls?: string
+  linear: number[][]
+  radius?: number[][]
+  source: 'drawing' | 'library' | 'profile'
+  verifiedAgainstSheet?: boolean | null
+  evidence: string[]
+}
+
 export interface DefaultTolerances {
   places0: number
   places1: number
   places2: number
   places3: number
   angular: number
+  /** When set, linear defaults come from this table by size, not from decimal places. */
+  scheme?: ToleranceScheme | null
 }
+
+export type DefaultToleranceKey = 'places0' | 'places1' | 'places2' | 'places3' | 'angular'
 
 export const MIN_UNDO_DEPTH = 4
 export const MAX_UNDO_DEPTH = 500
@@ -60,7 +77,8 @@ interface SettingsState {
   undoDepth: number
   setUnits: (u: Units) => void
   setStandard: (s: Standard) => void
-  setDefault: (key: keyof DefaultTolerances, value: number) => void
+  setDefault: (key: DefaultToleranceKey, value: number) => void
+  setScheme: (scheme: ToleranceScheme | null) => void
   setLeaderDefault: (v: boolean) => void
   setUndoDepth: (n: number) => void
 }
@@ -78,6 +96,7 @@ export const useSettingsStore = create<SettingsState>()(
       setUnits: (units) => set({ units }),
       setStandard: (standard) => set({ standard }),
       setDefault: (key, value) => set((s) => ({ defaults: { ...s.defaults, [key]: value } })),
+      setScheme: (scheme) => set((s) => ({ defaults: { ...s.defaults, scheme } })),
       setLeaderDefault: (leaderDefault) => set({ leaderDefault }),
       setUndoDepth: (n) =>
         set({ undoDepth: Math.min(MAX_UNDO_DEPTH, Math.max(MIN_UNDO_DEPTH, Math.round(Number.isFinite(n) ? n : MIN_UNDO_DEPTH))) }),

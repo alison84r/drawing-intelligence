@@ -237,7 +237,7 @@ export function DrawingSurface() {
   return (
     <div
       ref={containerRef}
-      className={cn('relative h-full w-full select-none overflow-hidden bg-muted/40', cursor)}
+      className={cn('relative h-full w-full select-none overflow-hidden bg-muted/60', cursor)}
       onDragOver={(e) => {
         e.preventDefault()
         setDragOver(true)
@@ -296,10 +296,6 @@ export function DrawingSurface() {
         }}
       />
 
-      <div className="pointer-events-none absolute bottom-2 left-3 rounded bg-background/80 px-2 py-0.5 text-[11px] text-muted-foreground">
-        Tool: {tool}
-        {spaceHeld && ' · pan'}
-      </div>
     </div>
   )
 }

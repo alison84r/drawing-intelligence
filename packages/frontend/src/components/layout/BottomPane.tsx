@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Search, X } from 'lucide-react'
+import { Columns3, Search, X } from 'lucide-react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -21,16 +21,18 @@ export function BottomPane() {
   const items = useCharacteristicStore((s) => s.items)
   const defaults = useSettingsStore((s) => s.defaults)
   const [filter, setFilter] = useState('')
+  const allColumns = useUiStore((s) => s.allColumns)
+  const toggleAllColumns = useUiStore((s) => s.toggleAllColumns)
 
   const fails = items.filter((c) => displayStatus(c, deriveLimits(c, defaults)) === 'Fail').length
 
   return (
-    <Tabs value={tab} onValueChange={(v) => setTab(v as BottomTab)} className="flex h-full flex-col">
+    <Tabs value={tab} onValueChange={(v) => setTab(v as BottomTab)} className="flex h-full flex-col bg-background">
       <div className="flex shrink-0 items-center gap-3 border-b px-3 py-1.5">
         <TabsList>
-          <TabsTrigger value="boc">Bill of Characteristics</TabsTrigger>
-          <TabsTrigger value="part">Part Info</TabsTrigger>
-          <TabsTrigger value="accountability">Product Accountability</TabsTrigger>
+          <TabsTrigger value="boc">Characteristics</TabsTrigger>
+          <TabsTrigger value="part">Part info</TabsTrigger>
+          <TabsTrigger value="accountability">Materials and processes</TabsTrigger>
         </TabsList>
         {tab === 'boc' && (
           <div className="relative w-52">
@@ -48,6 +50,11 @@ export function BottomPane() {
               </Button>
             )}
           </div>
+        )}
+        {tab === 'boc' && (
+          <Button variant={allColumns ? 'secondary' : 'outline'} size="sm" className="h-7 gap-1.5 px-2.5" onClick={toggleAllColumns} aria-pressed={allColumns} data-testid="columns-toggle">
+            <Columns3 className="size-3.5" /> {allColumns ? 'Fewer columns' : 'All columns'}
+          </Button>
         )}
         <span className="ml-auto text-[11px] tabular-nums text-muted-foreground">
           {items.length} {items.length === 1 ? 'characteristic' : 'characteristics'}

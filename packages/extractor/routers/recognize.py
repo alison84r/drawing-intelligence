@@ -11,6 +11,7 @@ from pydantic import BaseModel
 from db import DrawingRevision, RevisionScene, get_session
 from recognize.intake import RECOGNIZER_VERSION, intake
 from recognize.pipeline import recognize
+from tolerance.standards import ISO_2768_LINEAR, ISO_2768_RADIUS
 
 router = APIRouter(prefix="/api", tags=["recognize"])
 
@@ -70,3 +71,12 @@ def revision_scene(revision_id: str) -> dict[str, Any]:
         if not row:
             return {"pages": [], "recognizerVersion": None, "current": RECOGNIZER_VERSION}
         return {**row.payload, "recognizerVersion": row.recognizer_version, "current": RECOGNIZER_VERSION, "storedAt": row.created_at.isoformat()}
+
+
+@router.get("/tolerance/standards")
+def tolerance_standards() -> dict[str, Any]:
+    """Reference copies of the general tolerance tables, by class."""
+    return {
+        "linear": {k: [list(r) for r in v] for k, v in ISO_2768_LINEAR.items()},
+        "radius": {k: [list(r) for r in v] for k, v in ISO_2768_RADIUS.items()},
+    }

@@ -1,6 +1,6 @@
 import type { Characteristic } from '@/store/characteristicStore'
 import type { PartInfo } from '@/store/partInfoStore'
-import type { BalloonStyle, DefaultTolerances } from '@/store/settingsStore'
+import type { BalloonStyle, DefaultTolerances, ToleranceScheme } from '@/store/settingsStore'
 import type { ProductRow } from '@/store/productAccountabilityStore'
 
 export interface InspectionSummary {
@@ -100,6 +100,11 @@ export interface RecognizePage {
   tables: number[][]
   arrowheads: number
   audit: CoverageAudit
+  tolerance?: {
+    scheme: (ToleranceScheme | { kind: 'decimal_places'; label: string; places: Record<string, number>; angular: number | null; source: string; evidence: string[] }) | null
+    findings: { level: 'ok' | 'warn'; text: string }[]
+    companyStandard?: string
+  }
   tokens: RecognizeToken[]
   characteristics: Characteristic[]
   stats: { tokens: number; char: number; open: number; ruled: number; characteristics: number; needsYou: number }
@@ -117,6 +122,11 @@ export interface IntakeReport {
   verdict: string
   recognizerVersion: string
   pages: { page: number; level: 'ok' | 'warn' | 'bad'; rows: IntakeRow[] }[]
+}
+
+export interface ToleranceStandards {
+  linear: Record<string, number[][]>
+  radius: Record<string, number[][]>
 }
 
 export interface RecognizeRequest {
@@ -191,6 +201,7 @@ export const api = {
 
   scene: (revisionId: string) =>
     request<{ pages: RecognizePage[]; recognizerVersion: string | null; current: string }>(`/api/revisions/${revisionId}/scene`),
+  toleranceStandards: () => request<ToleranceStandards>('/api/tolerance/standards'),
   intake: (revisionId: string) => request<IntakeReport>(`/api/revisions/${revisionId}/intake`),
   recognize: (revisionId: string, body: RecognizeRequest) => request<{ pages: RecognizePage[] }>(`/api/revisions/${revisionId}/recognize`, json(body)),
 

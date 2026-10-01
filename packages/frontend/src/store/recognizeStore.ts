@@ -148,6 +148,20 @@ export const useRecognizeStore = create<RecognizeState>()((set, get) => ({
           added += p.characteristics.length
         }
       }
+      // The drawing's own tolerance statement becomes the default for rows with no printed tolerance.
+      const found = res.pages.map((p) => p.tolerance?.scheme).find(Boolean)
+      const settings = useSettingsStore.getState()
+      if (!opts.region && found && settings.defaults.scheme?.source !== 'profile') {
+        if (found.kind === 'size_range') settings.setScheme(found)
+        else {
+          settings.setScheme(null)
+          for (const [places, tol] of Object.entries(found.places)) {
+            const key = (['places0', 'places1', 'places2', 'places3'] as const)[Math.min(Number(places), 3)]
+            settings.setDefault(key, tol)
+          }
+          if (found.angular !== null) settings.setDefault('angular', found.angular)
+        }
+      }
       set({ stale: false, status: 'done', pages, lastRun: Date.now(), lastAdded: added, tokenView: get().tokenView === 'off' ? 'review' : get().tokenView })
       if (added > 0) useUiStore.getState().setTool('select')
     } catch (e) {

@@ -5,7 +5,8 @@ import { EMPTY_PART_INFO, usePartInfoStore, type PartInfo } from '@/store/partIn
 import { useProductAccountabilityStore, type ProductRow } from '@/store/productAccountabilityStore'
 import { useSessionStore } from '@/store/sessionStore'
 import { useRecognizeStore } from '@/store/recognizeStore'
-import { DEFAULT_BALLOON_STYLE, useSettingsStore, type DefaultTolerances, type Standard, type Units } from '@/store/settingsStore'
+import { DEFAULT_BALLOON_STYLE, useSettingsStore, type DefaultToleranceKey,
+  type DefaultTolerances, type Standard, type Units } from '@/store/settingsStore'
 
 export const PROJECT_SCHEMA_VERSION = 1
 
@@ -21,7 +22,8 @@ function applySettings(settings: InspectionSettings | undefined) {
   if (settings.units) s.setUnits(settings.units as Units)
   if (settings.standard) s.setStandard(settings.standard as Standard)
   if (settings.defaults) {
-    for (const [k, v] of Object.entries(settings.defaults)) if (typeof v === 'number') s.setDefault(k as keyof DefaultTolerances, v)
+    for (const [k, v] of Object.entries(settings.defaults)) if (typeof v === 'number') s.setDefault(k as DefaultToleranceKey, v)
+    s.setScheme((settings.defaults as DefaultTolerances).scheme ?? null)
   }
   if (typeof settings.leaderDefault === 'boolean') s.setLeaderDefault(settings.leaderDefault)
   if (settings.balloonStyle) {
