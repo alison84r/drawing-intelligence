@@ -41,6 +41,8 @@ export interface InspectionSettings {
   defaults?: Partial<DefaultTolerances>
   leaderDefault?: boolean
   balloonStyle?: Partial<BalloonStyle>
+  /** 2 = saved after red was reserved for fail; older inspections had red as the untouched default. */
+  styleRev?: number
 }
 
 export interface InspectionDetail extends Omit<InspectionSummary, 'characteristics'> {

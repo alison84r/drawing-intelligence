@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react'
+import { toggleZoomTo } from '@/lib/focus'
 import { AgGridReact } from 'ag-grid-react'
 import {
   AllCommunityModule,
@@ -109,7 +110,14 @@ function buildColumns(defaults: DefaultTolerances): ColDef<Row>[] {
       editable: false,
       valueGetter: (p) => (p.data ? balloonLabel(p.data) : ''),
       comparator: (a: string, b: string) => parseFloat(a) - parseFloat(b) || a.localeCompare(b),
-      cellStyle: { color: '#e11d48', fontWeight: 600 },
+      cellStyle: { fontWeight: 600 },
+      tooltipValueGetter: () => 'Double-click to zoom to this balloon',
+      cellClassRules: {
+        'cell-state-draft': (p) => !!p.data && displayStatus(p.data, limitsOf(p.data)) === 'Draft',
+        'cell-state-accepted': (p) => !!p.data && displayStatus(p.data, limitsOf(p.data)) === 'Accepted',
+        'cell-state-pass': (p) => !!p.data && displayStatus(p.data, limitsOf(p.data)) === 'Pass',
+        'cell-state-fail': (p) => !!p.data && displayStatus(p.data, limitsOf(p.data)) === 'Fail',
+      },
       sort: 'asc',
     },
     { field: 'descriptionType', headerName: 'Description', width: 120, cellEditor: 'agSelectCellEditor', cellEditorParams: { values: DESCRIPTIONS } },
@@ -281,6 +289,9 @@ export function CharacteristicsGrid({ quickFilter }: { quickFilter: string }) {
         onGridReady={onGridReady}
         onCellValueChanged={onCellValueChanged}
         onRowClicked={onRowClicked}
+        onCellDoubleClicked={(e) => {
+          if (e.column.getColId() === 'balloon' && e.data) toggleZoomTo(e.data.id)
+        }}
         onColumnResized={(e) => e.finished && saveColumnState()}
         onColumnMoved={(e) => e.finished && saveColumnState()}
         onSortChanged={saveColumnState}

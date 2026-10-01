@@ -15,7 +15,7 @@ import fitz  # PyMuPDF
 from .brand import COMPANY, COPYRIGHT, PRODUCT, logo_bytes
 from .characteristics import balloon_label, derive_limits, display_status, sort_key
 
-DEFAULT_STYLE = {"shape": "circle", "fill": "outline", "color": "#e11d48", "size": 22.0, "prefix": "", "weight": 600}
+DEFAULT_STYLE = {"shape": "circle", "fill": "outline", "color": "#1d4ed8", "size": 22.0, "prefix": "", "weight": 600}
 STATUS_COLOR = {"Pass": "#15803d", "Fail": "#b91c1c"}
 
 

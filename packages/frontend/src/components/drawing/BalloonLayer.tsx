@@ -1,4 +1,4 @@
-import { useCallback, useRef } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
 import { clipToBox, pageToScreen, screenToPage, type Point, type ScreenMap } from '@/lib/geometry'
 import { deriveLimits, displayStatus } from '@/lib/tolerance'
 import { balloonLabel, useCharacteristicStore, type Characteristic } from '@/store/characteristicStore'
@@ -6,6 +6,7 @@ import { useSettingsStore, type BalloonStyle } from '@/store/settingsStore'
 import { useUiStore } from '@/store/uiStore'
 import { BalloonGlyph } from '@/components/balloons/BalloonGlyph'
 import { cn } from '@/lib/utils'
+import { ensureVisible, toggleZoomTo } from '@/lib/focus'
 
 interface Props {
   map: ScreenMap
@@ -35,6 +36,12 @@ export function BalloonLayer({ map, page, hover, leaderDefault }: Props) {
   const tool = useUiStore((s) => s.tool)
   const setTool = useUiStore((s) => s.setTool)
   const setHovered = useUiStore((s) => s.setHovered)
+  const hoveredId = useUiStore((s) => s.hoveredId)
+
+  // A balloon selected from the grid may be off screen: bring it into view, without changing the zoom.
+  useEffect(() => {
+    if (selectedId && !drag.current) ensureVisible(selectedId)
+  }, [selectedId])
 
   const drag = useRef<{ id: string; start: Point; pos0: Point; anchor0: Point; leader: boolean; moved: boolean } | null>(null)
   const live = useRef<Point | null>(null)
@@ -131,15 +138,22 @@ export function BalloonLayer({ map, page, hover, leaderDefault }: Props) {
           const color = STATUS_COLOR[status] ?? style.color
           const selected = c.id === selectedId
           const label = `${style.prefix}${balloonLabel(c)}`
+          // Soft spotlight: with one balloon selected, the others step back.
+          const dimmed = selectedId !== null && !selected && c.id !== hoveredId
+          const measured = status === 'Pass' || status === 'Fail'
+          const badge = Math.max(5, r * 0.44)
           return (
             <g
               key={c.id}
               className="group"
-              style={{ pointerEvents: 'auto', cursor: tool === 'select' ? 'grab' : tool === 'sub' ? 'copy' : 'default' }}
+              style={{ pointerEvents: 'auto', cursor: tool === 'select' ? 'grab' : tool === 'sub' ? 'copy' : 'default', opacity: dimmed ? 0.3 : 1, transition: 'opacity 140ms' }}
               onPointerDown={(e) => onPointerDown(e, c)}
               onPointerEnter={() => setHovered(c.id)}
               onPointerLeave={() => setHovered(null)}
-              onDoubleClick={() => setTool('select')}
+              onDoubleClick={() => {
+                setTool('select')
+                toggleZoomTo(c.id)
+              }}
               data-balloon={balloonLabel(c)}
               data-status={status}
             >
@@ -156,9 +170,10 @@ export function BalloonLayer({ map, page, hover, leaderDefault }: Props) {
                 fill={color}
                 className={cn('transition-opacity', selected ? 'opacity-25' : 'opacity-0 group-hover:opacity-15')}
               />
+              {selected && <circle key={`pulse-${c.id}`} cx={b.x} cy={b.y} r={r + 4} fill="none" stroke={color} strokeWidth={2} className="balloon-pulse" />}
               <BalloonGlyph
                 shape={style.shape}
-                fill={style.fill}
+                fill={measured ? 'filled' : style.fill}
                 color={color}
                 cx={b.x}
                 cy={b.y}
@@ -166,7 +181,32 @@ export function BalloonLayer({ map, page, hover, leaderDefault }: Props) {
                 strokeWidth={selected ? 3 : 2}
                 label={label}
                 weight={style.weight}
+                dashed={status === 'Draft'}
               />
+              {status === 'Accepted' && (
+                <g data-badge="accepted">
+                  <circle cx={b.x + r * 0.78} cy={b.y - r * 0.78} r={badge} fill="#16a34a" stroke="#ffffff" strokeWidth={1.5} />
+                  <path
+                    d={`M${b.x + r * 0.78 - badge * 0.48} ${b.y - r * 0.78} l${badge * 0.34} ${badge * 0.36} l${badge * 0.62} -${badge * 0.7}`}
+                    fill="none"
+                    stroke="#ffffff"
+                    strokeWidth={Math.max(1.4, badge * 0.26)}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </g>
+              )}
+              {status === 'Fail' && (
+                <g data-badge="fail">
+                  <circle cx={b.x + r * 0.78} cy={b.y - r * 0.78} r={badge} fill="#ffffff" stroke="#dc2626" strokeWidth={1.5} />
+                  <path
+                    d={`M${b.x + r * 0.78 - badge * 0.42} ${b.y - r * 0.78 - badge * 0.42} l${badge * 0.84} ${badge * 0.84} M${b.x + r * 0.78 + badge * 0.42} ${b.y - r * 0.78 - badge * 0.42} l-${badge * 0.84} ${badge * 0.84}`}
+                    stroke="#dc2626"
+                    strokeWidth={Math.max(1.4, badge * 0.26)}
+                    strokeLinecap="round"
+                  />
+                </g>
+              )}
             </g>
           )
         })}

@@ -12,7 +12,7 @@ export const PROJECT_SCHEMA_VERSION = 1
 /** Settings that travel with an inspection (units, standard, defaults, balloon style). */
 export function collectSettings(): InspectionSettings {
   const s = useSettingsStore.getState()
-  return { units: s.units, standard: s.standard, defaults: s.defaults, leaderDefault: s.leaderDefault, balloonStyle: s.balloonStyle }
+  return { units: s.units, standard: s.standard, defaults: s.defaults, leaderDefault: s.leaderDefault, balloonStyle: s.balloonStyle, styleRev: 2 }
 }
 
 function applySettings(settings: InspectionSettings | undefined) {
@@ -24,7 +24,11 @@ function applySettings(settings: InspectionSettings | undefined) {
     for (const [k, v] of Object.entries(settings.defaults)) if (typeof v === 'number') s.setDefault(k as keyof DefaultTolerances, v)
   }
   if (typeof settings.leaderDefault === 'boolean') s.setLeaderDefault(settings.leaderDefault)
-  if (settings.balloonStyle) s.setBalloonStyle({ ...DEFAULT_BALLOON_STYLE, ...settings.balloonStyle })
+  if (settings.balloonStyle) {
+    const style = { ...DEFAULT_BALLOON_STYLE, ...settings.balloonStyle }
+    if ((settings.styleRev ?? 1) < 2 && style.color === '#e11d48') style.color = DEFAULT_BALLOON_STYLE.color
+    s.setBalloonStyle(style)
+  }
 }
 
 /** Load an inspection from the server into every store and open the inspect screen. */

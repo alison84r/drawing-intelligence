@@ -42,7 +42,7 @@ export const BALLOON_COLORS: { value: string; name: string }[] = [
 export const DEFAULT_BALLOON_STYLE: BalloonStyle = {
   shape: 'circle',
   fill: 'outline',
-  color: '#e11d48',
+  color: '#1d4ed8',
   size: 22,
   prefix: '',
   weight: 600,
@@ -84,7 +84,13 @@ export const useSettingsStore = create<SettingsState>()(
     }),
     {
       name: 'di.settings',
-      version: 3,
+      version: 4,
+      // v4: the default balloon colour moved from red to blue so that red means fail only.
+      migrate: (persisted, version) => {
+        const p = (persisted ?? {}) as Partial<SettingsState>
+        if (version < 4 && p.balloonStyle?.color === '#e11d48') p.balloonStyle = { ...p.balloonStyle, color: '#1d4ed8' }
+        return p as SettingsState
+      },
       merge: (persisted, current) => {
         const p = (persisted ?? {}) as Partial<SettingsState>
         return { ...current, ...p, balloonStyle: { ...DEFAULT_BALLOON_STYLE, ...(p.balloonStyle ?? {}) } }

@@ -372,13 +372,13 @@ export function StatusBadge({ status }: { status: 'Draft' | 'Accepted' | 'Pass' 
     <span
       className={cn(
         'inline-block rounded px-1.5 py-0.5 text-[10px] font-semibold',
-        status === 'Draft' && 'bg-status-draft/15 text-status-draft',
-        status === 'Accepted' && 'bg-muted text-muted-foreground',
+        status === 'Draft' && 'border border-dashed border-[#1d4ed8]/60 text-[#1d4ed8] dark:border-[#93c5fd]/60 dark:text-[#93c5fd]',
+        status === 'Accepted' && 'bg-status-pass/15 text-status-pass',
         status === 'Pass' && 'bg-status-pass/15 text-status-pass',
         status === 'Fail' && 'bg-status-fail/15 text-status-fail',
       )}
     >
-      {status}
+      {status === 'Accepted' ? '✓ Accepted' : status}
     </span>
   )
 }
