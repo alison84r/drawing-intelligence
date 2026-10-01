@@ -31,18 +31,21 @@ ModuleRegistry.registerModules([AllCommunityModule])
 const COLUMN_STATE_KEY = 'di.grid.columns'
 
 const gridTheme = themeQuartz
+  // Size and type apply in every colour mode; only the colours below differ between light and dark.
+  .withParams({
+    fontFamily: 'Inter, system-ui, sans-serif',
+    fontSize: 11.5,
+    headerFontSize: 10.5,
+    headerFontWeight: 600,
+    rowHeight: 26,
+    headerHeight: 28,
+    spacing: 4,
+    wrapperBorder: false,
+    wrapperBorderRadius: 0,
+  })
   .withParams(
     {
       accentColor: '#004a77',
-      fontFamily: 'Inter, system-ui, sans-serif',
-      fontSize: 12,
-      headerFontSize: 11,
-      headerFontWeight: 600,
-      rowHeight: 30,
-      headerHeight: 30,
-      spacing: 5,
-      wrapperBorder: false,
-      wrapperBorderRadius: 0,
       backgroundColor: '#ffffff',
       foregroundColor: '#0f172a',
       headerBackgroundColor: '#eef2f7',
@@ -89,7 +92,7 @@ function FcfCell(p: ICellRendererParams<Row>) {
 
 function StatusCell(p: ICellRendererParams<Row, string>) {
   const state = (Object.keys(WORK_LABEL) as WorkState[]).find((k) => WORK_LABEL[k] === p.value)
-  return state ? <WorkBadge state={state} /> : null
+  return state ? <WorkBadge state={state} className="h-[18px] px-1.5 text-[10.5px] [&_svg]:size-2.5" /> : null
 }
 
 function buildColumns(defaults: DefaultTolerances): ColDef<Row>[] {
@@ -139,6 +142,7 @@ function buildColumns(defaults: DefaultTolerances): ColDef<Row>[] {
       sortable: false,
       valueGetter: (p) => (p.data?.gdt ? `${p.data.gdt.symbol} ${p.data.gdt.zone}${p.data.gdt.tolerance} ${p.data.gdt.datums.join(' ')}` : ''),
       cellRenderer: FcfCell,
+      cellClass: 'cell-widget',
     },
     {
       field: 'specification',
@@ -202,6 +206,7 @@ function buildColumns(defaults: DefaultTolerances): ColDef<Row>[] {
       editable: false,
       valueGetter: (p: ValueGetterParams<Row>) => (p.data ? WORK_LABEL[workStateOf(p.data, defaults)] : ''),
       cellRenderer: StatusCell,
+      cellClass: 'cell-widget',
     },
     {
       headerName: 'Check',
@@ -306,17 +311,22 @@ export function CharacteristicsGrid({ quickFilter, onShown }: { quickFilter: str
     fitColumns()
   }, [allColumns, applyColumnSet, fitColumns])
 
-  // The chips above the workspace choose which rows are listed.
-  const filterRef = useRef({ show, defaults })
-  filterRef.current = { show, defaults }
-  const isExternalFilterPresent = useCallback(() => filterRef.current.show !== 'all', [])
+  // The chips above the workspace choose which rows are listed, and the table follows the sheet on screen.
+  const pageIndex = useDocumentStore((s) => s.pageIndex)
+  const gridScope = useUiStore((s) => s.gridScope)
+  const filterRef = useRef({ show, defaults, pageIndex, gridScope })
+  filterRef.current = { show, defaults, pageIndex, gridScope }
+  const isExternalFilterPresent = useCallback(() => filterRef.current.show !== 'all' || filterRef.current.gridScope === 'sheet', [])
   const doesExternalFilterPass = useCallback((node: { data?: Row }) => {
     const c = node.data
-    return !c || matchesFilter(workStateOf(c, filterRef.current.defaults), filterRef.current.show)
+    if (!c) return true
+    const f = filterRef.current
+    if (f.gridScope === 'sheet' && c.page !== f.pageIndex) return false
+    return matchesFilter(workStateOf(c, f.defaults), f.show)
   }, [])
   useEffect(() => {
     apiRef.current?.onFilterChanged()
-  }, [show, items, defaults])
+  }, [show, items, defaults, pageIndex, gridScope])
 
   const saveColumnState = useCallback(() => {
     const api = apiRef.current
@@ -378,9 +388,9 @@ export function CharacteristicsGrid({ quickFilter, onShown }: { quickFilter: str
         columnDefs={columnDefs}
         getRowId={(p) => p.data.id}
         defaultColDef={defaultColDef}
-        headerHeight={30}
-        floatingFiltersHeight={30}
-        rowHeight={30}
+        headerHeight={28}
+        floatingFiltersHeight={28}
+        rowHeight={26}
         rowSelection={{ mode: 'singleRow', checkboxes: false, enableClickSelection: true }}
         singleClickEdit={false}
         stopEditingWhenCellsLoseFocus

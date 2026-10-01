@@ -26,6 +26,9 @@ interface UiState {
   /** The table lifted over most of the drawing, for entering results. */
   gridTall: boolean
   toggleGridTall: () => void
+  /** Which rows the table lists: the sheet on screen (it follows the drawing) or every sheet. */
+  gridScope: 'sheet' | 'all'
+  toggleGridScope: () => void
   /** Characteristic under the pointer: its balloon or its callout text. */
   hoveredId: string | null
   setHovered: (id: string | null) => void
@@ -61,6 +64,8 @@ export const useUiStore = create<UiState>()((set) => ({
   toggleGridFilters: () => set((s) => ({ gridFilters: !s.gridFilters })),
   gridTall: false,
   toggleGridTall: () => set((s) => ({ gridTall: !s.gridTall })),
+  gridScope: 'sheet',
+  toggleGridScope: () => set((s) => ({ gridScope: s.gridScope === 'sheet' ? 'all' : 'sheet' })),
   hoveredId: null,
   setHovered: (hoveredId) => set({ hoveredId }),
   contextMenu: null,

@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react'
-import { Columns3, CornerDownLeft, FileText, Filter, Hash, Layers, Maximize2, Minimize2, Search, Table2, X } from 'lucide-react'
+import { Columns3, CornerDownLeft, File, Files, FileText, Filter, Hash, Layers, Maximize2, Minimize2, Search, Table2, X } from 'lucide-react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -79,6 +79,11 @@ export function BottomPane() {
   const toggleGridFilters = useUiStore((s) => s.toggleGridFilters)
   const gridTall = useUiStore((s) => s.gridTall)
   const toggleGridTall = useUiStore((s) => s.toggleGridTall)
+  const gridScope = useUiStore((s) => s.gridScope)
+  const toggleGridScope = useUiStore((s) => s.toggleGridScope)
+  const pageIndex = useDocumentStore((s) => s.pageIndex)
+  const pageCount = useDocumentStore((s) => s.pageCount)
+  const bySheet = gridScope === 'sheet' && pageCount > 1
 
   const progress = progressOf(items, defaults)
   const narrowed = shown !== null && shown !== items.length
@@ -114,6 +119,14 @@ export function BottomPane() {
               </div>
             </Hint>
             <GoTo />
+            {pageCount > 1 && (
+              <Hint text={gridScope === 'sheet' ? `Listing sheet ${pageIndex + 1}; the table follows the drawing. Click to list every sheet` : 'Listing every sheet. Click to follow the sheet on screen'}>
+                <Button variant={gridScope === 'sheet' ? 'secondary' : 'outline'} size="sm" className="h-7 shrink-0 gap-1.5 px-2.5" onClick={toggleGridScope} aria-pressed={gridScope === 'sheet'} data-testid="scope-toggle">
+                  {gridScope === 'sheet' ? <File className="size-3.5" /> : <Files className="size-3.5" />}
+                  <span className="tb-label">{gridScope === 'sheet' ? `Sheet ${pageIndex + 1}` : 'All sheets'}</span>
+                </Button>
+              </Hint>
+            )}
             <Hint text={gridFilters ? 'Hide the filter row and clear its filters' : 'Show one filter row under the headers'}>
               <Button variant={gridFilters ? 'secondary' : 'outline'} size="sm" className="h-7 gap-1.5 px-2.5" onClick={toggleGridFilters} aria-pressed={gridFilters} data-testid="filters-toggle">
                 <Filter className="size-3.5" /> <span className="tb-label">Filter</span>
@@ -143,8 +156,9 @@ export function BottomPane() {
             </div>
             <div className="flex shrink-0 items-center gap-x-4 overflow-hidden whitespace-nowrap border-t bg-muted/40 px-3 py-0.5 text-[11px] tabular-nums text-muted-foreground" data-testid="grid-footer">
               <span>
+                {bySheet && <>Sheet {pageIndex + 1} · </>}
                 <b className="font-semibold text-foreground">{narrowed ? `${shown} of ${items.length}` : items.length}</b> {items.length === 1 ? 'row' : 'rows'}
-                {narrowed && ' shown'}
+                {narrowed && !bySheet && ' shown'}
               </span>
               <span><b className="font-semibold text-foreground">{progress.accepted}</b> confirmed</span>
               {progress.flagged > 0 && <span className="text-status-fail"><b className="font-semibold">{progress.flagged}</b> flagged</span>}

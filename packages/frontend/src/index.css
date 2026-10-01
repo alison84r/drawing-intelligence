@@ -111,6 +111,10 @@
   /* Only the open tab keeps its name; the others are their icons. */
   .grid-pane [role='tab'][data-state='inactive'] .tb-tab { display: none; }
 }
+/* A frame or a pill in a cell sits in the middle of its row, whatever the row height. */
+.ag-cell.cell-widget { display: flex; align-items: center; }
+/* Geometric symbols come from a symbol face where the text face has none, so they are drawn evenly. */
+.fcf-symbol { font-family: 'Segoe UI Symbol', 'Noto Sans Symbols 2', 'Noto Sans Symbols', 'Apple Symbols', 'DejaVu Sans', Inter, sans-serif; }
 /* The selected row carries the same blue as its balloon on the drawing. */
 .ag-row-selected .ag-cell[col-id='balloon'] { box-shadow: inset 3px 0 0 hsl(var(--primary)); }
 /* A sub-row of a callout (24.1 under 24) steps in, so the callout reads as one block. */
