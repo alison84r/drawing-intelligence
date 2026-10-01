@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react'
-import { Columns3, CornerDownLeft, Filter, Hash, Maximize2, Minimize2, Search, X } from 'lucide-react'
+import { Columns3, CornerDownLeft, FileText, Filter, Hash, Layers, Maximize2, Minimize2, Search, Table2, X } from 'lucide-react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -47,7 +47,7 @@ function GoTo() {
   }
   return (
     <Hint text={missing ? 'No balloon with that number' : 'Go to a balloon: type its number and press Enter (G)'}>
-      <div className="relative w-[92px]">
+      <div className="relative w-[76px] shrink-0">
         <Hash className="pointer-events-none absolute left-2 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
         <Input
           id="grid-goto"
@@ -84,24 +84,25 @@ export function BottomPane() {
   const narrowed = shown !== null && shown !== items.length
 
   return (
-    <Tabs value={tab} onValueChange={(v) => setTab(v as BottomTab)} className="flex h-full flex-col bg-background">
-      <div className="flex shrink-0 items-center gap-2 overflow-x-auto border-b px-3 py-1.5">
+    <Tabs value={tab} onValueChange={(v) => setTab(v as BottomTab)} className="grid-pane flex h-full flex-col bg-background">
+      {/* The toolbar adapts to its own width (not the window's): labels fold to icons before anything is cut off. */}
+      <div className="flex shrink-0 items-center gap-1.5 overflow-x-auto border-b px-2 py-1 [scrollbar-width:none]">
         <TabsList>
-          <TabsTrigger value="boc">Characteristics</TabsTrigger>
-          <TabsTrigger value="part">Part info</TabsTrigger>
-          <TabsTrigger value="accountability">Materials and processes</TabsTrigger>
+          <TabsTrigger value="boc" title="Characteristics" className="gap-1.5"><Table2 className="size-3.5" /><span className="tb-tab">Characteristics</span></TabsTrigger>
+          <TabsTrigger value="part" title="Part info" className="gap-1.5"><FileText className="size-3.5" /><span className="tb-tab">Part info</span></TabsTrigger>
+          <TabsTrigger value="accountability" title="Materials and processes" className="gap-1.5"><Layers className="size-3.5" /><span className="tb-tab"><span className="tb-long">Materials and processes</span><span className="tb-short">Materials</span></span></TabsTrigger>
         </TabsList>
         {tab === 'boc' && (
           <>
             <Hint text="Find text in any column (/)">
-              <div className="relative w-44">
+              <div className="relative min-w-[5.5rem] max-w-[14rem] flex-1">
                 <Search className="pointer-events-none absolute left-2 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   id="grid-find"
                   value={filter}
                   onChange={(e) => setFilter(e.target.value)}
                   onKeyDown={(e) => { if (e.key === 'Escape') { setFilter(''); e.currentTarget.blur() } }}
-                  placeholder="Find in table"
+                  placeholder="Find"
                   aria-label="Find in table"
                   className="h-7 pl-7 pr-7"
                 />
@@ -115,12 +116,12 @@ export function BottomPane() {
             <GoTo />
             <Hint text={gridFilters ? 'Hide the filter row and clear its filters' : 'Show one filter row under the headers'}>
               <Button variant={gridFilters ? 'secondary' : 'outline'} size="sm" className="h-7 gap-1.5 px-2.5" onClick={toggleGridFilters} aria-pressed={gridFilters} data-testid="filters-toggle">
-                <Filter className="size-3.5" /> Filter
+                <Filter className="size-3.5" /> <span className="tb-label">Filter</span>
               </Button>
             </Hint>
             <Hint text={allColumns ? 'Back to the working columns' : 'Show every column'}>
               <Button variant={allColumns ? 'secondary' : 'outline'} size="sm" className="h-7 gap-1.5 px-2.5" onClick={toggleAllColumns} aria-pressed={allColumns} data-testid="columns-toggle">
-                <Columns3 className="size-3.5" /> {allColumns ? 'Fewer columns' : 'All columns'}
+                <Columns3 className="size-3.5" /> <span className="tb-label">{allColumns ? 'Fewer columns' : 'All columns'}</span>
               </Button>
             </Hint>
           </>
@@ -140,7 +141,7 @@ export function BottomPane() {
             <div className="min-h-0 flex-1">
               <CharacteristicsGrid quickFilter={filter} onShown={setShown} />
             </div>
-            <div className="flex shrink-0 flex-wrap items-center gap-x-4 gap-y-0.5 border-t bg-muted/40 px-3 py-1 text-[11px] tabular-nums text-muted-foreground" data-testid="grid-footer">
+            <div className="flex shrink-0 items-center gap-x-4 overflow-hidden whitespace-nowrap border-t bg-muted/40 px-3 py-0.5 text-[11px] tabular-nums text-muted-foreground" data-testid="grid-footer">
               <span>
                 <b className="font-semibold text-foreground">{narrowed ? `${shown} of ${items.length}` : items.length}</b> {items.length === 1 ? 'row' : 'rows'}
                 {narrowed && ' shown'}
@@ -149,7 +150,7 @@ export function BottomPane() {
               {progress.flagged > 0 && <span className="text-status-fail"><b className="font-semibold">{progress.flagged}</b> flagged</span>}
               <span><b className="font-semibold text-foreground">{progress.measured}</b> of {progress.measurable} measured</span>
               {progress.fails > 0 && <span className="text-status-fail"><b className="font-semibold">{progress.fails}</b> failed</span>}
-              <span className="ml-auto hidden items-center gap-1.5 md:flex">
+              <span className="tb-keys ml-auto items-center gap-1.5">
                 <Key>J</Key><Key>K</Key> next / previous <Key>A</Key> accept <Key>/</Key> find <Key>G</Key> go to #
               </span>
             </div>

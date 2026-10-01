@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { Group, Panel, Separator, usePanelRef } from 'react-resizable-panels'
 import { Check, ChevronLeft, ChevronRight, Flag, ListChecks, Maximize2, PanelRight, Settings2 } from 'lucide-react'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
@@ -97,7 +97,7 @@ export function AppShell() {
   useKeyboardShortcuts()
   useAutosave()
   const outerLayout = usePersistedLayout('outer-v2')
-  const centerLayout = usePersistedLayout('center-v2')
+  const centerLayout = usePersistedLayout('center-v3')
   // Panels resizing changes the drawing surface size without a window resize; tell it to re-measure.
   const notifyResize = () => {
     window.dispatchEvent(new Event('resize'))
@@ -143,10 +143,13 @@ export function AppShell() {
 
   // "Full height" lifts the table over most of the drawing; the same button brings the drawing back.
   const gridTall = useUiStore((s) => s.gridTall)
+  const tallBefore = useRef(gridTall)
   useEffect(() => {
     const p = bottomRef.current
+    if (tallBefore.current === gridTall) return  // only on a toggle: the height the user dragged to is kept
+    tallBefore.current = gridTall
     if (!p || p.isCollapsed()) return
-    p.resize(gridTall ? '82%' : '30%')
+    p.resize(gridTall ? '82%' : '38%')
   }, [gridTall, bottomRef])
 
   // Focus mode folds the grid away too.
@@ -182,14 +185,14 @@ export function AppShell() {
             <VSeparator />
             <Panel className="h-full" id="center" minSize={360}>
               <Group orientation="vertical" className="h-full" {...center}>
-                <Panel className="h-full" id="drawing" defaultSize="70" minSize={160}>
+                <Panel className="h-full" id="drawing" defaultSize="62" minSize={160}>
                   <div className="relative h-full w-full">
                     <DrawingSurface />
                     <CanvasTools />
                   </div>
                 </Panel>
                 <HSeparator />
-                <Panel className="h-full" id="bottom" panelRef={bottomRef} defaultSize="30" minSize={110} collapsible collapsedSize={0}>
+                <Panel className="h-full" id="bottom" panelRef={bottomRef} defaultSize="38" minSize={150} collapsible collapsedSize={0}>
                   <BottomPane />
                 </Panel>
               </Group>

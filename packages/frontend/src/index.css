@@ -96,6 +96,21 @@
 .ag-cell.cell-state-draft { border-left: 4px dashed #1d4ed8 !important; }
 .ag-cell.cell-state-accepted { border-left: 4px solid #16a34a !important; }
 .ag-cell.cell-state-pass { border-left: 4px solid #16a34a !important; color: #15803d; }
+/* Table pane: its toolbar and footer are sized by the panel they sit in, not by the window. */
+.grid-pane { container-type: inline-size; }
+.grid-pane .tb-short { display: none; }
+.grid-pane .tb-keys { display: flex; }
+@container (max-width: 860px) {
+  .grid-pane .tb-long { display: none; }
+  .grid-pane .tb-short { display: inline; }
+}
+@container (max-width: 760px) {
+  .grid-pane .tb-label, .grid-pane .tb-keys { display: none; }
+}
+@container (max-width: 640px) {
+  /* Only the open tab keeps its name; the others are their icons. */
+  .grid-pane [role='tab'][data-state='inactive'] .tb-tab { display: none; }
+}
 /* The selected row carries the same blue as its balloon on the drawing. */
 .ag-row-selected .ag-cell[col-id='balloon'] { box-shadow: inset 3px 0 0 hsl(var(--primary)); }
 /* A sub-row of a callout (24.1 under 24) steps in, so the callout reads as one block. */

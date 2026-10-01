@@ -38,8 +38,8 @@ const gridTheme = themeQuartz
       fontSize: 12,
       headerFontSize: 11,
       headerFontWeight: 600,
-      rowHeight: 34,
-      headerHeight: 32,
+      rowHeight: 30,
+      headerHeight: 30,
       spacing: 5,
       wrapperBorder: false,
       wrapperBorderRadius: 0,
@@ -356,6 +356,9 @@ export function CharacteristicsGrid({ quickFilter, onShown }: { quickFilter: str
         columnDefs={columnDefs}
         getRowId={(p) => p.data.id}
         defaultColDef={defaultColDef}
+        headerHeight={30}
+        floatingFiltersHeight={30}
+        rowHeight={30}
         rowSelection={{ mode: 'singleRow', checkboxes: false, enableClickSelection: true }}
         singleClickEdit={false}
         stopEditingWhenCellsLoseFocus
