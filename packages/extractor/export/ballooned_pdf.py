@@ -170,6 +170,8 @@ def build_ballooned_pdf(pdf_bytes: bytes, chars: list[dict[str, Any]], settings:
     global_style = {**DEFAULT_STYLE, **(settings.get("balloonStyle") or {})}
     defaults = settings.get("defaults") or {}
 
+    heads = {(int(c.get("page") or 0), c.get("balloonNumber")): c for c in chars if not c.get("subNumber")}
+    links: dict[tuple[int, Any], int] = {}
     for c in sorted(chars, key=sort_key):
         page_no = int(c.get("page") or 0)
         if page_no >= len(doc):
@@ -180,6 +182,12 @@ def build_ballooned_pdf(pdf_bytes: bytes, chars: list[dict[str, Any]], settings:
         color = _rgb(STATUS_COLOR.get(status, style["color"]))
         r = float(style["size"]) / 2 * (0.9 if c.get("subNumber") else 1.0)
         bx, by = float(c["balloonPos"]["x"]), float(c["balloonPos"]["y"])
+        # As on screen: a sub-row without a leader touches its balloon as a chain (24 · .1 · .2).
+        head = heads.get((page_no, c.get("balloonNumber"))) if c.get("subNumber") and not c.get("leader", True) else None
+        if head is not None:
+            n = links[(page_no, c.get("balloonNumber"))] = links.get((page_no, c.get("balloonNumber")), 0) + 1
+            head_r = float({**global_style, **(head.get("style") or {})}["size"]) / 2
+            bx, by = float(head["balloonPos"]["x"]) + head_r + r * (2 * n - 1), float(head["balloonPos"]["y"])
         ax, ay = float(c["anchor"]["x"]), float(c["anchor"]["y"])
         ax, ay = _clip_to_box(bx, by, ax, ay, c.get("bbox"))
         shape = page.new_shape()
@@ -217,7 +225,7 @@ def build_ballooned_pdf(pdf_bytes: bytes, chars: list[dict[str, Any]], settings:
                 shape.finish(color=_rgb("#dc2626"), width=max(0.8, k * 0.24), lineCap=1)
         shape.commit()
 
-        label = f"{style.get('prefix', '')}{balloon_label(c)}"
+        label = f".{c.get('subNumber')}" if head is not None else f"{style.get('prefix', '')}{balloon_label(c)}"
         fontsize = max(6.0, r * (0.75 if len(label) > 2 else 1.0))
         rect = fitz.Rect(bx - r * 1.6, by - r, bx + r * 1.6, by + r)
         page.insert_textbox(

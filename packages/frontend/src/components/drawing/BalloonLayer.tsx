@@ -134,12 +134,17 @@ export function BalloonLayer({ map, page, hover, leaderDefault }: Props) {
         .map((c) => {
           const style: BalloonStyle = { ...globalStyle, ...(c.style ?? {}) }
           const r = radiusFor(style, map.scale) * (c.subNumber !== null ? 0.9 : 1)
-          const b = pageToScreen(c.balloonPos, map)
+          // One callout, one balloon: a sub-row without a leader of its own touches its balloon as a chain (24 · .1 · .2).
+          const head = c.subNumber !== null && !c.leader ? items.find((o) => o.page === c.page && o.balloonNumber === c.balloonNumber && o.subNumber === null) : undefined
+          const link = head ? items.filter((o) => o.page === c.page && o.balloonNumber === c.balloonNumber && o.subNumber !== null && !o.leader && o.subNumber <= (c.subNumber ?? 0)).length : 0
+          const headAt = head ? pageToScreen(head.balloonPos, map) : null
+          const headR = head ? radiusFor({ ...globalStyle, ...(head.style ?? {}) }, map.scale) : 0
+          const b = headAt ? { x: headAt.x + headR + r * (2 * link - 1), y: headAt.y } : pageToScreen(c.balloonPos, map)
           const a = pageToScreen(c.leader ? clipToBox(c.balloonPos, c.anchor, c.obox ? { x: c.obox.cx - c.obox.h * 0.6, y: c.obox.cy - c.obox.h * 0.6, w: c.obox.h * 1.2, h: c.obox.h * 1.2 } : c.bbox) : c.anchor, map)
           const status = displayStatus(c, deriveLimits(c, defaults))
           const color = STATUS_COLOR[status] ?? style.color
           const selected = c.id === selectedId
-          const label = `${style.prefix}${balloonLabel(c)}`
+          const label = head ? `.${c.subNumber}` : `${style.prefix}${balloonLabel(c)}`
           // Soft spotlight: with one balloon selected, the others step back.
           const dimmed = selectedId !== null && !selected && c.id !== hoveredId
           const measured = status === 'Pass' || status === 'Fail'

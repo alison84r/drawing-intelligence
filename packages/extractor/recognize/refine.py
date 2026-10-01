@@ -332,12 +332,15 @@ def place_balloons(records: list[dict[str, Any]], tokens: list[Token], width: fl
             cx, cy, hw, hh = b["x"] + b["w"] / 2, b["y"] + b["h"] / 2, b["w"] / 2, b["h"] / 2
         own = (b["x"], b["y"], b["x"] + b["w"], b["y"] + b["h"])
         best, best_cost = None, 1e9
+        chain = [1.9 * radius * k for k in range(1, int(r.get("_chain") or 0) + 1)]  # sub-balloons hang to its right
         for dist in (1.5, 2.6, 3.8, 5.2):
             for dx, dy in dirs:
                 n = math.hypot(dx, dy)
                 x = cx + dx * (hw if dx else 0) + dx / n * dist * size
                 y = cy + dy * (hh if dy else 0) + dy / n * dist * size
-                c = cost(x, y, own) + 0.02 * dist
+                if chain and dx < 0:
+                    x -= chain[-1]  # on the left of the callout the whole chain must fit before it
+                c = cost(x, y, own) + sum(cost(x + off, y, own) for off in chain) + 0.02 * dist
                 if c < best_cost:
                     best, best_cost = (x, y), c
             if best_cost < 0.2:
@@ -345,7 +348,8 @@ def place_balloons(records: list[dict[str, Any]], tokens: list[Token], width: fl
         if best is None:
             best = (cx + hw + 1.5 * size, cy - hh - 1.5 * size)
         placed.append(best)
-        r["balloonPos"] = {"x": round(best[0], 2), "y": round(best[1], 2)}
+        placed.extend((best[0] + off, best[1]) for off in chain)
+        r["balloonPos"] = {"x": round(float(best[0]), 2), "y": round(float(best[1]), 2)}
 
 
 LETTER = re.compile(r"^[A-Z]$")

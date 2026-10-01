@@ -1,0 +1,43 @@
+<title>Sub-balloon Layout</title>
+<style>
+:root{--bg:#f5f7fa;--card:#fff;--fg:#14213a;--mut:#64708a;--line:#dfe4ec;--ink:#2a2ad0;--navy:#1d4ed8;--bad:#c0392b;--bad-s:#fbe6e3;--ok:#1f8a5b;--ok-s:#e0f4ea;--paper:#fff}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1622;--card:#172131;--fg:#e7ecf4;--mut:#93a0b8;--line:#2a3649;--ink:#9aa6ff;--navy:#7fa6ff;--bad:#f08777;--bad-s:#3d201c;--ok:#5fd0a0;--ok-s:#173328;--paper:#101a2a;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0f1622;--card:#172131;--fg:#e7ecf4;--mut:#93a0b8;--line:#2a3649;--ink:#9aa6ff;--navy:#7fa6ff;--bad:#f08777;--bad-s:#3d201c;--ok:#5fd0a0;--ok-s:#173328;--paper:#101a2a;color-scheme:dark}
+body{background:var(--bg);color:var(--fg);font:14px/1.5 system-ui,sans-serif;padding-inline:16px;padding-block:24px 48px}
+.wrap{max-width:980px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+h1{font-size:22px;margin:0;text-wrap:balance}p{margin:0;color:var(--mut);max-width:66ch}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.tag{align-self:flex-start;font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px}
+.tag.bad{background:var(--bad-s);color:var(--bad)}.tag.ok{background:var(--ok-s);color:var(--ok)}
+h2{font-size:15px;margin:0}
+svg{width:100%;height:auto;background:var(--paper);border:1px solid var(--line);border-radius:8px}
+.t{font:500 19px system-ui;fill:var(--ink)}.b{fill:var(--paper);stroke:var(--navy);stroke-width:1.8}.n{font:700 10px system-ui;fill:var(--navy);text-anchor:middle;dominant-baseline:central}
+.l{stroke:var(--navy);stroke-width:1.3;fill:none}.d{fill:var(--navy)}.u{stroke:var(--ink);stroke-width:1.2}
+.hl{fill:var(--navy);opacity:.12}
+ul{margin:0;padding-left:18px;color:var(--mut)}li b{color:var(--fg)}
+</style>
+<div class="wrap">
+<header><h1>Sub-balloons on a hole callout: today and two cleaner layouts</h1><p>Your screenshot shows the problem: four balloons in a row, four leaders that cross each other, and 24.3 sitting on the next dimension.</p></header>
+<div class="grid">
+ <div class="card"><span class="tag bad">Today</span><h2>A row with crossing leaders</h2>
+  <svg viewBox="0 0 300 150"><text class="t" x="20" y="98">6 x Ø 5 ↧ 15</text><text class="t" x="20" y="126">M6 - 6H ↧ 12</text><line class="u" x1="18" y1="134" x2="170" y2="134"/>
+   <path class="l" d="M118 46 84 80"/><path class="l" d="M158 46 138 80"/><path class="l" d="M198 46 84 110"/><path class="l" d="M238 46 150 110"/>
+   <circle class="b" cx="126" cy="38" r="13"/><text class="n" x="126" y="38">24</text><circle class="b" cx="166" cy="38" r="12"/><text class="n" x="166" y="38">24.1</text><circle class="b" cx="206" cy="38" r="12"/><text class="n" x="206" y="38">24.2</text><circle class="b" cx="246" cy="38" r="12"/><text class="n" x="246" y="38">24.3</text>
+   <text class="t" x="262" y="62">1</text></svg>
+  <ul><li>Leaders cross; hard to tell which is which.</li><li>The row runs into balloon 25 and its dimension.</li></ul></div>
+ <div class="card"><span class="tag ok">Option A · recommended</span><h2>One balloon, one leader, a chain</h2>
+  <svg viewBox="0 0 300 150"><text class="t" x="20" y="98">6 x Ø 5 ↧ 15</text><text class="t" x="20" y="126">M6 - 6H ↧ 12</text><line class="u" x1="18" y1="134" x2="170" y2="134"/>
+   <path class="l" d="M44 50 40 78"/><circle class="d" cx="40" cy="78" r="2.2"/>
+   <circle class="b" cx="46" cy="36" r="13"/><text class="n" x="46" y="36">24</text><circle class="b" cx="70" cy="36" r="11"/><text class="n" x="70" y="36">.1</text><circle class="b" cx="92" cy="36" r="11"/><text class="n" x="92" y="36">.2</text><circle class="b" cx="114" cy="36" r="11"/><text class="n" x="114" y="36">.3</text>
+   <rect class="hl" x="128" y="108" width="34" height="22" rx="3"/><text class="t" x="262" y="62">1</text></svg>
+  <ul><li><b>One leader</b> from 24 to the callout. Sub-balloons touch it as a chain: .1 .2 .3.</li><li>Click .3 and its text (↧12) lights up; no permanent leader needed.</li><li>Shortest footprint, so it stays clear of neighbours. The exported PDF looks the same.</li></ul></div>
+ <div class="card"><span class="tag ok">Option B</span><h2>Each balloon beside its own row</h2>
+  <svg viewBox="0 0 300 150"><text class="t" x="20" y="72">6 x Ø 5 ↧ 15</text><text class="t" x="20" y="100">M6 - 6H ↧ 12</text><line class="u" x1="18" y1="108" x2="170" y2="108"/>
+   <circle class="b" cx="196" cy="64" r="12"/><text class="n" x="196" y="64">24</text><circle class="b" cx="222" cy="64" r="11"/><text class="n" x="222" y="64">.1</text>
+   <circle class="b" cx="196" cy="92" r="11"/><text class="n" x="196" y="92">.2</text><circle class="b" cx="222" cy="92" r="11"/><text class="n" x="222" y="92">.3</text>
+   <path class="l" d="M184 64 172 66"/><path class="l" d="M185 92 172 94"/></svg>
+  <ul><li>Row 1 gets 24 and .1, row 2 gets .2 and .3, right of the text.</li><li>Reads like the callout, but needs free space to the right, which is often where the next dimension sits.</li></ul></div>
+</div>
+<p><b>Both options</b> also make the placement treat the whole group as one block, so it no longer lands on a neighbouring balloon or dimension.</p>
+</div>

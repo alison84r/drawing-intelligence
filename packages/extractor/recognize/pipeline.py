@@ -405,7 +405,12 @@ def recognize(
             for c in characteristics:
                 if c["subOf"] and c["subOf"] not in heads_by_id:
                     c["subOf"] = None  # its first row is on the sheet already (ballooned earlier): it stands alone
+            for c in characteristics:
+                if not c["subOf"]:
+                    c["_chain"] = sum(1 for o in characteristics if o["subOf"] == c["id"])
             place_balloons([c for c in characteristics if not c["subOf"]], tokens, width, height, dim_size)
+            for c in characteristics:
+                c.pop("_chain", None)
             # Token boxes follow the ink too, so every overlay sits on the glyphs.
             if ink is not None:
                 for t in tokens:
@@ -446,7 +451,9 @@ def recognize(
                 if c["subOf"]:
                     n = following[c["subOf"]] = following.get(c["subOf"], 0) + 1
                     at = heads_by_id[c["subOf"]]["balloonPos"]
-                    c["balloonPos"] = {"x": round(float(at["x"]) + 22.0 * n, 2), "y": at["y"]}  # beside its balloon, like a sub-balloon added by hand
+                    # No leader of its own: it is drawn touching its balloon as a chain (24 · .1 · .2); this is where it sits.
+                    c["leader"] = False
+                    c["balloonPos"] = {"x": round(float(at["x"]) + 22.8 * n, 2), "y": at["y"]}
             out_pages.append({
                 "page": index,
                 "width": width,
