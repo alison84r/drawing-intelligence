@@ -87,6 +87,7 @@ export function useKeyboardShortcuts() {
         case 'Escape':
           setTool('select')
           chars.select(null)
+          ui.setSolo(null)
           break
         case 'Delete':
         case 'Backspace':

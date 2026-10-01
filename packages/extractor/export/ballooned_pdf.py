@@ -81,7 +81,8 @@ def build_ballooned_pdf(pdf_bytes: bytes, chars: list[dict[str, Any]], settings:
             shape.draw_circle(fitz.Point(ax, ay), 2.0)
             shape.finish(color=color, fill=color, width=0.5)
 
-        filled = style["fill"] == "filled"
+        # Same marks as on screen: Draft dashed, Accepted ticked, Pass filled green, Fail filled red with a cross.
+        filled = style["fill"] == "filled" or status in ("Pass", "Fail")
         fill = color if filled else (1, 1, 1)
         pts = _shape_points(style["shape"], bx, by, r)
         if style["shape"] == "square":
@@ -90,7 +91,21 @@ def build_ballooned_pdf(pdf_bytes: bytes, chars: list[dict[str, Any]], settings:
             shape.draw_polyline([fitz.Point(*p) for p in pts] + [fitz.Point(*pts[0])])
         else:
             shape.draw_circle(fitz.Point(bx, by), r)
-        shape.finish(color=color, fill=fill, width=1.6, closePath=True)
+        shape.finish(color=color, fill=fill, width=1.6, closePath=True, dashes="[3 2] 0" if status == "Draft" else None)
+        if status in ("Accepted", "Fail"):
+            k = max(3.2, r * 0.44)
+            cx_, cy_ = bx + r * 0.78, by - r * 0.78
+            if status == "Accepted":
+                shape.draw_circle(fitz.Point(cx_, cy_), k)
+                shape.finish(color=(1, 1, 1), fill=_rgb("#16a34a"), width=0.8)
+                shape.draw_polyline([fitz.Point(cx_ - k * 0.48, cy_), fitz.Point(cx_ - k * 0.14, cy_ + k * 0.36), fitz.Point(cx_ + k * 0.48, cy_ - k * 0.34)])
+                shape.finish(color=(1, 1, 1), width=max(0.8, k * 0.24), closePath=False, lineCap=1, lineJoin=1)
+            else:
+                shape.draw_circle(fitz.Point(cx_, cy_), k)
+                shape.finish(color=_rgb("#dc2626"), fill=(1, 1, 1), width=0.8)
+                shape.draw_line(fitz.Point(cx_ - k * 0.42, cy_ - k * 0.42), fitz.Point(cx_ + k * 0.42, cy_ + k * 0.42))
+                shape.draw_line(fitz.Point(cx_ + k * 0.42, cy_ - k * 0.42), fitz.Point(cx_ - k * 0.42, cy_ + k * 0.42))
+                shape.finish(color=_rgb("#dc2626"), width=max(0.8, k * 0.24), lineCap=1)
         shape.commit()
 
         label = f"{style.get('prefix', '')}{balloon_label(c)}"

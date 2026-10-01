@@ -176,7 +176,10 @@ export function DrawingSurface() {
         if (tool === 'single') setTool('select')
         return
       }
-      if (tool === 'select') selectBalloon(null)
+      if (tool === 'select') {
+        selectBalloon(null)
+        useUiStore.getState().setSolo(null)
+      }
     },
     [doc, panEnabled, map, tool, addBalloon, pageIndex, leaderDefault, setTool, selectBalloon, setBand],
   )

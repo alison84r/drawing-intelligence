@@ -37,6 +37,8 @@ export function BalloonLayer({ map, page, hover, leaderDefault }: Props) {
   const setTool = useUiStore((s) => s.setTool)
   const setHovered = useUiStore((s) => s.setHovered)
   const hoveredId = useUiStore((s) => s.hoveredId)
+  const soloId = useUiStore((s) => s.soloId)
+  const openContextMenu = useUiStore((s) => s.openContextMenu)
 
   // A balloon selected from the grid may be off screen: bring it into view, without changing the zoom.
   useEffect(() => {
@@ -128,7 +130,7 @@ export function BalloonLayer({ map, page, hover, leaderDefault }: Props) {
       onPointerCancel={onPointerUp}
     >
       {items
-        .filter((c) => c.page === page)
+        .filter((c) => c.page === page && (soloId === null || c.id === soloId || !items.some((i) => i.id === soloId)))
         .map((c) => {
           const style: BalloonStyle = { ...globalStyle, ...(c.style ?? {}) }
           const r = radiusFor(style, map.scale) * (c.subNumber !== null ? 0.9 : 1)
@@ -153,6 +155,12 @@ export function BalloonLayer({ map, page, hover, leaderDefault }: Props) {
               onDoubleClick={() => {
                 setTool('select')
                 toggleZoomTo(c.id)
+              }}
+              onContextMenu={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                select(c.id)
+                openContextMenu(e.clientX, e.clientY, c.id)
               }}
               data-balloon={balloonLabel(c)}
               data-status={status}

@@ -7,6 +7,7 @@ import { useAutosave } from '@/hooks/useAutosave'
 import { useUiStore } from '@/store/uiStore'
 import { cn } from '@/lib/utils'
 import { BrandFooter } from '@/components/brand/Brand'
+import { BalloonContextMenu } from '@/components/balloons/BalloonContextMenu'
 import { TopBar } from './TopBar'
 import { LeftPanel } from './LeftPanel'
 import { RightPanel } from './RightPanel'
@@ -115,6 +116,7 @@ export function AppShell() {
           </Panel>
         </Group>
         <BrandFooter />
+        <BalloonContextMenu />
       </div>
     </TooltipProvider>
   )

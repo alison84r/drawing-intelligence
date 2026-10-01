@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react'
 import { toggleZoomTo } from '@/lib/focus'
+import { useUiStore } from '@/store/uiStore'
 import { AgGridReact } from 'ag-grid-react'
 import {
   AllCommunityModule,
@@ -289,6 +290,14 @@ export function CharacteristicsGrid({ quickFilter }: { quickFilter: string }) {
         onGridReady={onGridReady}
         onCellValueChanged={onCellValueChanged}
         onRowClicked={onRowClicked}
+        preventDefaultOnContextMenu
+        onCellContextMenu={(e) => {
+          const ev = e.event as MouseEvent | null
+          if (!e.data || !ev) return
+          select(e.data.id)
+          setPageIndex(e.data.page)
+          useUiStore.getState().openContextMenu(ev.clientX, ev.clientY, e.data.id)
+        }}
         onCellDoubleClicked={(e) => {
           if (e.column.getColId() === 'balloon' && e.data) toggleZoomTo(e.data.id)
         }}
