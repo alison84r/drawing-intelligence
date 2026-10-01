@@ -1,5 +1,5 @@
 import { useCallback, useRef } from 'react'
-import { pageToScreen, screenToPage, type Point, type ScreenMap } from '@/lib/geometry'
+import { clipToBox, pageToScreen, screenToPage, type Point, type ScreenMap } from '@/lib/geometry'
 import { deriveLimits, displayStatus } from '@/lib/tolerance'
 import { balloonLabel, useCharacteristicStore, type Characteristic } from '@/store/characteristicStore'
 import { useSettingsStore, type BalloonStyle } from '@/store/settingsStore'
@@ -34,6 +34,7 @@ export function BalloonLayer({ map, page, hover, leaderDefault }: Props) {
   const defaults = useSettingsStore((s) => s.defaults)
   const tool = useUiStore((s) => s.tool)
   const setTool = useUiStore((s) => s.setTool)
+  const setHovered = useUiStore((s) => s.setHovered)
 
   const drag = useRef<{ id: string; start: Point; pos0: Point; anchor0: Point; leader: boolean; moved: boolean } | null>(null)
   const live = useRef<Point | null>(null)
@@ -125,7 +126,7 @@ export function BalloonLayer({ map, page, hover, leaderDefault }: Props) {
           const style: BalloonStyle = { ...globalStyle, ...(c.style ?? {}) }
           const r = radiusFor(style, map.scale) * (c.subNumber !== null ? 0.9 : 1)
           const b = pageToScreen(c.balloonPos, map)
-          const a = pageToScreen(c.anchor, map)
+          const a = pageToScreen(c.leader ? clipToBox(c.balloonPos, c.anchor, c.bbox) : c.anchor, map)
           const status = displayStatus(c, deriveLimits(c, defaults))
           const color = STATUS_COLOR[status] ?? style.color
           const selected = c.id === selectedId
@@ -136,6 +137,8 @@ export function BalloonLayer({ map, page, hover, leaderDefault }: Props) {
               className="group"
               style={{ pointerEvents: 'auto', cursor: tool === 'select' ? 'grab' : tool === 'sub' ? 'copy' : 'default' }}
               onPointerDown={(e) => onPointerDown(e, c)}
+              onPointerEnter={() => setHovered(c.id)}
+              onPointerLeave={() => setHovered(null)}
               onDoubleClick={() => setTool('select')}
               data-balloon={balloonLabel(c)}
               data-status={status}

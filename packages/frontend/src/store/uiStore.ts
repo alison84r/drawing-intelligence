@@ -8,6 +8,9 @@ interface UiState {
   leftCollapsed: boolean
   rightCollapsed: boolean
   bottomTab: BottomTab
+  /** Characteristic under the pointer: its balloon or its callout text. */
+  hoveredId: string | null
+  setHovered: (id: string | null) => void
   setTool: (tool: ToolMode) => void
   toggleLeft: () => void
   toggleRight: () => void
@@ -21,6 +24,8 @@ export const useUiStore = create<UiState>()((set) => ({
   leftCollapsed: false,
   rightCollapsed: false,
   bottomTab: 'boc',
+  hoveredId: null,
+  setHovered: (hoveredId) => set({ hoveredId }),
   setTool: (tool) => set({ tool }),
   toggleLeft: () => set((s) => ({ leftCollapsed: !s.leftCollapsed })),
   toggleRight: () => set((s) => ({ rightCollapsed: !s.rightCollapsed })),

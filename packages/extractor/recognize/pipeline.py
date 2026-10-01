@@ -11,6 +11,7 @@ from typing import Any
 import pdfplumber
 
 from .geometry import detect_arrowheads
+from .inkfit import fit_box, render_gray
 from .grouper import attach_stacks, build_lines, dimension_font_size, parse_line, rule_out, score_with_geometry
 from .tokens import Token, build_tokens
 from .zones import detect_zones, synthetic_grid
@@ -22,7 +23,7 @@ def _intersects(t: Token, r: Region) -> bool:
     return not (t.x1 < r["x"] or t.x0 > r["x"] + r["w"] or t.y1 < r["y"] or t.y0 > r["y"] + r["h"])
 
 
-def _overlaps(a: dict[str, float], b: dict[str, float], frac: float = 0.3) -> bool:
+def _overlaps(a: dict[str, float], b: dict[str, float], frac: float = 0.2) -> bool:
     ix = max(0.0, min(a["x"] + a["w"], b["x"] + b["w"]) - max(a["x"], b["x"]))
     iy = max(0.0, min(a["y"] + a["h"], b["y"] + b["h"]) - max(a["y"], b["y"]))
     inter = ix * iy
@@ -57,6 +58,10 @@ def recognize(
             attach_stacks(tokens, dim_size)
             lines = build_lines(tokens, dim_size)
             heads = detect_arrowheads(page)
+            try:
+                ink = render_gray(pdf_bytes, index)
+            except Exception:  # noqa: BLE001 - without a render the PDF text boxes are used as they are
+                ink = None
             tables: list[tuple[float, float, float, float]] = []
             try:
                 for tb in page.find_tables():
@@ -81,6 +86,8 @@ def recognize(
                     continue
                 score_with_geometry(group, heads)
                 x0, y0, x1, y1 = line.bbox
+                if ink is not None:
+                    x0, y0, x1, y1 = fit_box(ink, (x0, y0, x1, y1), line.rot, line.size)
                 bbox = {"x": round(x0, 2), "y": round(y0, 2), "w": round(x1 - x0, 2), "h": round(y1 - y0, 2)}
                 zone = grid.zone((x0 + x1) / 2, (y0 + y1) / 2)
                 size = line.size
@@ -117,6 +124,11 @@ def recognize(
                     open_groups += 1
                     for t in group.tokens:
                         t.cls, t.reason, t.guess = "open", group.reason, record
+            # Token boxes follow the ink too, so every overlay sits on the glyphs.
+            if ink is not None:
+                for t in tokens:
+                    if t.size >= 5:
+                        t.x0, t.y0, t.x1, t.y1 = fit_box(ink, (t.x0, t.y0, t.x1, t.y1), t.rot, t.size)
             # Tokens that no line claimed stay open with a reason.
             for t in tokens:
                 if t.cls == "open" and not t.reason:

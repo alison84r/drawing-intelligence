@@ -93,11 +93,11 @@ export function RecognizePanel() {
             {page.zones.synthetic ? 'No zone labels on the border, nominal grid used.' : 'Zones read from the border.'}
           </p>
           <div className="flex items-center justify-between gap-2">
-            <span className="text-[11px] text-muted-foreground">Show tokens</span>
+            <span className="text-[11px] text-muted-foreground">Highlights</span>
             <ToggleGroup type="single" value={tokenView} onValueChange={(v) => v && setTokenView(v as TokenView)} aria-label="Token overlay">
               <ToggleGroupItem value="off" className="h-7 px-2 text-[11px]">Off</ToggleGroupItem>
-              <ToggleGroupItem value="review" className="h-7 px-2 text-[11px]">Review</ToggleGroupItem>
-              <ToggleGroupItem value="all" className="h-7 px-2 text-[11px]">All</ToggleGroupItem>
+              <ToggleGroupItem value="review" className="h-7 px-2 text-[11px]">Quiet</ToggleGroupItem>
+              <ToggleGroupItem value="all" className="h-7 px-2 text-[11px]">Audit</ToggleGroupItem>
             </ToggleGroup>
           </div>
 

@@ -15,9 +15,9 @@ from sqlalchemy import DateTime, ForeignKey, Integer, LargeBinary, String, Text,
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column, relationship, sessionmaker
 
-DATABASE_URL = os.environ.get("DATABASE_URL", "postgresql+psycopg://di:di@localhost:5433/drawing_intelligence")
+DATABASE_URL = os.environ.get("DATABASE_URL", "postgresql+psycopg://di:di@localhost:15433/drawing_intelligence")
 
-engine = create_engine(DATABASE_URL, pool_pre_ping=True, future=True)
+engine = create_engine(DATABASE_URL, pool_pre_ping=True, future=True, connect_args={"connect_timeout": 5})
 SessionLocal = sessionmaker(bind=engine, expire_on_commit=False, future=True)
 
 

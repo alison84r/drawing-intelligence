@@ -32,6 +32,30 @@ def _shape_points(shape: str, cx: float, cy: float, r: float) -> list[tuple[floa
     return None
 
 
+def _clip_to_box(bx: float, by: float, ax: float, ay: float, box: dict[str, float] | None, pad: float = 2.0) -> tuple[float, float]:
+    """Where the leader from the balloon (bx, by) meets the callout box around the anchor."""
+    if not box:
+        return ax, ay
+    x0, y0, x1, y1 = box["x"] - pad, box["y"] - pad, box["x"] + box["w"] + pad, box["y"] + box["h"] + pad
+    if x0 <= bx <= x1 and y0 <= by <= y1:
+        return ax, ay
+    dx, dy = ax - bx, ay - by
+    best = 1.0
+    for edge, d, o, lo, hi, od in ((x0, dx, bx, y0, y1, dy), (x1, dx, bx, y0, y1, dy)):
+        if d:
+            t = (edge - o) / d
+            y = by + t * od
+            if 0 <= t <= best and lo <= y <= hi:
+                best = t
+    for edge, d, o, lo, hi, od in ((y0, dy, by, x0, x1, dx), (y1, dy, by, x0, x1, dx)):
+        if d:
+            t = (edge - o) / d
+            x = bx + t * od
+            if 0 <= t <= best and lo <= x <= hi:
+                best = t
+    return bx + best * dx, by + best * dy
+
+
 def build_ballooned_pdf(pdf_bytes: bytes, chars: list[dict[str, Any]], settings: dict[str, Any], stamp: str) -> bytes:
     doc = fitz.open(stream=pdf_bytes, filetype="pdf")
     global_style = {**DEFAULT_STYLE, **(settings.get("balloonStyle") or {})}
@@ -48,6 +72,7 @@ def build_ballooned_pdf(pdf_bytes: bytes, chars: list[dict[str, Any]], settings:
         r = float(style["size"]) / 2 * (0.9 if c.get("subNumber") else 1.0)
         bx, by = float(c["balloonPos"]["x"]), float(c["balloonPos"]["y"])
         ax, ay = float(c["anchor"]["x"]), float(c["anchor"]["y"])
+        ax, ay = _clip_to_box(bx, by, ax, ay, c.get("bbox"))
         shape = page.new_shape()
 
         if c.get("leader", True):

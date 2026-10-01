@@ -7,8 +7,8 @@ services:
       POSTGRES_PASSWORD: di
       POSTGRES_DB: drawing_intelligence
     ports:
-      # Host port 5433: another Postgres on this machine already uses 5432.
-      - "5433:5432"
+      # Host port 15433: 5432 is taken by another Postgres, and Windows reserves 5355-5954 for Hyper-V after some reboots.
+      - "15433:5432"
     volumes:
       - di-pgdata:/var/lib/postgresql/data
     healthcheck:

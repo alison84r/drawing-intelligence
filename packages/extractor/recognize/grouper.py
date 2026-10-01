@@ -407,6 +407,10 @@ def parse_dimension(line: Line, units: str) -> Group | None:
     if nominal is None:
         return None
     places = _places(nominal_text) if not (nominal_text and "/" in nominal_text) else 3
+    # A printed tolerance finer than the nominal (25.4 ±0.13) sets the precision, or limits would round away.
+    for tol in (tol_high, tol_low):
+        if explicit and tol is not None:
+            places = max(places, _places(f"{abs(tol):.6f}".rstrip("0").rstrip(".")))
     if reference:
         tol_type, conf, reason = "Reference", 0.8, "reference dimension"
     elif explicit:
