@@ -6,7 +6,7 @@ export const WORK_LABEL: Record<WorkState, string> = {
   check: 'To check',
   flagged: 'Flagged',
   measure: 'To measure',
-  done: 'Accepted',
+  done: 'Confirmed',
   pass: 'Pass',
   fail: 'Fail',
 }
@@ -16,7 +16,7 @@ export const WORK_HINT: Record<WorkState, string> = {
   check: 'Read from the drawing. Confirm it, or correct it first.',
   flagged: 'A check on this one failed. Look at it before accepting.',
   measure: 'Confirmed. Waiting for the measured value.',
-  done: 'Confirmed. Nothing to measure: a basic or reference dimension.',
+  done: 'Confirmed. Nothing to measure here.',
   pass: 'Measured, inside its limits.',
   fail: 'Measured, outside its limits.',
 }

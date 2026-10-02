@@ -49,3 +49,15 @@ def test_box_goes_to_clear_paper_nearest_the_preferred_corner():
 
 def test_no_clear_paper_means_no_box():
     assert find_free_box(np.ones((40, 60), dtype=bool), 10, 6, 2, (60, 0)) is None
+
+
+def test_ballooning_only_makes_no_accept_or_reject_claim():
+    # A stored result (even a failing one) is not reported while measuring is switched off.
+    off = {"measuring": False}
+    s = summarise([_dim(10.0), _dim(10.5)], off)
+    assert (s.verdict, s.passed, s.failed, s.accepted, s.to_measure) == ("BALLOONED", 0, 0, 2, 0)
+    assert stamp_lines(s, "FAIR-7", "02 OCT 2026") == ("BALLOONED", "FAIR-7 · 02 OCT 2026", "2 characteristics · all confirmed")
+    assert legend_rows(s) == [("accepted", "Confirmed", 2)]
+    draft = summarise([_dim(10.0), _dim(None, status="Draft")], off)
+    assert stamp_lines(draft, "", "02 OCT 2026")[0] == "BALLOONING IN PROGRESS"
+    assert stamp_lines(draft, "", "02 OCT 2026")[2] == "2 characteristics · 1 not reviewed"

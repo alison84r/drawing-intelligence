@@ -1,0 +1,117 @@
+<title>Ballooning Only Mode</title>
+<style>
+:root{--bg:#f5f7fa;--card:#fff;--fg:#14213a;--mut:#64708a;--line:#dfe4ec;--soft:#eef2f7;--navy:#12406b;--navy-s:#e4edf6;--ok:#1f8a5b;--ok-s:#e0f4ea;--blue:#2456c9;--blue-s:#e6edfc;--amber:#b7791f;--amber-s:#fdf3dc}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1622;--card:#172131;--fg:#e7ecf4;--mut:#93a0b8;--line:#2a3649;--soft:#1e2a3c;--navy:#7fb2e6;--navy-s:#1d3147;--ok:#5fd0a0;--ok-s:#173328;--blue:#8fb0ff;--blue-s:#1c2a4a;--amber:#e3b25a;--amber-s:#3a2f17;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0f1622;--card:#172131;--fg:#e7ecf4;--mut:#93a0b8;--line:#2a3649;--soft:#1e2a3c;--navy:#7fb2e6;--navy-s:#1d3147;--ok:#5fd0a0;--ok-s:#173328;--blue:#8fb0ff;--blue-s:#1c2a4a;--amber:#e3b25a;--amber-s:#3a2f17;color-scheme:dark}
+body{background:var(--bg);color:var(--fg);font:14px/1.5 system-ui,sans-serif;padding-inline:16px;padding-block:26px 56px}
+.wrap{max-width:1020px;margin:0 auto;display:flex;flex-direction:column;gap:22px}
+h1{font-size:24px;margin:0;text-wrap:balance}h2{font-size:17px;margin:0}h3{font-size:11.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--mut);margin:0;font-weight:600}
+p{margin:0;color:var(--mut);max-width:68ch}
+.sec{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;display:flex;flex-direction:column;gap:14px}
+.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px}
+.col{display:flex;flex-direction:column;gap:8px;min-width:0}
+.tag{align-self:flex-start;font-size:11px;font-weight:700;padding:2px 9px;border-radius:11px}
+.def{background:var(--ok-s);color:var(--ok)}.opt{background:var(--blue-s);color:var(--blue)}
+.bar{display:flex;align-items:center;gap:6px;flex-wrap:wrap;border:1px solid var(--line);border-radius:10px;padding:8px 10px;background:var(--bg);font-size:12px}
+.step{display:inline-flex;align-items:center;gap:5px;font-weight:600;white-space:nowrap}
+.dot{width:18px;height:18px;border-radius:50%;display:grid;place-items:center;font-size:10px;font-weight:700;background:var(--soft);color:var(--mut)}
+.dot.done{background:var(--ok);color:var(--card)}.dot.now{background:var(--navy);color:var(--card)}
+.ln{width:18px;height:2px;background:var(--line)}.ln.done{background:var(--ok)}
+.mut{color:var(--mut);font-weight:500}
+.sw{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;font-size:12px;font-weight:600;margin-left:auto}
+.sw span{padding:4px 9px;color:var(--mut);background:var(--card)}.sw .on{background:var(--navy);color:var(--card)}
+.row{display:flex;align-items:center;gap:8px;padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--bg);font-size:12.5px;min-width:0}
+.num{flex:none;min-width:22px;height:22px;border-radius:11px;border:1.6px solid var(--navy);color:var(--navy);font-weight:700;font-size:10px;display:grid;place-items:center}
+.num.g{border-color:var(--ok);color:var(--ok)}
+.txt{flex:1;min-width:0;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chip{flex:none;font-size:10.5px;font-weight:600;padding:2px 7px;border-radius:10px;white-space:nowrap}
+.c-ok{background:var(--ok-s);color:var(--ok)}.c-bl{background:var(--blue-s);color:var(--blue)}
+.btn{display:block;text-align:center;padding:7px 10px;border-radius:8px;background:var(--navy);color:var(--card);font-weight:600;font-size:12.5px}
+.tw{overflow-x:auto;border:1px solid var(--line);border-radius:10px}
+table{border-collapse:collapse;width:100%;min-width:420px;font-size:12.5px;font-variant-numeric:tabular-nums}
+th,td{padding:6px 10px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap}
+th{background:var(--soft);color:var(--mut);font-size:11px;font-weight:600}
+td.e{color:var(--mut);font-style:italic}
+ul{margin:0;padding-left:18px;color:var(--mut)}li{margin:2px 0}li b{color:var(--fg)}
+.q{border-left:3px solid var(--navy);padding:8px 12px;background:var(--navy-s);border-radius:0 8px 8px 0}
+.q b{display:block}.q span{color:var(--mut)}
+</style>
+<div class="wrap">
+<header class="col"><h3>Drawing Intelligence · mock, no code yet</h3><h1>Ballooning only by default; measuring as an option</h1>
+<p>The app reads the drawing. Measuring the part is a second job that some customers do elsewhere. So the job ends at Check unless you switch measuring on.</p></header>
+
+<section class="sec">
+  <h2>1 · The steps across the top</h2>
+  <div class="two">
+    <div class="col"><span class="tag def">Ballooning only · default</span>
+      <div class="bar">
+        <span class="step"><span class="dot done">✓</span>Read</span><span class="ln done"></span>
+        <span class="step"><span class="dot now">2</span>Check <span class="mut">52 / 77</span></span><span class="ln"></span>
+        <span class="step mut"><span class="dot">3</span>Report</span>
+        <span class="sw"><span class="on">Ballooning</span><span>+ Measure</span></span>
+      </div>
+      <p>Three steps. When every balloon is confirmed, the job is done and Report lights up.</p>
+    </div>
+    <div class="col"><span class="tag opt">With measuring · optional</span>
+      <div class="bar">
+        <span class="step"><span class="dot done">✓</span>Read</span><span class="ln done"></span>
+        <span class="step"><span class="dot done">✓</span>Check <span class="mut">77 / 77</span></span><span class="ln done"></span>
+        <span class="step"><span class="dot now">3</span>Measure <span class="mut">0 / 77</span></span><span class="ln"></span>
+        <span class="step mut"><span class="dot">4</span>Report</span>
+        <span class="sw"><span>Ballooning</span><span class="on">+ Measure</span></span>
+      </div>
+      <p>Four steps, exactly as today.</p>
+    </div>
+  </div>
+  <p>The switch sits at the right end of the step bar. It is saved with the inspection and can be changed at any time; nothing is lost either way.</p>
+</section>
+
+<section class="sec">
+  <h2>2 · What a confirmed balloon says</h2>
+  <div class="two">
+    <div class="col"><span class="tag def">Ballooning only</span>
+      <div class="row"><span class="num g">24</span><span class="txt">6X Ø5 (±0.1)</span><span class="chip c-ok">✓ Confirmed</span></div>
+      <div class="row"><span class="num">25</span><span class="txt">140 (±0.5)</span><span class="chip c-bl">To check</span></div>
+      <ul><li>Two states only: <b>To check</b> and <b>Confirmed</b> (plus Flagged when a check fails).</li><li>No "To measure", "Passed" or "Failed" chips, no Result box in the right panel, no Result column in the table.</li><li>Progress ring reads "52 of 77 confirmed" and reaches 100% at the end of Check.</li></ul>
+    </div>
+    <div class="col"><span class="tag opt">With measuring</span>
+      <div class="row"><span class="num">24</span><span class="txt">6X Ø5 (±0.1)</span><span class="chip c-bl">To measure</span></div>
+      <div class="row"><span class="num g">25</span><span class="txt">140 (±0.5)</span><span class="chip c-ok">Pass · 140.2</span></div>
+      <ul><li>As today: To measure, Pass, Fail, the Result box, the limit band.</li></ul>
+    </div>
+  </div>
+</section>
+
+<section class="sec">
+  <h2>3 · The next step in the right panel</h2>
+  <div class="two">
+    <div class="col"><span class="tag def">Ballooning only</span><div class="btn">All 77 confirmed · Export the ballooned drawing →</div><p>The job is finished. Under it, a quiet link: "Also record measured results".</p></div>
+    <div class="col"><span class="tag opt">With measuring</span><div class="btn">Enter the measured values (77 to go) →</div></div>
+  </div>
+</section>
+
+<section class="sec">
+  <h2>4 · What the export contains</h2>
+  <div class="two">
+    <div class="col"><span class="tag def">Ballooning only</span>
+      <ul><li><b>Ballooned drawing (PDF).</b> Stamp reads "Ballooned · 77 characteristics", with no pass / fail legend.</li><li><b>Inspection sheet (Form 3)</b> with the Results column left empty, ready for the shop floor or CMM.</li><li>Forms 1 and 2 as filled in.</li></ul>
+      <div class="tw"><table><tr><th>#</th><th>Requirement</th><th>Min</th><th>Max</th><th>Result</th></tr><tr><td>24</td><td>6X Ø5 (±0.1)</td><td>4.9</td><td>5.1</td><td class="e">to be measured</td></tr><tr><td>25</td><td>140 (±0.5)</td><td>139.5</td><td>140.5</td><td class="e">to be measured</td></tr></table></div>
+    </div>
+    <div class="col"><span class="tag opt">With measuring</span>
+      <ul><li>Same files, with results, pass / fail colours, and the accept / reject stamp and legend.</li></ul>
+      <div class="tw"><table><tr><th>#</th><th>Requirement</th><th>Min</th><th>Max</th><th>Result</th></tr><tr><td>24</td><td>6X Ø5 (±0.1)</td><td>4.9</td><td>5.1</td><td>5.03</td></tr><tr><td>25</td><td>140 (±0.5)</td><td>139.5</td><td>140.5</td><td>140.2</td></tr></table></div>
+    </div>
+  </div>
+</section>
+
+<section class="sec">
+  <h2>Rules</h2>
+  <ul>
+    <li><b>New inspections start as ballooning only.</b> Existing ones that already hold results open with measuring on.</li>
+    <li><b>Switching on</b> adds the Measure step; confirmed balloons become "To measure".</li>
+    <li><b>Switching off</b> hides results but keeps them stored; switching on again brings them back.</li>
+    <li><b>The table</b> gets its Result column only with measuring on.</li>
+  </ul>
+  <div class="q"><b>One decision: what should the two modes be called on screen?</b><span>My suggestion: "Ballooning" and "Ballooning + Measure". Alternative: "Balloon only" and "Full FAI".</span></div>
+</section>
+</div>

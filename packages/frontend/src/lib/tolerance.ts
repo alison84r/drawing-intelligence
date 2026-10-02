@@ -84,6 +84,8 @@ export interface Limits {
   auto: boolean
   /** Where the tolerance comes from, e.g. "ISO 2768-m, 30 to 120". */
   origin?: string
+  /** False on a ballooning-only job: a stored result is not judged. Absent means results count. */
+  measuring?: boolean
 }
 
 export function hasNumericTolerance(c: Pick<Characteristic, 'toleranceType' | 'descriptionType' | 'measurementType'>): boolean {
@@ -93,6 +95,10 @@ export function hasNumericTolerance(c: Pick<Characteristic, 'toleranceType' | 'd
 
 /** Min and max for a characteristic, applying the default tolerance when none is typed. */
 export function deriveLimits(c: Characteristic, d: DefaultTolerances): Limits {
+  return { ...limitsFor(c, d), measuring: d.measuring === true }
+}
+
+function limitsFor(c: Characteristic, d: DefaultTolerances): Limits {
   const none: Limits = { min: null, max: null, high: null, low: null, auto: false }
   if (!hasNumericTolerance(c)) return none
 
@@ -132,7 +138,7 @@ const FAIL_WORDS = /^(fail|nok|no-?go|reject(ed)?|no)$/i
 /** Status shown on the row and the balloon. Pass/Fail once a result exists, else Accepted when the row has content. */
 export function displayStatus(c: Characteristic, limits: Limits): DisplayStatus {
   const r = c.result
-  if (r !== null && r !== '') {
+  if (limits.measuring !== false && r !== null && r !== '') {
     if (typeof r === 'string' && PASS_WORDS.test(r)) return 'Pass'
     if (typeof r === 'string' && FAIL_WORDS.test(r)) return 'Fail'
     const n = typeof r === 'number' ? r : parseNumber(r)

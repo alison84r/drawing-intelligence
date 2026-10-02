@@ -267,9 +267,11 @@ export function CharacteristicsGrid({ quickFilter, onShown }: { quickFilter: str
 
   const applyColumnSet = useCallback((api: GridApi<Row>, all: boolean) => {
     const ids = (api.getColumns() ?? []).map((col) => col.getColId())
+    const measuring = useSettingsStore.getState().defaults.measuring === true
     const show = new Set(WORKING_COLUMNS)
-    api.setColumnsVisible(ids.filter((id) => all || show.has(id)), true)
-    api.setColumnsVisible(ids.filter((id) => !all && !show.has(id)), false)
+    const visible = (id: string) => (all || show.has(id)) && (measuring || id !== 'result')
+    api.setColumnsVisible(ids.filter(visible), true)
+    api.setColumnsVisible(ids.filter((id) => !visible(id)), false)
   }, [])
 
   const onGridReady = useCallback((e: GridReadyEvent<Row>) => {
@@ -305,11 +307,12 @@ export function CharacteristicsGrid({ quickFilter, onShown }: { quickFilter: str
     })
   }, [])
 
+  const measuring = defaults.measuring === true
   useEffect(() => {
     if (!apiRef.current) return
     applyColumnSet(apiRef.current, allColumns)
     fitColumns()
-  }, [allColumns, applyColumnSet, fitColumns])
+  }, [allColumns, measuring, applyColumnSet, fitColumns])
 
   // The chips above the workspace choose which rows are listed, and the table follows the sheet on screen.
   const pageIndex = useDocumentStore((s) => s.pageIndex)

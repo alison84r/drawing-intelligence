@@ -12,7 +12,7 @@ export function isMeasurable(c: Characteristic): boolean {
  *   check    read by the recognizer, nobody has confirmed it yet
  *   flagged  as check, and a check on it failed: it needs a decision, not just a glance
  *   measure  confirmed, waiting for a measured result
- *   done     confirmed, and nothing to measure (basic or reference dimension)
+ *   done     confirmed, and nothing to measure: a ballooning-only job, or a basic or reference dimension
  *   pass / fail  measured
  */
 export type WorkState = 'check' | 'flagged' | 'measure' | 'done' | 'pass' | 'fail'
@@ -31,7 +31,7 @@ export function workStateOf(c: Characteristic, defaults: DefaultTolerances): Wor
   if (status === 'Pass') return 'pass'
   if (status === 'Fail') return 'fail'
   if (status === 'Draft') return issueOf(c) ? 'flagged' : 'check'
-  return isMeasurable(c) ? 'measure' : 'done'
+  return defaults.measuring === true && isMeasurable(c) ? 'measure' : 'done'
 }
 
 /** What the workspace is showing. "check" includes the flagged ones: they are still to be checked. */
@@ -64,7 +64,7 @@ export function progressOf(items: Characteristic[], defaults: DefaultTolerances)
     if (state === 'measure') p.toMeasure++
     if (state === 'pass') p.passed++
     if (state === 'fail') p.fails++
-    if (isMeasurable(c)) {
+    if (defaults.measuring === true && isMeasurable(c)) {
       p.measurable++
       if (state === 'pass' || state === 'fail') p.measured++
     }

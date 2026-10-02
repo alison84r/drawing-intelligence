@@ -29,6 +29,8 @@ interface UiState {
   /** Which rows the table lists: the sheet on screen (it follows the drawing) or every sheet. */
   gridScope: 'sheet' | 'all'
   toggleGridScope: () => void
+  exportOpen: boolean
+  setExportOpen: (v: boolean) => void
   /** Characteristic under the pointer: its balloon or its callout text. */
   hoveredId: string | null
   setHovered: (id: string | null) => void
@@ -66,6 +68,8 @@ export const useUiStore = create<UiState>()((set) => ({
   toggleGridTall: () => set((s) => ({ gridTall: !s.gridTall })),
   gridScope: 'sheet',
   toggleGridScope: () => set((s) => ({ gridScope: s.gridScope === 'sheet' ? 'all' : 'sheet' })),
+  exportOpen: false,
+  setExportOpen: (exportOpen) => set({ exportOpen }),
   hoveredId: null,
   setHovered: (hoveredId) => set({ hoveredId }),
   contextMenu: null,

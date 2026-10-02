@@ -73,7 +73,16 @@ export function WorkspaceTopBar() {
   const recognizing = useRecognizeStore((s) => s.status === 'running')
   const runRecognize = useRecognizeStore((s) => s.run)
 
-  const [exportOpen, setExportOpen] = useState(false)
+  const exportOpen = useUiStore((s) => s.exportOpen)
+  const setExportOpen = useUiStore((s) => s.setExportOpen)
+  const measuring = defaults.measuring === true
+  const setMeasuring = useSettingsStore((s) => s.setMeasuring)
+  const chooseMode = (on: boolean) => {
+    if (on === measuring) return
+    setMeasuring(on)
+    // A filter on a state that no longer exists would leave the lists empty.
+    if (!on && ['measure', 'pass', 'fail'].includes(useUiStore.getState().show)) setShow('all')
+  }
   const [menu, setMenu] = useState(false)
   const [note, setNote] = useState<string | null>(null)
   const fileInput = useRef<HTMLInputElement>(null)
@@ -138,10 +147,27 @@ export function WorkspaceTopBar() {
           onClick={!recognized && revisionId && !recognizing ? () => void runRecognize() : undefined} />
         <Stage n={2} label="Check" count={hasItems ? `${p.accepted} / ${p.total}` : undefined} state={reviewDone ? 'done' : recognized ? 'now' : 'todo'} testId="stage-check"
           hint={reviewDone ? 'Every balloon is confirmed' : `${p.drafts} still to confirm. Click to list them`} onClick={hasItems ? () => setShow('check') : undefined} />
-        <Stage n={3} label="Measure" count={hasItems ? `${p.measured} / ${p.measurable}` : undefined} state={measureDone ? 'done' : reviewDone ? 'now' : 'todo'} testId="stage-measure"
-          hint={measureDone ? 'Every result is entered' : `${p.toMeasure} confirmed and waiting for a result. Click to list them`} onClick={hasItems ? () => setShow('measure') : undefined} />
-        <Stage n={4} label="Report" state={measureDone ? 'now' : 'todo'} testId="stage-report" last
-          hint="AS9102 forms, PPAP results and the ballooned drawing" onClick={hasItems ? () => setExportOpen(true) : undefined} />
+        {measuring && (
+          <Stage n={3} label="Measure" count={hasItems ? `${p.measured} / ${p.measurable}` : undefined} state={measureDone ? 'done' : reviewDone ? 'now' : 'todo'} testId="stage-measure"
+            hint={measureDone ? 'Every result is entered' : `${p.toMeasure} confirmed and waiting for a result. Click to list them`} onClick={hasItems ? () => setShow('measure') : undefined} />
+        )}
+        <Stage n={measuring ? 4 : 3} label="Report" state={(measuring ? measureDone : reviewDone) ? 'now' : 'todo'} testId="stage-report" last
+          hint={measuring ? 'AS9102 forms, PPAP results and the ballooned drawing' : 'The ballooned drawing and the inspection sheet, ready to be filled in'} onClick={hasItems ? () => setExportOpen(true) : undefined} />
+        {/* The kind of job: stop at the ballooned drawing, or go on to record measured results. Saved with the inspection. */}
+        <div className="ml-3 hidden h-7 items-center rounded-lg border bg-muted/50 p-0.5 text-[11px] font-semibold md:flex" role="radiogroup" aria-label="Kind of job" data-testid="job-mode">
+          {([[false, 'Ballooning', 'The job ends when every balloon is confirmed. The inspection sheet goes out with an empty Results column'],
+             [true, '+ Measure', 'Ballooning + Measure: also record measured results and judge them against the limits']] as const).map(([on, label, hint]) => (
+            <Tooltip key={label}>
+              <TooltipTrigger asChild>
+                <button type="button" role="radio" aria-checked={measuring === on} onClick={() => chooseMode(on)} data-testid={on ? 'mode-measure' : 'mode-ballooning'}
+                  className={cn('h-6 rounded-md px-2 text-muted-foreground transition-colors hover:text-foreground', measuring === on && 'bg-primary text-primary-foreground shadow-sm hover:text-primary-foreground')}>
+                  {label}
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>{hint}</TooltipContent>
+            </Tooltip>
+          ))}
+        </div>
       </div>
 
       {note && <span className="max-w-[220px] truncate text-[11px] text-muted-foreground" role="status">{note}</span>}
@@ -179,7 +205,7 @@ export function WorkspaceTopBar() {
         <ThemeToggle />
       </div>
       <Button size="sm" className="h-8 gap-1.5" onClick={() => setExportOpen(true)} disabled={!ready || !hasItems} data-testid="export-button">
-        <Download /> <span className="hidden sm:inline">Export FAI</span>
+        <Download /> <span className="hidden sm:inline">{measuring ? 'Export FAI' : 'Export'}</span>
       </Button>
       <ExportDialog open={exportOpen} onClose={() => setExportOpen(false)} />
       <input ref={fileInput} type="file" accept="application/json,.json" className="hidden"

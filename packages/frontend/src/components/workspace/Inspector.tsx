@@ -273,7 +273,7 @@ export function Inspector() {
           </div>
         </div>
 
-        <Section title="Result" testId="section-result" open={resultOpen} onToggle={() => setOpen((o) => ({ ...o, result: !resultOpen }))} hint={c.result !== null && c.result !== '' ? String(c.result) : unchecked ? 'after it is accepted' : 'waiting for a value'}>
+        {defaults.measuring === true && <Section title="Result" testId="section-result" open={resultOpen} onToggle={() => setOpen((o) => ({ ...o, result: !resultOpen }))} hint={c.result !== null && c.result !== '' ? String(c.result) : unchecked ? 'after it is accepted' : 'waiting for a value'}>
           {unchecked && <p className="rounded-md border border-dashed px-2.5 py-1.5 text-[11px] text-muted-foreground">Not confirmed yet. Entering a result here also confirms the balloon.</p>}
           {isAttribute ? (
             <ToggleGroup type="single" value={typeof c.result === 'string' ? c.result : ''} onValueChange={(v) => patch({ result: v || null })} className="w-full">
@@ -302,7 +302,7 @@ export function Inspector() {
               <p className="text-[11px] text-muted-foreground">Enter saves it and moves to the next one.</p>
             </>
           )}
-        </Section>
+        </Section>}
 
         <Section title="Requirement" testId="section-requirement" open={open.requirement} onToggle={() => setOpen((o) => ({ ...o, requirement: !o.requirement }))} hint="edit type, nominal, tolerance">
           <div className="grid grid-cols-2 gap-2">

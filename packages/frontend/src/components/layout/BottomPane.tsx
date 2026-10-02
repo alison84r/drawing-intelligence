@@ -162,7 +162,7 @@ export function BottomPane() {
               </span>
               <span><b className="font-semibold text-foreground">{progress.accepted}</b> confirmed</span>
               {progress.flagged > 0 && <span className="text-status-fail"><b className="font-semibold">{progress.flagged}</b> flagged</span>}
-              <span><b className="font-semibold text-foreground">{progress.measured}</b> of {progress.measurable} measured</span>
+              {progress.measurable > 0 && <span><b className="font-semibold text-foreground">{progress.measured}</b> of {progress.measurable} measured</span>}
               {progress.fails > 0 && <span className="text-status-fail"><b className="font-semibold">{progress.fails}</b> failed</span>}
               <span className="tb-keys ml-auto items-center gap-1.5">
                 <Key>J</Key><Key>K</Key> next / previous <Key>A</Key> accept <Key>/</Key> find <Key>G</Key> go to #

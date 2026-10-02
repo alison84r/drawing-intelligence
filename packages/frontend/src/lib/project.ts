@@ -46,6 +46,9 @@ export async function openInspectionFromServer(inspectionId: string): Promise<In
   usePartInfoStore.getState().load({ ...EMPTY_PART_INFO, ...(detail.partInfo ?? {}) })
   useProductAccountabilityStore.getState().load(detail.productAccountability ?? [])
   applySettings(detail.settings)
+  // New jobs are ballooning only. One saved before the choice existed keeps measuring if it holds results.
+  const held = (detail.characteristics ?? []).some((c) => c.result !== null && c.result !== '')
+  useSettingsStore.getState().setMeasuring(detail.settings?.defaults?.measuring ?? held)
 
   useRecognizeStore.getState().clearTokens()
   useSessionStore.getState().openInspection({

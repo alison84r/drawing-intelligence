@@ -29,6 +29,12 @@ export interface DefaultTolerances {
   angular: number
   /** When set, linear defaults come from this table by size, not from decimal places. */
   scheme?: ToleranceScheme | null
+  /**
+   * The kind of job. False or absent: "Ballooning", the job ends when every balloon is confirmed.
+   * True: "Ballooning + Measure", measured results are recorded and judged against the limits.
+   * Stored results are kept either way; while it is off they are simply not shown or reported.
+   */
+  measuring?: boolean
 }
 
 export type DefaultToleranceKey = 'places0' | 'places1' | 'places2' | 'places3' | 'angular'
@@ -83,6 +89,7 @@ interface SettingsState {
   setDefault: (key: DefaultToleranceKey, value: number) => void
   setScheme: (scheme: ToleranceScheme | null) => void
   setLeaderDefault: (v: boolean) => void
+  setMeasuring: (v: boolean) => void
   setUndoDepth: (n: number) => void
 }
 
@@ -101,6 +108,7 @@ export const useSettingsStore = create<SettingsState>()(
       setDefault: (key, value) => set((s) => ({ defaults: { ...s.defaults, [key]: value } })),
       setScheme: (scheme) => set((s) => ({ defaults: { ...s.defaults, scheme } })),
       setLeaderDefault: (leaderDefault) => set({ leaderDefault }),
+      setMeasuring: (measuring) => set((s) => ({ defaults: { ...s.defaults, measuring } })),
       setUndoDepth: (n) =>
         set({ undoDepth: Math.min(MAX_UNDO_DEPTH, Math.max(MIN_UNDO_DEPTH, Math.round(Number.isFinite(n) ? n : MIN_UNDO_DEPTH))) }),
     }),

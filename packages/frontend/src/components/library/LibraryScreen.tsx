@@ -115,7 +115,7 @@ export function LibraryScreen() {
     const list = await api.listParts()
     const rev = list.flatMap((p) => p.revisions).find((r) => r.id === revisionId)
     const last = rev?.inspections[rev.inspections.length - 1]
-    const inspectionId = last?.id ?? (await api.createInspection(revisionId, 'Full FAI')).id
+    const inspectionId = last?.id ?? (await api.createInspection(revisionId, 'Inspection')).id
     await openInspectionFromServer(inspectionId)
   }
 

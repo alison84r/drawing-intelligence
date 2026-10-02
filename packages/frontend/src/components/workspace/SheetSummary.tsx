@@ -54,6 +54,7 @@ export function SheetSummary() {
   const scheme = defaults.scheme
   const toleranceNote = page?.tolerance?.findings.find((f) => f.level === 'warn' && !f.text.startsWith('Angular'))
 
+  const measuring = defaults.measuring === true
   const next = all.flagged > 0
     ? { text: `${all.flagged} flagged: decide on ${all.flagged === 1 ? 'it' : 'them'} first`, run: () => { useUiStore.getState().setShow('flagged'); selectRelative(1) } }
     : clean.length > 0 ? null
@@ -71,7 +72,9 @@ export function SheetSummary() {
         <div className="grid grid-cols-3 gap-2" data-testid="sheet-stats">
           <Stat value={p.total} label="balloons" />
           <Stat value={p.drafts} label="to check" tone={p.flagged > 0 ? 'bad' : undefined} />
-          <Stat value={`${p.measured}/${p.measurable}`} label="measured" tone={p.measurable > 0 && p.measured === p.measurable ? 'ok' : undefined} />
+          {measuring
+            ? <Stat value={`${p.measured}/${p.measurable}`} label="measured" tone={p.measurable > 0 && p.measured === p.measurable ? 'ok' : undefined} />
+            : <Stat value={p.accepted} label="confirmed" tone={p.total > 0 && p.drafts === 0 ? 'ok' : undefined} />}
         </div>
 
         {items.length > 0 && (
@@ -83,6 +86,15 @@ export function SheetSummary() {
               </Button>
             ) : next ? (
               <Button size="sm" className="mt-1.5 w-full justify-between gap-1.5" onClick={next.run}>{next.text} <ArrowRight /></Button>
+            ) : !measuring ? (
+              <>
+                <Button size="sm" className="mt-1.5 w-full justify-between gap-1.5" onClick={() => useUiStore.getState().setExportOpen(true)} data-testid="next-export">
+                  All {all.total} confirmed · Export the ballooned drawing <ArrowRight />
+                </Button>
+                <button type="button" className="mt-2 text-[11px] text-primary underline-offset-2 hover:underline" onClick={() => useSettingsStore.getState().setMeasuring(true)} data-testid="also-measure">
+                  Also record measured results
+                </button>
+              </>
             ) : (
               <p className="mt-1 text-xs font-medium text-status-pass">{all.fails > 0 ? `${all.fails} failed. Review them, then export the report.` : 'Everything is confirmed and measured. Export the report.'}</p>
             )}

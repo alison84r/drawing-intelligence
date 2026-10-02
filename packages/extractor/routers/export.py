@@ -17,6 +17,7 @@ from db import DrawingRevision, Inspection, get_session
 from export.as9102 import build_as9102_workbook
 from export.ballooned_pdf import build_ballooned_pdf
 from export.characteristics import derive_limits, display_status
+from export.stamp import is_measuring, without_results
 from export.ppap import build_ppap_workbook
 
 router = APIRouter(prefix="/api", tags=["export"])
@@ -50,6 +51,8 @@ def export_inspection(inspection_id: str, body: ExportRequest) -> Response:
         settings = i.settings or {}
         defaults = settings.get("defaults") or {}
         chars = [c.record for c in i.characteristics]
+        if not is_measuring(defaults):
+            chars = without_results(chars)  # ballooning only: the forms go out with an empty Results column
         pdf_bytes = rev.pdf
         product_rows = i.product_accountability or []
 
