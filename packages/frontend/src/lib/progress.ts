@@ -75,6 +75,11 @@ export function progressOf(items: Characteristic[], defaults: DefaultTolerances)
 
 export const byBalloon = (a: Characteristic, b: Characteristic) => a.balloonNumber - b.balloonNumber || (a.subNumber ?? 0) - (b.subNumber ?? 0)
 
+/** The rows of one callout: the balloon and its sub-rows (24, 24.1, 24.2), in order. A lone balloon is a callout of one. */
+export function calloutOf(items: Characteristic[], c: Characteristic): Characteristic[] {
+  return items.filter((o) => o.page === c.page && o.balloonNumber === c.balloonNumber).sort(byBalloon)
+}
+
 /** The balloons the current filter shows, in balloon order. */
 export function visibleItems(items: Characteristic[], defaults: DefaultTolerances, filter: WorkFilter): Characteristic[] {
   return items.filter((c) => matchesFilter(workStateOf(c, defaults), filter)).sort(byBalloon)

@@ -172,7 +172,7 @@ export function requirementText(c: Characteristic, limits: Limits): string {
   if (c.nominal === null) return c.specification
   const p = c.places
   const prefix = c.count > 1 ? `${c.count}X ` : ''
-  const sym = c.descriptionType === 'Diameter' ? 'Ø' : c.descriptionType === 'Radius' ? 'R' : ''
+  const sym = c.descriptionType === 'Diameter' ? 'Ø' : c.descriptionType === 'Radius' ? 'R' : c.descriptionType === 'Thread' ? 'M' : ''
   const unit = isAngular(c) ? '°' : ''
   const nominal = `${prefix}${sym}${c.nominal.toFixed(p)}${unit}`
   if (c.toleranceType === 'Basic') return `[${nominal}]`

@@ -9,7 +9,6 @@ import { Inspector } from '@/components/workspace/Inspector'
 import { SettingsDrawer } from '@/components/workspace/SettingsDrawer'
 import { SidePanel } from '@/components/workspace/SidePanel'
 import { WorkspaceTopBar } from '@/components/workspace/WorkspaceTopBar'
-import { FilterBar } from '@/components/workspace/FilterBar'
 import { WorkBadge } from '@/components/status/WorkBadge'
 import { balloonLabel, useCharacteristicStore } from '@/store/characteristicStore'
 import { useSettingsStore } from '@/store/settingsStore'
@@ -164,7 +163,6 @@ export function AppShell() {
     <TooltipProvider delayDuration={300}>
       <div className="relative flex h-full flex-col bg-muted/40">
         <WorkspaceTopBar />
-        <FilterBar />
         <div className="flex min-h-0 flex-1">
           <nav aria-label="Workspace" className="flex w-12 shrink-0 flex-col items-center gap-1 border-r border-divider bg-sidebar py-2">
             <RailButton hint={leftCollapsed ? 'Show the work queue' : 'Hide the work queue'} active={!leftCollapsed && !focus} onClick={toggleLeft} badge={leftCollapsed || focus ? progress.drafts : undefined}><ListChecks /></RailButton>

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { ArrowRight, Check, ChevronLeft, ChevronRight, CircleAlert, Info, MoreHorizontal, MousePointerClick, Palette, RotateCcw, Spline, Trash2, X, ZoomIn } from 'lucide-react'
+import { ArrowRight, Check, CheckCheck, ChevronLeft, ChevronRight, CircleAlert, Info, MoreHorizontal, Palette, RotateCcw, Spline, Trash2, X, ZoomIn } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { NativeSelect } from '@/components/ui/native-select'
 import { Switch } from '@/components/ui/switch'
@@ -28,7 +28,8 @@ import { api } from '@/lib/api'
 import { toggleZoomTo } from '@/lib/focus'
 import { acceptSelectedAndNext, selectRelative } from '@/lib/workflow'
 import { deriveLimits, displayStatus, fmt, hasNumericTolerance, limitPlaces, parseNumber, placesOf, requirementText } from '@/lib/tolerance'
-import { visibleItems, workStateOf } from '@/lib/progress'
+import { calloutOf, visibleItems, workStateOf } from '@/lib/progress'
+import { SheetSummary } from './SheetSummary'
 import { cn } from '@/lib/utils'
 
 const DESCRIPTIONS: DescriptionType[] = [
@@ -94,14 +95,18 @@ function CheckLine({ tone, title, detail }: { tone: 'ok' | 'warn' | 'bad' | 'pla
 }
 
 /** The callout exactly as it is printed, cut from the sheet, so the reading can be checked without hunting for it. */
-function Printed({ c }: { c: Characteristic }) {
+function Printed({ c, rows }: { c: Characteristic; rows: Characteristic[] }) {
   const revisionId = useSessionStore((s) => s.revisionId)
   const [failed, setFailed] = useState(false)
   useEffect(() => setFailed(false), [c.id])
+  // A callout is shown whole: every row of it in one picture, so the sub-rows are read in context.
+  const boxes = rows.map((r) => r.bbox).filter((b): b is NonNullable<Characteristic['bbox']> => !!b)
   if (!revisionId || !c.bbox || failed) return null
+  const x0 = Math.min(...boxes.map((b) => b.x)), y0 = Math.min(...boxes.map((b) => b.y))
+  const whole = { x: x0, y: y0, w: Math.max(...boxes.map((b) => b.x + b.w)) - x0, h: Math.max(...boxes.map((b) => b.y + b.h)) - y0 }
   const pad = Math.max(16, 1.4 * Math.min(c.bbox.w, c.bbox.h))
-  const side = Math.max(0, (3.2 * (c.bbox.h + 2 * pad) - (c.bbox.w + 2 * pad)) / 2)  // keep the picture about three times as wide as tall
-  const box = { x: Math.max(0, c.bbox.x - pad - side), y: Math.max(0, c.bbox.y - pad), w: c.bbox.w + 2 * (pad + side), h: c.bbox.h + 2 * pad }
+  const side = Math.max(0, (3.2 * (whole.h + 2 * pad) - (whole.w + 2 * pad)) / 2)  // keep the picture about three times as wide as tall
+  const box = { x: Math.max(0, whole.x - pad - side), y: Math.max(0, whole.y - pad), w: whole.w + 2 * (pad + side), h: whole.h + 2 * pad }
   const round = (v: number) => Math.round(v * 10) / 10
   return (
     <figure className="overflow-hidden rounded-lg border bg-white" data-testid="printed">
@@ -151,17 +156,8 @@ export function Inspector() {
     return () => window.removeEventListener('pointerdown', onDown, true)
   }, [menu])
 
-  if (!selected) {
-    return (
-      <aside className="flex h-full flex-col bg-background" data-testid="inspector">
-        <div className="flex flex-1 flex-col items-center justify-center gap-2 p-8 text-center text-xs text-muted-foreground">
-          <MousePointerClick className="size-5" />
-          <p>Select a balloon, a row, or a problem in the queue to see it here.</p>
-          <p>Press <kbd className="rounded border border-b-2 px-1 font-sans text-[10px]">J</kbd> for the next one, or <kbd className="rounded border border-b-2 px-1 font-sans text-[10px]">B</kbd> and click a dimension to add one by hand.</p>
-        </div>
-      </aside>
-    )
-  }
+  // Never empty: with nothing selected the panel shows where the sheet stands and what to do next.
+  if (!selected) return <SheetSummary />
 
   const c = selected
   const patch = (p: Partial<Characteristic>) => update(c.id, p)
@@ -178,6 +174,10 @@ export function Inspector() {
   const state = workStateOf(c, defaults)
   const unchecked = state === 'check' || state === 'flagged'
   const list = visibleItems(items, defaults, show)
+  const callout = calloutOf(items, c)
+  const calloutOpen = callout.filter((r) => r.status === 'Draft')
+  const select = useCharacteristicStore.getState().select
+  const acceptIds = useCharacteristicStore.getState().acceptIds
   const position = list.findIndex((i) => i.id === c.id)
   // The result opens by itself once the balloon is confirmed; the person's own choice wins after that.
   const resultOpen = open.result ?? !unchecked
@@ -230,7 +230,20 @@ export function Inspector() {
 
       <div className="min-h-0 flex-1 overflow-y-auto">
         <div className="space-y-3 px-4 py-3">
-          <Printed c={c} />
+          <Printed c={c} rows={callout} />
+          {callout.length > 1 && (
+            <div className="flex flex-wrap gap-1" role="tablist" aria-label="Rows of this callout" data-testid="callout-tabs">
+              {callout.map((r) => (
+                <button key={r.id} type="button" role="tab" aria-selected={r.id === c.id} onClick={() => select(r.id)} title={r.specification}
+                  className={cn('inline-flex h-6 max-w-full items-center gap-1 rounded-full border px-2 text-[11px] font-medium tabular-nums transition-colors hover:border-primary/60',
+                    r.id === c.id ? 'border-primary bg-primary text-primary-foreground' : 'bg-background text-muted-foreground')}>
+                  <b className="font-bold">{r.subNumber === null ? balloonLabel(r) : `.${r.subNumber}`}</b>
+                  <span className="truncate">{r.specification}</span>
+                  {r.status !== 'Draft' && <Check className="size-3 shrink-0" />}
+                </button>
+              ))}
+            </div>
+          )}
           <div>
             <div className="min-h-8 text-[26px] font-bold leading-tight tracking-tight tabular-nums" data-testid="requirement">
               {isGdt && c.gdt ? <Fcf gdt={c.gdt} /> : requirementText(c, limits) || <span className="text-base font-normal text-muted-foreground">No requirement yet</span>}
@@ -407,6 +420,13 @@ export function Inspector() {
             {unchecked ? <kbd className="ml-1 rounded border border-current/40 px-1 font-sans text-[10px] opacity-80">A</kbd> : <ArrowRight />}
           </Button>
         </TooltipTrigger><TooltipContent>{unchecked ? 'Confirm this balloon and go to the next one to check (A)' : 'Go to the next one that needs work (A)'}</TooltipContent></Tooltip>
+        {calloutOpen.length > 1 && (
+          <Tooltip><TooltipTrigger asChild>
+            <Button variant="outline" size="sm" className="h-8 gap-1 px-2" onClick={() => { acceptIds(calloutOpen.map((r) => r.id)); acceptSelectedAndNext() }} data-testid="accept-callout">
+              <CheckCheck /> All {calloutOpen.length}
+            </Button>
+          </TooltipTrigger><TooltipContent>Confirm every row of this callout and go to the next one. One undo step.</TooltipContent></Tooltip>
+        )}
         <Tooltip><TooltipTrigger asChild>
           <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => toggleZoomTo(c.id)} aria-label="Zoom to it on the sheet"><ZoomIn /></Button>
         </TooltipTrigger><TooltipContent>Zoom to it on the sheet, and back (F)</TooltipContent></Tooltip>
